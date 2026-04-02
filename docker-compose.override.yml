@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      target: dev
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      XDEBUG_MODE: develop,debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+
+  postgres:
+    ports:
+      - "5432:5432"
