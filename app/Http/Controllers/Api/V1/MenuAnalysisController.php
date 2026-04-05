@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\AnalyzeMenuImageAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MenuAnalysisResource;
+use App\Support\MenuJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -23,15 +24,14 @@ class MenuAnalysisController extends Controller
         }
 
         $raw = $action->handle($paths);
-        $clean = trim(preg_replace('/^```json\s*|\s*```$/s', '', $raw));
-        $decoded = json_decode($clean, true) ?? [];
-        // LLM may return {"items": [...]} instead of a plain array
-        $items = is_array($decoded) && array_is_list($decoded) ? $decoded : ($decoded['items'] ?? array_values($decoded));
+        /** @var array<string, mixed> $menu */
+        $menu = MenuJson::decodeMenuFromLlmText($raw);
 
         return new MenuAnalysisResource([
             'id' => Str::uuid()->toString(),
             'image_count' => count($paths),
-            'items' => $items,
+            'menu' => $menu,
+            'item_count' => MenuJson::dishCount($menu),
             'analyzed_at' => now()->toIso8601String(),
         ]);
     }

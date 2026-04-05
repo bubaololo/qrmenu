@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Actions\AnalyzeMenuImageAction;
+use App\Support\MenuJson;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
@@ -25,7 +26,7 @@ class MenuAnalyzer extends Page
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
-    /** @var array<int, array{paths: array<int, string>, items: array<mixed>, error: string|null}> */
+    /** @var array<int, array{paths: array<int, string>, menu: array<string, mixed>|null, error: string|null}> */
     public array $results = [];
 
     public static function getNavigationLabel(): string
@@ -95,24 +96,23 @@ class MenuAnalyzer extends Page
 
         try {
             $raw = $action->handle($files);
-            $clean = trim(preg_replace('/^```json\s*|\s*```$/s', '', $raw));
-            $decoded = json_decode($clean, true) ?? [];
-            $items = is_array($decoded) && array_is_list($decoded) ? $decoded : ($decoded['items'] ?? array_values($decoded));
+            /** @var array<string, mixed> $menu */
+            $menu = MenuJson::decodeMenuFromLlmText($raw);
 
             $this->results[] = [
                 'paths' => $files,
-                'items' => $items,
+                'menu' => $menu,
                 'error' => null,
             ];
         } catch (Throwable $e) {
             $this->results[] = [
                 'paths' => $files,
-                'items' => [],
+                'menu' => null,
                 'error' => $e->getMessage(),
             ];
         }
 
-        $total = collect($this->results)->sum(fn ($r) => count($r['items']));
+        $total = collect($this->results)->sum(fn ($r) => $r['menu'] !== null ? MenuJson::dishCount($r['menu']) : 0);
 
         Notification::make()
             ->title(count($files).' image(s) processed, '.$total.' items found')

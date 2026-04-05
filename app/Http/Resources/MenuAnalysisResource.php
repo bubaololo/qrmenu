@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MenuJson;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
@@ -19,10 +20,16 @@ class MenuAnalysisResource extends JsonApiResource
 
     public function toAttributes(Request $request): array
     {
+        $menu = $this->resource['menu'] ?? [];
+        if (! is_array($menu)) {
+            $menu = [];
+        }
+
         return [
-            'image_count' => $this->resource['image_count'],
-            'items' => $this->resource['items'],
-            'analyzed_at' => $this->resource['analyzed_at'],
+            'image_count' => (int) ($this->resource['image_count'] ?? 0),
+            'item_count' => (int) ($this->resource['item_count'] ?? MenuJson::dishCount($menu)),
+            'menu' => $menu,
+            'analyzed_at' => (string) ($this->resource['analyzed_at'] ?? now()->toIso8601String()),
         ];
     }
 }

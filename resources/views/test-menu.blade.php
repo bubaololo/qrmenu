@@ -58,6 +58,13 @@
         .card .name-original { font-size: .85rem; color: #666; margin-bottom: .6rem; }
         .card .description { font-size: .875rem; color: #444; line-height: 1.5; margin-bottom: .75rem; }
         .card .price { display: inline-block; font-weight: 700; color: #1a56db; background: #eff6ff; padding: .2rem .7rem; border-radius: 99px; font-size: .875rem; }
+        .restaurant-card { grid-column: 1 / -1; border-left: 4px solid #1a56db; }
+        .section-heading { grid-column: 1 / -1; margin-top: .75rem; padding-bottom: .35rem; border-bottom: 1px solid #e5e7eb; }
+        .section-heading:first-of-type { margin-top: 0; }
+        .section-heading h3 { font-size: .95rem; font-weight: 700; color: #374151; }
+        .muted { font-size: .85rem; color: #6b7280; margin-top: .15rem; }
+        .variations { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed #e5e7eb; font-size: .8rem; color: #4b5563; }
+        .variation-line { margin-top: .25rem; }
         details summary { cursor: pointer; color: #888; font-size: .85rem; margin-bottom: .5rem; }
         pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: .8rem; line-height: 1.5; white-space: pre; }
         .user-info { font-size: .875rem; color: #666; margin-bottom: 1.5rem; }
@@ -265,7 +272,8 @@
                 throw new Error(data.message ?? `Error ${res.status}`);
             }
 
-            renderResults(data.data.attributes);
+            const attrs = data.data?.attributes ?? data.data ?? data;
+            renderResults(attrs);
         } catch (e) {
             err.textContent = e.message;
         } finally {
@@ -274,28 +282,125 @@
         }
     }
 
-    // ── Render results ────────────────────────────────────────────────────────
+    // ── Render results (restaurant + sections/categories + items, bilingual + price) ─
+    function menuSections(menu) {
+        if (!menu || typeof menu !== 'object') return [];
+        const s = menu.sections ?? menu.categories ?? [];
+        return Array.isArray(s) ? s : [];
+    }
+
+    function bilingualPair(field) {
+        if (field == null) return { primary: '', secondary: null };
+        if (typeof field === 'string') return { primary: field, secondary: null };
+        if (typeof field !== 'object') return { primary: String(field), secondary: null };
+        const en = field.en != null ? String(field.en) : '';
+        const vi = field.vi != null ? String(field.vi) : '';
+        if (en !== '' && vi !== '' && en !== vi) return { primary: en, secondary: vi };
+        return { primary: en || vi, secondary: null };
+    }
+
+    function formatPriceDisplay(price, defaultCurrency) {
+        if (!price || typeof price !== 'object') return '';
+        const cur = price.currency != null && price.currency !== '' ? String(price.currency) : (defaultCurrency || '');
+        let amount = '';
+        if (price.type === 'range' && price.min != null && price.max != null) {
+            amount = String(price.min) + '–' + String(price.max);
+        } else if (price.value != null) {
+            amount = String(price.value);
+        }
+        const parts = [];
+        if (amount !== '') parts.push(amount);
+        if (cur !== '') parts.push(cur);
+        let line = parts.join(' ');
+        if (price.original_text) line += (line ? ' ' : '') + '(' + String(price.original_text) + ')';
+        const unit = price.unit_en || price.unit;
+        if (unit) line += (line ? ' ' : '') + String(unit);
+        return line.trim();
+    }
+
+    function renderVariationLines(variations, defaultCurrency) {
+        if (!Array.isArray(variations) || variations.length === 0) return '';
+        const lines = variations.map(v => {
+            const vn = bilingualPair(v.name);
+            const vp = v.price ? formatPriceDisplay(v.price, defaultCurrency) : '';
+            const label = [vn.primary, vn.secondary].filter(Boolean).join(' · ');
+            return `<div class="variation-line">${esc(label)}${vp ? ` — <strong>${esc(vp)}</strong>` : ''}</div>`;
+        }).join('');
+        return `<div class="variations">${lines}</div>`;
+    }
+
     function renderResults(attrs) {
-        const items = attrs.items ?? [];
+        const menu = attrs.menu;
+        const itemCount = attrs.item_count ?? 0;
+        const imageCount = attrs.image_count ?? 0;
         document.getElementById('results-title').textContent =
-            `${items.length} items found across ${attrs.image_count} image(s)`;
+            `${itemCount} dish(es) from ${imageCount} image(s)`;
 
         const grid = document.getElementById('menu-grid');
         grid.innerHTML = '';
-        items.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                ${item.category ? `<div class="category">${esc(item.category)}</div>` : ''}
-                <div class="name">${esc(item.name_en ?? item.original_name ?? '—')}</div>
-                ${item.original_name && item.name_en ? `<div class="name-original">${esc(item.original_name)}</div>` : ''}
-                ${item.description_en ? `<div class="description">${esc(item.description_en)}</div>` : ''}
-                ${item.price ? `<span class="price">${esc(String(item.price))} ${esc(item.currency ?? '')}</span>` : ''}
-            `;
-            grid.appendChild(card);
-        });
 
-        document.getElementById('raw-json').textContent = JSON.stringify(items, null, 2);
+        if (!menu || typeof menu !== 'object' || (menu.sections == null && menu.categories == null && !menu.restaurant)) {
+            const fallback = document.createElement('div');
+            fallback.className = 'card';
+            fallback.style.gridColumn = '1 / -1';
+            fallback.textContent = 'No menu data in response.';
+            grid.appendChild(fallback);
+        } else {
+            const defaultCur = menu.restaurant && menu.restaurant.currency != null
+                ? String(menu.restaurant.currency) : '';
+
+            if (menu.restaurant) {
+                const r = menu.restaurant;
+                const nameP = bilingualPair(r.name);
+                const addrP = bilingualPair(r.address);
+                const card = document.createElement('div');
+                card.className = 'card restaurant-card';
+                const extra = [];
+                if (r.city) extra.push(esc(String(r.city)));
+                if (r.district) extra.push(esc(String(r.district)));
+                if (r.opening_hours && typeof r.opening_hours === 'string') extra.push(esc(r.opening_hours));
+                card.innerHTML = `
+                    <div class="category">Restaurant</div>
+                    <div class="name">${esc(nameP.primary || '—')}</div>
+                    ${nameP.secondary ? `<div class="name-original">${esc(nameP.secondary)}</div>` : ''}
+                    ${addrP.primary ? `<div class="description">${esc(addrP.primary)}</div>` : ''}
+                    ${addrP.secondary ? `<div class="muted">${esc(addrP.secondary)}</div>` : ''}
+                    ${extra.length ? `<div class="muted">${extra.join(' · ')}</div>` : ''}
+                `;
+                grid.appendChild(card);
+            }
+
+            menuSections(menu).forEach((section, idx) => {
+                const catP = bilingualPair(section.category_name);
+                const heading = document.createElement('div');
+                heading.className = 'section-heading';
+                heading.innerHTML = `
+                    <h3>${esc(catP.primary || ('Section ' + (idx + 1)))}</h3>
+                    ${catP.secondary ? `<div class="muted">${esc(catP.secondary)}</div>` : ''}
+                `;
+                grid.appendChild(heading);
+
+                const secItems = Array.isArray(section.items) ? section.items : [];
+                for (const item of secItems) {
+                    const nameP = bilingualPair(item.name);
+                    const descP = item.description ? bilingualPair(item.description) : { primary: '', secondary: null };
+                    const priceStr = item.price ? formatPriceDisplay(item.price, defaultCur) : '';
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="name">${esc(nameP.primary || '—')}</div>
+                        ${nameP.secondary ? `<div class="name-original">${esc(nameP.secondary)}</div>` : ''}
+                        ${descP.primary ? `<div class="description">${esc(descP.primary)}</div>` : ''}
+                        ${descP.secondary ? `<div class="muted">${esc(descP.secondary)}</div>` : ''}
+                        ${priceStr ? `<span class="price">${esc(priceStr)}</span>` : ''}
+                        ${renderVariationLines(item.variations, defaultCur)}
+                    `;
+                    grid.appendChild(card);
+                }
+            });
+        }
+
+        document.getElementById('raw-json').textContent = JSON.stringify(menu ?? {}, null, 2);
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'block';
     }
