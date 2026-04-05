@@ -11,7 +11,6 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class MenuAnalyzer extends Page
@@ -94,15 +93,11 @@ class MenuAnalyzer extends Page
         $this->results = [];
         $action = app(AnalyzeMenuImageAction::class);
 
-        $publicUrls = array_map(
-            fn (string $p) => Storage::disk('public')->url($p),
-            $files,
-        );
-
         try {
-            $raw = $action->handle($publicUrls);
+            $raw = $action->handle($files);
             $clean = trim(preg_replace('/^```json\s*|\s*```$/s', '', $raw));
-            $items = json_decode($clean, true) ?? [];
+            $decoded = json_decode($clean, true) ?? [];
+            $items = is_array($decoded) && array_is_list($decoded) ? $decoded : ($decoded['items'] ?? array_values($decoded));
 
             $this->results[] = [
                 'paths' => $files,
