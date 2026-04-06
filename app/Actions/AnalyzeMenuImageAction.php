@@ -26,6 +26,13 @@ class AnalyzeMenuImageAction
 
     private const HTTP_TIMEOUT_MAX_SECONDS = 3600;
 
+    private const MAX_RAW_BYTES = 7 * 1024 * 1024; // 7 MB — DashScope base64 limit
+
+    private const SUPPORTED_MIMES = [
+        'image/jpeg', 'image/png', 'image/bmp',
+        'image/tiff', 'image/webp', 'image/heic',
+    ];
+
     /**
      * @param  string|string[]  $images  Local storage paths (disk: public) or data URIs
      */
@@ -109,14 +116,27 @@ class AnalyzeMenuImageAction
             );
         }
 
+        $isPartial = $response->header('x-dashscope-partialresponse') === 'true';
+        $finishReason = $response->json('choices.0.finish_reason');
+
         info('LLM response success', [
             'duration_ms' => $durationMs,
             'status' => $response->status(),
+            'finish_reason' => $finishReason,
+            'is_partial' => $isPartial,
+            'partial_header' => $response->header('x-dashscope-partialresponse'),
             'usage' => $response->json('usage'),
-            'finish_reason' => $response->json('choices.0.finish_reason'),
             'content_length' => strlen($text),
+            'all_headers' => $response->headers(),
             'raw' => $text,
         ]);
+
+        if ($isPartial) {
+            info('LLM partial response — DashScope timed out internally, content may be incomplete', [
+                'raw_length' => strlen($text),
+                'raw_preview' => substr($text, 0, 500),
+            ]);
+        }
 
         return $text;
     }
@@ -252,11 +272,38 @@ class AnalyzeMenuImageAction
             return $path;
         }
 
-        $contents = Storage::disk('public')->get($path);
         $fullPath = Storage::disk('public')->path($path);
         $mime = mime_content_type($fullPath) ?: 'image/jpeg';
 
-        return 'data:'.$mime.';base64,'.base64_encode($contents);
+        info('Image prepared', ['path' => $path, 'mime' => $mime]);
+
+        if (! in_array($mime, self::SUPPORTED_MIMES, true)) {
+            throw new \InvalidArgumentException(
+                "Unsupported image type \"{$mime}\" (supported: ".implode(', ', self::SUPPORTED_MIMES).').'
+            );
+        }
+
+        $raw = Storage::disk('public')->get($path);
+        $rawBytes = strlen($raw);
+        $b64 = base64_encode($raw);
+        $b64Bytes = strlen($b64);
+
+        info('Image encoded', [
+            'path' => $path,
+            'raw_bytes' => $rawBytes,
+            'raw_mb' => round($rawBytes / 1024 / 1024, 2),
+            'b64_bytes' => $b64Bytes,
+            'b64_mb' => round($b64Bytes / 1024 / 1024, 2),
+            'within_limit' => $rawBytes <= self::MAX_RAW_BYTES,
+        ]);
+
+        if ($rawBytes > self::MAX_RAW_BYTES) {
+            throw new RuntimeException(
+                sprintf('Image "%s" is %.1f MB — exceeds DashScope\'s 7 MB base64 limit.', $path, $rawBytes / 1024 / 1024)
+            );
+        }
+
+        return 'data:'.$mime.';base64,'.$b64;
     }
 
     private function resolveHttpTimeoutSeconds(): int
