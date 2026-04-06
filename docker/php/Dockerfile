@@ -21,6 +21,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 FROM base AS dev
 
 RUN apk add --no-cache \

@@ -29,6 +29,8 @@ class MenuAnalysisResource extends JsonApiResource
             'image_count' => (int) ($this->resource['image_count'] ?? 0),
             'item_count' => (int) ($this->resource['item_count'] ?? MenuJson::dishCount($menu)),
             'menu' => $menu,
+            'llm_raw_text' => (string) ($this->resource['llm_raw_text'] ?? ''),
+            'llm_duration_ms' => (int) ($this->resource['llm_duration_ms'] ?? 0),
             'analyzed_at' => (string) ($this->resource['analyzed_at'] ?? now()->toIso8601String()),
         ];
     }

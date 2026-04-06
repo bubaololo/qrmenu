@@ -4,6 +4,10 @@ namespace App\Support;
 
 final class MenuJson
 {
+    private const JSON_DECODE_FLAGS = JSON_INVALID_UTF8_SUBSTITUTE | JSON_BIGINT_AS_STRING;
+
+    private const JSON_DECODE_DEPTH = 2048;
+
     /**
      * Parse JSON from an LLM reply: strip markdown fences, then decode the first top-level object or array.
      * Extra prose before/after the JSON does not break parsing (unlike json_decode on the full string).
@@ -46,14 +50,14 @@ final class MenuJson
             return $decoded;
         };
 
-        $decoded = json_decode($text, true);
+        $decoded = json_decode($text, true, self::JSON_DECODE_DEPTH, self::JSON_DECODE_FLAGS);
         if (json_last_error() === JSON_ERROR_NONE) {
             return $normalizeListRoot($decoded);
         }
 
         $slice = self::extractBalanced($text, '{', '}');
         if ($slice !== null) {
-            $decoded = json_decode($slice, true);
+            $decoded = json_decode($slice, true, self::JSON_DECODE_DEPTH, self::JSON_DECODE_FLAGS);
             if (json_last_error() === JSON_ERROR_NONE) {
                 return $normalizeListRoot($decoded);
             }
@@ -61,11 +65,18 @@ final class MenuJson
 
         $slice = self::extractBalanced($text, '[', ']');
         if ($slice !== null) {
-            $decoded = json_decode($slice, true);
+            $decoded = json_decode($slice, true, self::JSON_DECODE_DEPTH, self::JSON_DECODE_FLAGS);
             if (json_last_error() === JSON_ERROR_NONE) {
                 return $normalizeListRoot($decoded);
             }
         }
+
+        info('Menu JSON decode failed', [
+            'json_last_error' => json_last_error_msg(),
+            'text_length' => strlen($text),
+            'head' => mb_substr($text, 0, 240),
+            'tail' => mb_substr($text, max(0, mb_strlen($text) - 240)),
+        ]);
 
         return [];
     }

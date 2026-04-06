@@ -14,7 +14,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if (str_starts_with(config('app.url'), 'https://')) {
+        if (
+            ! app()->isLocal()
+            && str_starts_with((string) config('app.url'), 'https://')
+        ) {
             URL::forceScheme('https');
         }
 

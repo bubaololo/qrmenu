@@ -22,6 +22,13 @@
         .btn-gray { background: #6b7280; }
         .btn-gray:hover { background: #4b5563; }
         .error-msg { color: #c00; font-size: .875rem; margin-top: .5rem; }
+        #analyze-debug-wrap { display: none; margin-top: .75rem; max-width: 100%; }
+        #analyze-debug-wrap summary { cursor: pointer; color: #555; font-size: .85rem; margin-bottom: .35rem; }
+        #analyze-debug-body {
+            background: #1e1e1e; color: #d4d4d4; padding: .75rem; border-radius: 6px;
+            font-size: .72rem; line-height: 1.45; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+            max-height: 50vh;
+        }
 
         /* Upload */
         #upload-section { display: none; }
@@ -111,6 +118,12 @@
             Analyzing, please wait…
         </div>
         <p class="error-msg" id="analyze-error"></p>
+        <div id="analyze-debug-wrap">
+            <details open>
+                <summary>Request / response details (debug)</summary>
+                <pre id="analyze-debug-body"></pre>
+            </details>
+        </div>
     </div>
 </div>
 
@@ -247,6 +260,11 @@
         const err = document.getElementById('analyze-error');
 
         err.textContent = '';
+        const debugWrap = document.getElementById('analyze-debug-wrap');
+        const debugBody = document.getElementById('analyze-debug-body');
+        debugWrap.style.display = 'none';
+        debugBody.textContent = '';
+
         btn.disabled = true;
         spinner.classList.add('active');
 
@@ -266,10 +284,21 @@
                 return;
             }
 
-            const data = await res.json();
+            let data = {};
+            try {
+                data = await res.json();
+            } catch (_) {
+                err.textContent = `Error ${res.status} (invalid JSON body)`;
+                return;
+            }
 
             if (!res.ok) {
-                throw new Error(data.message ?? `Error ${res.status}`);
+                err.textContent = data.message ?? `Error ${res.status}`;
+                if (data.debug) {
+                    debugBody.textContent = JSON.stringify(data.debug, null, 2);
+                    debugWrap.style.display = 'block';
+                }
+                return;
             }
 
             const attrs = data.data?.attributes ?? data.data ?? data;
@@ -282,11 +311,159 @@
         }
     }
 
+    // ── JSON:API attributes (snake_case or camelCase) ───────────────────────────
+    function apiAttr(attrs, snake, camel) {
+        if (attrs[snake] !== undefined && attrs[snake] !== null) {
+            return attrs[snake];
+        }
+        if (camel && attrs[camel] !== undefined && attrs[camel] !== null) {
+            return attrs[camel];
+        }
+
+        return undefined;
+    }
+
+    function extractBalancedClient(text, open, close) {
+        const start = text.indexOf(open);
+        if (start === -1) {
+            return null;
+        }
+        let depth = 0;
+        let inString = false;
+        let escape = false;
+        for (let i = start; i < text.length; i++) {
+            const c = text[i];
+            if (inString) {
+                if (escape) {
+                    escape = false;
+                    continue;
+                }
+                if (c === '\\') {
+                    escape = true;
+                    continue;
+                }
+                if (c === '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c === '"') {
+                inString = true;
+                continue;
+            }
+            if (c === open) {
+                depth++;
+            } else if (c === close) {
+                depth--;
+                if (depth === 0) {
+                    return text.slice(start, i + 1);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function decodeMenuFromLlmTextClient(raw) {
+        if (typeof raw !== 'string') {
+            return null;
+        }
+        let t = raw.trim();
+        if (t.startsWith('\uFEFF')) {
+            t = t.slice(1).trim();
+        }
+        t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+        const normalizeListRoot = decoded => {
+            if (decoded == null || typeof decoded !== 'object') {
+                return null;
+            }
+            if (Array.isArray(decoded)) {
+                if (decoded.length === 0) {
+                    return null;
+                }
+
+                return {
+                    sections: [{ category_name: { vi: '', en: '' }, sort_order: 0, items: decoded }],
+                };
+            }
+
+            return decoded;
+        };
+
+        try {
+            return normalizeListRoot(JSON.parse(t));
+        } catch (_) { /* continue */ }
+        let slice = extractBalancedClient(t, '{', '}');
+        if (slice) {
+            try {
+                return normalizeListRoot(JSON.parse(slice));
+            } catch (_) { /* continue */ }
+        }
+        slice = extractBalancedClient(t, '[', ']');
+        if (slice) {
+            try {
+                return normalizeListRoot(JSON.parse(slice));
+            } catch (_) { /* continue */ }
+        }
+
+        return null;
+    }
+
+    function effectiveMenu(attrs) {
+        const direct = apiAttr(attrs, 'menu', 'menu');
+        if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
+            const hasSec = Array.isArray(direct.sections) && direct.sections.length > 0;
+            const hasCat = Array.isArray(direct.categories) && direct.categories.length > 0;
+            if (direct.restaurant != null || hasSec || hasCat) {
+                return direct;
+            }
+        }
+        const raw = apiAttr(attrs, 'llm_raw_text', 'llmRawText');
+        if (typeof raw === 'string' && raw.trim()) {
+            const parsed = decodeMenuFromLlmTextClient(raw);
+            if (parsed) {
+                return parsed;
+            }
+        }
+
+        return (direct && typeof direct === 'object' && !Array.isArray(direct)) ? direct : {};
+    }
+
+    function formatRawJsonBlock(attrs) {
+        const raw = apiAttr(attrs, 'llm_raw_text', 'llmRawText');
+        if (typeof raw === 'string' && raw.trim().length) {
+            try {
+                return JSON.stringify(JSON.parse(raw.trim()), null, 2);
+            } catch (_) {
+                const slice = extractBalancedClient(raw, '{', '}');
+                if (slice) {
+                    try {
+                        return JSON.stringify(JSON.parse(slice), null, 2);
+                    } catch (_) { /* continue */ }
+                }
+            }
+
+            return raw;
+        }
+        const menu = apiAttr(attrs, 'menu', 'menu');
+
+        try {
+            return JSON.stringify(menu ?? {}, null, 2);
+        } catch (_) {
+            return String(menu);
+        }
+    }
+
     // ── Render results (restaurant + sections/categories + items, bilingual + price) ─
     function menuSections(menu) {
         if (!menu || typeof menu !== 'object') return [];
         const s = menu.sections ?? menu.categories ?? [];
         return Array.isArray(s) ? s : [];
+    }
+
+    function countDishes(menu) {
+        return menuSections(menu).reduce((n, s) => n + (Array.isArray(s.items) ? s.items.length : 0), 0);
     }
 
     function bilingualPair(field) {
@@ -330,20 +507,26 @@
     }
 
     function renderResults(attrs) {
-        const menu = attrs.menu;
-        const itemCount = attrs.item_count ?? 0;
-        const imageCount = attrs.image_count ?? 0;
+        const menu = effectiveMenu(attrs);
+        const parsedCount = countDishes(menu);
+        const itemCount = parsedCount > 0 ? parsedCount : (attrs.item_count ?? attrs.itemCount ?? 0);
+        const imageCount = attrs.image_count ?? attrs.imageCount ?? 0;
+        const llmMs = attrs.llm_duration_ms ?? attrs.llmDurationMs ?? 0;
+        const timing = llmMs > 0 ? ` · LLM ${(llmMs / 1000).toFixed(1)}s` : '';
         document.getElementById('results-title').textContent =
-            `${itemCount} dish(es) from ${imageCount} image(s)`;
+            `${itemCount} dish(es) from ${imageCount} image(s)${timing}`;
 
         const grid = document.getElementById('menu-grid');
         grid.innerHTML = '';
 
-        if (!menu || typeof menu !== 'object' || (menu.sections == null && menu.categories == null && !menu.restaurant)) {
+        const hasRestaurant = menu.restaurant != null && typeof menu.restaurant === 'object';
+        const hasDishes = menuSections(menu).some(s => Array.isArray(s.items) && s.items.length > 0);
+
+        if (!hasRestaurant && !hasDishes) {
             const fallback = document.createElement('div');
             fallback.className = 'card';
             fallback.style.gridColumn = '1 / -1';
-            fallback.textContent = 'No menu data in response.';
+            fallback.textContent = 'No structured menu to show as cards — open «Raw JSON» below for the full LLM text.';
             grid.appendChild(fallback);
         } else {
             const defaultCur = menu.restaurant && menu.restaurant.currency != null
@@ -400,7 +583,7 @@
             });
         }
 
-        document.getElementById('raw-json').textContent = JSON.stringify(menu ?? {}, null, 2);
+        document.getElementById('raw-json').textContent = formatRawJsonBlock(attrs);
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'block';
     }

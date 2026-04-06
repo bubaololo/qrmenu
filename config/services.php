@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    /*
+    | OpenAI-compatible Chat Completions HTTP client (any host; currently Qwen via Alibaba URL in code).
+    | Wall time for upload + inference. Override via LLM_HTTP_TIMEOUT (seconds).
+    | Clamped in AnalyzeMenuImageAction to 60–3600.
+    */
+    'openai_compatible' => [
+        'http_timeout_seconds' => (int) env('LLM_HTTP_TIMEOUT', 3600),
+    ],
+
 ];

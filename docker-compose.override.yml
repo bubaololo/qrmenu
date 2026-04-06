@@ -4,6 +4,8 @@ services:
       target: dev
     volumes:
       - .:/var/www/html
+      # PHP limits without rebuilding the image (dev xdebug layer build is slow on some hosts).
+      - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     ports:
       - "8000:8000"
     # WSL2 / Linux: map host.docker.internal to the Docker host (Windows IDE listens here with Docker Desktop)

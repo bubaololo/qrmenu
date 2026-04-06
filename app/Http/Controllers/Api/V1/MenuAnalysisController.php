@@ -15,7 +15,7 @@ class MenuAnalysisController extends Controller
     {
         $request->validate([
             'images' => ['required', 'array', 'min:1'],
-            'images.*' => ['required', 'image', 'max:20480'],
+            'images.*' => ['required', 'image', 'max:10240'],
         ]);
 
         $paths = [];
@@ -23,7 +23,10 @@ class MenuAnalysisController extends Controller
             $paths[] = $file->store('menu-analyzer-uploads', 'public');
         }
 
+        $llmStarted = microtime(true);
         $raw = $action->handle($paths);
+        $llmDurationMs = (int) round((microtime(true) - $llmStarted) * 1000);
+
         /** @var array<string, mixed> $menu */
         $menu = MenuJson::decodeMenuFromLlmText($raw);
 
@@ -32,6 +35,8 @@ class MenuAnalysisController extends Controller
             'image_count' => count($paths),
             'menu' => $menu,
             'item_count' => MenuJson::dishCount($menu),
+            'llm_raw_text' => $raw,
+            'llm_duration_ms' => $llmDurationMs,
             'analyzed_at' => now()->toIso8601String(),
         ]);
     }
