@@ -76,6 +76,10 @@
         pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: .8rem; line-height: 1.5; white-space: pre; }
         .user-info { font-size: .875rem; color: #666; margin-bottom: 1.5rem; }
         .user-info span { font-weight: 600; color: #222; }
+        .restaurant-mode-panel { display: none; }
+        .restaurant-mode-panel.mode-id-row { gap: .5rem; align-items: center; flex-wrap: wrap; }
+        .restaurant-mode-panel.is-visible:not(.mode-id-row) { display: block; }
+        .restaurant-mode-panel.mode-id-row.is-visible { display: flex; }
     </style>
 </head>
 <body>
@@ -108,6 +112,45 @@
     </div>
 
     <div class="previews" id="previews"></div>
+
+    <div style="max-width:480px; margin-bottom:1.25rem;">
+        <label style="display:block; font-size:.875rem; margin-bottom:.5rem; color:#444;">
+            Restaurant
+            <span style="color:#888; font-weight:400;">(optional — saves the analyzed menu)</span>
+        </label>
+
+        <!-- Mode tabs -->
+        <div style="display:flex; gap:.5rem; margin-bottom:.75rem; flex-wrap:wrap;">
+            <button type="button" class="mode-btn active" data-mode="none"  onclick="setMode('none')"  style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">Skip</button>
+            <button type="button" class="mode-btn"        data-mode="mine"  onclick="setMode('mine')"  style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">My restaurants</button>
+            <button type="button" class="mode-btn"        data-mode="id"    onclick="setMode('id')"    style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">By ID</button>
+            <button type="button" class="mode-btn"        data-mode="new"   onclick="setMode('new')"   style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">Create new</button>
+        </div>
+
+        <!-- Mine -->
+        <div id="mode-mine" class="restaurant-mode-panel">
+            <select id="restaurant-select" style="width:100%; padding:.55rem .9rem; border:1px solid #ccc; border-radius:6px; font-size:1rem; background:#fff;">
+                <option value="">Loading…</option>
+            </select>
+            <p id="restaurant-select-hint" class="muted" style="margin-top:.5rem;"></p>
+        </div>
+
+        <!-- By ID -->
+        <div id="mode-id" class="restaurant-mode-panel mode-id-row">
+            <input type="number" id="restaurant-id-input" placeholder="e.g. 42" min="1" step="1"
+                   style="width:120px; padding:.55rem .9rem; border:1px solid #ccc; border-radius:6px; font-size:1rem;"
+                   oninput="onRestaurantIdInput()">
+            <span id="restaurant-id-status" style="font-size:.85rem; color:#888;"></span>
+        </div>
+
+        <!-- Create new -->
+        <div id="mode-new" class="restaurant-mode-panel">
+            <button type="button" class="btn btn-sm" id="create-restaurant-btn" onclick="createRestaurant()">
+                Create empty restaurant
+            </button>
+            <span id="create-restaurant-status" style="font-size:.85rem; color:#16a34a; margin-left:.75rem;"></span>
+        </div>
+    </div>
 
     <div class="actions">
         <button class="btn" id="analyze-btn" onclick="analyze()">Analyze</button>
@@ -201,10 +244,193 @@
         document.getElementById('results-section').style.display = 'none';
     }
 
-    function showUpload(email) {
+    async function showUpload(email) {
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
         document.getElementById('user-email').textContent = email ?? '';
+        await loadRestaurants();
+    }
+
+    // ── Restaurant selector ───────────────────────────────────────────────────
+    let currentMode = 'none';
+    let selectedRestaurantId = null;
+
+    function setMode(mode) {
+        currentMode = mode;
+        selectedRestaurantId = null;
+        const idInput = document.getElementById('restaurant-id-input');
+        if (idInput) {
+            idInput.value = '';
+        }
+        const idStatus = document.getElementById('restaurant-id-status');
+        if (idStatus) {
+            idStatus.textContent = '';
+        }
+        const createStatus = document.getElementById('create-restaurant-status');
+        if (createStatus) {
+            createStatus.textContent = '';
+        }
+
+        ['none', 'mine', 'id', 'new'].forEach((m) => {
+            const el = document.getElementById(`mode-${m}`);
+            if (!el) {
+                return;
+            }
+            el.classList.toggle('is-visible', m === mode && mode !== 'none');
+        });
+        document.querySelectorAll('.mode-btn').forEach((btn) => {
+            const active = btn.dataset.mode === mode;
+            btn.style.background = active ? '#1a56db' : '#fff';
+            btn.style.color = active ? '#fff' : '';
+            btn.style.borderColor = active ? '#1a56db' : '#ccc';
+        });
+
+        if (mode === 'mine') {
+            const select = document.getElementById('restaurant-select');
+            if (select && (select.options.length <= 1 || select.options[0].textContent === 'Loading…')) {
+                loadRestaurants();
+            } else if (select) {
+                selectedRestaurantId = select.value || null;
+            }
+        }
+    }
+
+    async function loadRestaurants() {
+        const token = sessionStorage.getItem('api_token');
+        const select = document.getElementById('restaurant-select');
+        const hint = document.getElementById('restaurant-select-hint');
+        if (!select) {
+            return;
+        }
+        select.innerHTML = '<option value="">Loading…</option>';
+        select.disabled = true;
+        if (hint) {
+            hint.textContent = '';
+        }
+        try {
+            const res = await fetch(`${API}/restaurants`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                select.innerHTML = '<option value="">Failed to load</option>';
+                if (hint) {
+                    hint.textContent = payload.message ?? `HTTP ${res.status}`;
+                    hint.style.color = '#c00';
+                }
+                select.disabled = false;
+                return;
+            }
+            const list = Array.isArray(payload.data) ? payload.data : [];
+            select.innerHTML = '<option value="">— select —</option>';
+            list.forEach((r) => {
+                const opt = document.createElement('option');
+                opt.value = String(r.id);
+                opt.textContent = `#${r.id} ${r.name}` + (r.city ? ` · ${r.city}` : '');
+                select.appendChild(opt);
+            });
+            select.onchange = () => {
+                selectedRestaurantId = select.value || null;
+            };
+            if (list.length === 0) {
+                select.innerHTML = '<option value="">No restaurants — use Create new or By ID</option>';
+                if (hint) {
+                    hint.textContent = 'You have no restaurants yet.';
+                    hint.style.color = '#6b7280';
+                }
+            } else if (hint) {
+                hint.textContent = 'Only restaurants you own are listed.';
+                hint.style.color = '#6b7280';
+            }
+        } catch (e) {
+            select.innerHTML = '<option value="">Network error</option>';
+            if (hint) {
+                hint.textContent = e.message;
+                hint.style.color = '#c00';
+            }
+        } finally {
+            select.disabled = false;
+            if (currentMode === 'mine') {
+                selectedRestaurantId = select.value || null;
+            }
+        }
+    }
+
+    function onRestaurantIdInput() {
+        const input = document.getElementById('restaurant-id-input');
+        const statusEl = document.getElementById('restaurant-id-status');
+        const raw = input ? input.value.trim() : '';
+        const n = raw === '' ? NaN : Number(raw);
+        if (raw === '' || !Number.isInteger(n) || n < 1) {
+            selectedRestaurantId = null;
+            if (statusEl) {
+                statusEl.textContent = raw === '' ? '' : 'Enter a positive integer restaurant ID.';
+                statusEl.style.color = '#c00';
+            }
+            return;
+        }
+        selectedRestaurantId = String(n);
+        if (statusEl) {
+            statusEl.textContent = `Will save to restaurant #${n} (you must be owner).`;
+            statusEl.style.color = '#6b7280';
+        }
+    }
+
+    async function createRestaurant() {
+        const token = sessionStorage.getItem('api_token');
+        const btn = document.getElementById('create-restaurant-btn');
+        const status = document.getElementById('create-restaurant-status');
+        btn.disabled = true;
+        status.textContent = 'Creating…';
+        status.style.color = '#888';
+        try {
+            const res = await fetch(`${API}/restaurants`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                status.textContent = body.message ?? `HTTP ${res.status}`;
+                status.style.color = '#c00';
+                return;
+            }
+            const id = body.data?.id;
+            if (id == null) {
+                status.textContent = 'Invalid response: missing restaurant id';
+                status.style.color = '#c00';
+                return;
+            }
+            selectedRestaurantId = String(id);
+            status.textContent = `Created restaurant #${id} — analysis will be saved there.`;
+            status.style.color = '#16a34a';
+            await loadRestaurants();
+            const select = document.getElementById('restaurant-select');
+            if (select) {
+                select.value = String(id);
+            }
+        } catch (e) {
+            status.textContent = 'Failed: ' + e.message;
+            status.style.color = '#c00';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function getSelectedRestaurantId() {
+        if (currentMode === 'none') {
+            return null;
+        }
+        if (currentMode === 'mine') {
+            const v = document.getElementById('restaurant-select')?.value?.trim();
+            return v && v !== '' ? v : null;
+        }
+        if (currentMode === 'id') {
+            return selectedRestaurantId;
+        }
+        if (currentMode === 'new') {
+            return selectedRestaurantId;
+        }
+        return null;
     }
 
     // ── File selection ────────────────────────────────────────────────────────
@@ -270,6 +496,28 @@
 
         const fd = new FormData();
         selectedFiles.forEach((f, i) => fd.append(`images[${i}]`, f));
+        const restaurantId = getSelectedRestaurantId();
+        if (currentMode === 'mine' && !restaurantId) {
+            err.textContent = 'Choose a restaurant from the list, or switch mode to Skip / By ID / Create new.';
+            btn.disabled = false;
+            spinner.classList.remove('active');
+            return;
+        }
+        if (currentMode === 'id' && !restaurantId) {
+            err.textContent = 'Enter a valid restaurant ID, or switch to another mode.';
+            btn.disabled = false;
+            spinner.classList.remove('active');
+            return;
+        }
+        if (currentMode === 'new' && !restaurantId) {
+            err.textContent = 'Create a restaurant first (button above), or switch mode.';
+            btn.disabled = false;
+            spinner.classList.remove('active');
+            return;
+        }
+        if (restaurantId) {
+            fd.append('restaurant_id', restaurantId);
+        }
 
         try {
             const res = await fetch(`${API}/menu-analyses`, {
@@ -584,6 +832,12 @@
         }
 
         document.getElementById('raw-json').textContent = formatRawJsonBlock(attrs);
+        if (attrs.saved_menu_id) {
+            const note = document.createElement('p');
+            note.style.cssText = 'color:#16a34a; font-size:.875rem; margin-bottom:.75rem;';
+            note.textContent = `✓ Saved as Menu #${attrs.saved_menu_id}`;
+            document.querySelector('.results-header').appendChild(note);
+        }
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'block';
     }

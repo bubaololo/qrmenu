@@ -3,9 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Actions\AnalyzeMenuImageAction;
+use App\Actions\SaveMenuAnalysisAction;
+use App\Enums\RestaurantUserRole;
+use App\Models\RestaurantUser;
 use App\Support\MenuJson;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -54,6 +58,25 @@ class MenuAnalyzer extends Page
         return $schema
             ->components([
                 Form::make([
+                    Select::make('restaurant_id')
+                        ->label('Restaurant')
+                        ->helperText('Select a restaurant to save the analyzed menu.')
+                        ->options(function (): array {
+                            $userId = auth()->id();
+
+                            return RestaurantUser::query()
+                                ->where('user_id', $userId)
+                                ->where('role', RestaurantUserRole::Owner->value)
+                                ->with('restaurant')
+                                ->get()
+                                ->mapWithKeys(fn ($ru) => [
+                                    $ru->restaurant_id => $ru->restaurant->name_local ?? "Restaurant #{$ru->restaurant_id}",
+                                ])
+                                ->toArray();
+                        })
+                        ->searchable()
+                        ->placeholder('— skip saving —'),
+
                     FileUpload::make('images')
                         ->label('Menu Images')
                         ->helperText('Up to 10 MB per image.')
@@ -91,6 +114,7 @@ class MenuAnalyzer extends Page
             return;
         }
 
+        $restaurantId = $state['restaurant_id'] ?? null;
         $this->results = [];
         $action = app(AnalyzeMenuImageAction::class);
 
@@ -110,6 +134,15 @@ class MenuAnalyzer extends Page
                 'menu' => null,
                 'error' => $e->getMessage(),
             ];
+        }
+
+        if ($restaurantId !== null && ($this->results[0]['menu'] ?? null) !== null) {
+            try {
+                $saved = app(SaveMenuAnalysisAction::class)->handle($this->results[0]['menu'], (int) $restaurantId, count($files));
+                Notification::make()->title("Saved as Menu #{$saved->id}")->success()->send();
+            } catch (Throwable $e) {
+                Notification::make()->title('Not saved: '.$e->getMessage())->warning()->send();
+            }
         }
 
         $total = collect($this->results)->sum(fn ($r) => $r['menu'] !== null ? MenuJson::dishCount($r['menu']) : 0);
