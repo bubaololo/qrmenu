@@ -32,6 +32,7 @@ class MenuAnalysisResource extends JsonApiResource
             'llm_raw_text' => (string) ($this->resource['llm_raw_text'] ?? ''),
             'llm_duration_ms' => (int) ($this->resource['llm_duration_ms'] ?? 0),
             'analyzed_at' => (string) ($this->resource['analyzed_at'] ?? now()->toIso8601String()),
+            'saved_menu_id' => $this->resource['saved_menu_id'] ?? null,
         ];
     }
 }

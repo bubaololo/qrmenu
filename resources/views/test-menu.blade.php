@@ -215,7 +215,7 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                showUpload(data.email ?? data.data?.email ?? '');
+                showUpload(data.user?.email ?? '');
             }
         } catch (_) { /* not logged in */ }
     })();
@@ -247,7 +247,7 @@
                 throw new Error(data.errors?.email?.[0] ?? data.message ?? 'Login failed');
             }
 
-            showUpload(data.email ?? email);
+            showUpload(data.user?.email ?? email);
         } catch (e) {
             err.textContent = e.message;
         } finally {
