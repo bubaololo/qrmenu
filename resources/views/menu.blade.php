@@ -100,14 +100,7 @@
                                 @endphp
                                 <div class="menu-card" data-item-id="{{ $item->id }}">
                                     <div class="menu-card-visual">
-                                        <div class="menu-card-icon">
-                                            <svg class="food-icon" width="48" height="48"><use href="/icons/food-icons.svg#dish"/></svg>
-                                        </div>
-                                        <button class="menu-card-add"
-                                                data-quick-add="{{ $item->id }}"
-                                                data-has-variants="{{ $hasVariants ? 'true' : 'false' }}"
-                                                data-has-options="{{ $hasOptions ? 'true' : 'false' }}"
-                                                aria-label="{{ $uiStrings['addToCart'] }}">+</button>
+                                   <img src="{{ Storage::url($item->image) }}" alt="" class="menu-card__image">
                                     </div>
                                     <div class="menu-card-body">
                                         <h3 class="menu-card-name">{{ $itemName }}</h3>

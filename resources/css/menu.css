@@ -73,6 +73,7 @@ button,input{font:inherit;color:inherit}
 /* menu card */
 .menu-card{display:flex;flex-direction:column;background:var(--bg);border-radius:var(--radius-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow var(--transition);cursor:pointer}
 .menu-card:hover{box-shadow:var(--shadow)}
+.menu-card__image{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
 
 /* card visual: image or icon fallback */
 .menu-card-visual{position:relative;width:100%;overflow:hidden}
