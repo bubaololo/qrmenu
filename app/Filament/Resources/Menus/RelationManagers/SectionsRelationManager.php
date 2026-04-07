@@ -9,10 +9,11 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -63,6 +64,14 @@ class SectionsRelationManager extends RelationManager
                         Textarea::make('description_en')
                             ->label('Description (English)')
                             ->rows(2),
+
+                        FileUpload::make('image')
+                            ->label('Photo')
+                            ->image()
+                            ->disk('public')
+                            ->directory('menu-items')
+                            ->maxSize(4096)
+                            ->columnSpanFull(),
 
                         Toggle::make('starred')
                             ->label('Starred'),

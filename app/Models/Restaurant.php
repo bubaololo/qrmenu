@@ -31,6 +31,7 @@ class Restaurant extends Model
         'currency',
         'primary_language',
         'opening_hours',
+        'image',
     ];
 
     protected function casts(): array

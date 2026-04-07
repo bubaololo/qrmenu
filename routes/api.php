@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ImageController;
 use App\Http\Controllers\Api\V1\MenuAnalysisController;
 use App\Http\Controllers\Api\V1\RestaurantController;
 use Illuminate\Support\Facades\Route;
@@ -32,7 +33,13 @@ Route::prefix('v1/auth')->group(function (): void {
 */
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
+
     Route::get('/restaurants', [RestaurantController::class, 'index']);
     Route::post('/restaurants', [RestaurantController::class, 'store']);
     Route::get('/restaurants/active-menus', [RestaurantController::class, 'activeMenus']);
+    Route::post('/restaurants/{restaurantId}/image', [ImageController::class, 'updateRestaurant']);
+    Route::delete('/restaurants/{restaurantId}/image', [ImageController::class, 'deleteRestaurant']);
+
+    Route::post('/menu-items/{itemId}/image', [ImageController::class, 'updateMenuItem']);
+    Route::delete('/menu-items/{itemId}/image', [ImageController::class, 'deleteMenuItem']);
 });

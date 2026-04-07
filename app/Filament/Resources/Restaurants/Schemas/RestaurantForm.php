@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Restaurants\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -12,6 +13,14 @@ class RestaurantForm
     {
         return $schema
             ->components([
+                FileUpload::make('image')
+                    ->label('Logo / Cover Image')
+                    ->image()
+                    ->disk('public')
+                    ->directory('restaurants')
+                    ->maxSize(4096)
+                    ->columnSpanFull(),
+
                 TextInput::make('name_local')
                     ->label('Name (local)')
                     ->maxLength(255),

@@ -29,6 +29,7 @@ class MenuItem extends Model
         'price_unit_en',
         'price_original_text',
         'image_bbox',
+        'image',
         'sort_order',
     ];
 
