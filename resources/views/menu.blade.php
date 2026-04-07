@@ -1,86 +1,166 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Menu #{{ $restaurant->id }}</title></head>
+<html lang="{{ $lang }}" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>{{ $lang === 'en' ? ($restaurant->name_en ?: $restaurant->name_local) : ($restaurant->name_local ?: $restaurant->name_en) }} — Menu</title>
+    <meta name="theme-color" content="#f8fafc">
+    <link rel="icon" href="data:,">
+    <style>body{background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0}</style>
+    @vite(['resources/css/menu.css'])
+</head>
 <body>
-<pre>
 
-=== RESTAURANT ===
+    {{-- Navbar --}}
+    <nav class="navbar" aria-label="Main navigation">
+        <div class="container flex-between">
+            <div class="flex gap-sm">
+                <div>
+                    <h1 class="restaurant-name">
+                        {{ $lang === 'en' ? ($restaurant->name_en ?: $restaurant->name_local) : ($restaurant->name_local ?: $restaurant->name_en) }}
+                    </h1>
+                </div>
+            </div>
+            <div class="flex gap-xs">
+                @if(count($languages) > 1)
+                    <div class="lang-switcher lang-dropdown" id="lang-switcher">
+                        @php $currentLang = collect($languages)->firstWhere('code', $lang) ?? $languages[0]; @endphp
+                        <button class="lang-current" id="lang-toggle">
+                            <span class="lang-flag">{{ $currentLang['flag'] }}</span>
+                            <span class="lang-arrow">▼</span>
+                        </button>
+                        <div class="lang-menu">
+                            @foreach($languages as $language)
+                                <a href="{{ request()->fullUrlWithQuery(['lang' => $language['code']]) }}"
+                                   class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}">
+                                    <span class="lang-flag">{{ $language['flag'] }}</span>
+                                    <span>{{ $language['label'] }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                    <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
 
-id:               {{ $restaurant->id }}
-name_local:       {{ $restaurant->name_local }}
-name_en:          {{ $restaurant->name_en }}
-city:             {{ $restaurant->city }}
-province:         {{ $restaurant->province }}
-country:          {{ $restaurant->country }}
-district:         {{ $restaurant->district }}
-address_local:    {{ $restaurant->address_local }}
-address_en:       {{ $restaurant->address_en }}
-phone:            {{ $restaurant->phone }}
-phone2:           {{ $restaurant->phone2 }}
-currency:         {{ $restaurant->currency }}
-primary_language: {{ $restaurant->primary_language }}
-opening_hours:    {{ json_encode($restaurant->opening_hours, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) }}
-created_at:       {{ $restaurant->created_at }}
-updated_at:       {{ $restaurant->updated_at }}
+    {{-- Search --}}
+    <div class="container" style="padding-top:.75rem;padding-bottom:.5rem">
+        <div id="search">
+            <input type="text" id="search-input" class="search-input" placeholder="{{ $uiStrings['search'] }}">
+        </div>
+    </div>
 
-=== ACTIVE MENU ===
+    {{-- Category Tabs --}}
+    @if($menu && $menu->sections->isNotEmpty())
+        <div class="tabs-wrapper tabs-sticky">
+            <div class="container">
+                <div id="tabs" class="tabs">
+                    <button class="tab tab-active" data-cat="all">{{ $uiStrings['all'] }}</button>
+                    @foreach($menu->sections as $section)
+                        <button class="tab" data-cat="{{ $section->id }}">
+                            {{ $lang === 'en' ? ($section->name_en ?: $section->name_local) : ($section->name_local ?: $section->name_en) }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 
-@if (!$menu)
-(no active menu)
-@else
-id:                 {{ $menu->id }}
-restaurant_id:      {{ $menu->restaurant_id }}
-detected_date:      {{ $menu->detected_date?->toDateString() }}
-source_images_count: {{ $menu->source_images_count }}
-is_active:          {{ $menu->is_active ? 'true' : 'false' }}
-created_from_menu_id: {{ $menu->created_from_menu_id }}
-created_at:         {{ $menu->created_at }}
-updated_at:         {{ $menu->updated_at }}
+    {{-- Menu Content --}}
+    <main class="container" style="padding-top:1rem;padding-bottom:1rem">
+        <div id="menu">
+            @if($menu)
+                @foreach($menu->sections as $section)
+                    <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
+                        <h2 class="category-title">
+                            {{ $lang === 'en' ? ($section->name_en ?: $section->name_local) : ($section->name_local ?: $section->name_en) }}
+                        </h2>
+                        <div class="menu-grid">
+                            @foreach($section->items as $item)
+                                @php
+                                    $itemName = $lang === 'en'
+                                        ? ($item->name_en ?: $item->name_local)
+                                        : ($item->name_local ?: $item->name_en);
 
-=== SECTIONS ({{ $menu->sections->count() }}) ===
+                                    if ($item->variations->isNotEmpty()) {
+                                        $firstOpt = $item->variations->first()->options->first();
+                                        $displayPrice = $firstOpt
+                                            ? (float) $item->price_value + (float) $firstOpt->price_adjust
+                                            : (float) $item->price_value;
+                                    } else {
+                                        $displayPrice = (float) $item->price_value;
+                                    }
 
-@foreach ($menu->sections as $section)
---- section #{{ $section->id }} ---
-name_local:  {{ $section->name_local }}
-name_en:     {{ $section->name_en }}
-sort_order:  {{ $section->sort_order }}
+                                    $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
+                                    $hasOptions = $item->optionGroups->isNotEmpty();
+                                @endphp
+                                <div class="menu-card" data-item-id="{{ $item->id }}">
+                                    <div class="menu-card-visual">
+                                        <div class="menu-card-icon">
+                                            <svg class="food-icon" width="48" height="48"><use href="/icons/food-icons.svg#dish"/></svg>
+                                        </div>
+                                        <button class="menu-card-add"
+                                                data-quick-add="{{ $item->id }}"
+                                                data-has-variants="{{ $hasVariants ? 'true' : 'false' }}"
+                                                data-has-options="{{ $hasOptions ? 'true' : 'false' }}"
+                                                aria-label="{{ $uiStrings['addToCart'] }}">+</button>
+                                    </div>
+                                    <div class="menu-card-body">
+                                        <h3 class="menu-card-name">{{ $itemName }}</h3>
+                                        <span class="menu-card-price">{{ number_format($displayPrice, 0, '', '.') }}{{ $currencySymbol }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endforeach
+            @else
+                <div class="no-results">
+                    <p>{{ $uiStrings['noResults'] ?? 'No menu available' }}</p>
+                </div>
+            @endif
+        </div>
+    </main>
 
-  items ({{ $section->items->count() }}):
-@foreach ($section->items as $item)
-  --- item #{{ $item->id }} ---
-  name_local:          {{ $item->name_local }}
-  name_en:             {{ $item->name_en }}
-  description_local:   {{ $item->description_local }}
-  description_en:      {{ $item->description_en }}
-  starred:             {{ $item->starred ? 'true' : 'false' }}
-  price_type:          {{ $item->price_type?->value }}
-  price_value:         {{ $item->price_value }}
-  price_min:           {{ $item->price_min }}
-  price_max:           {{ $item->price_max }}
-  price_unit:          {{ $item->price_unit }}
-  price_unit_en:       {{ $item->price_unit_en }}
-  price_original_text: {{ $item->price_original_text }}
-  sort_order:          {{ $item->sort_order }}
+    <footer id="footer" class="container text-center text-muted text-sm" style="padding:2rem 1rem">
+        <p>{{ $uiStrings['powered'] }}</p>
+    </footer>
 
-  variations ({{ $item->variations->count() }}):
-@foreach ($item->variations as $variation)
-    variation #{{ $variation->id }}: type={{ $variation->type->value }} name_local={{ $variation->name_local }} name_en={{ $variation->name_en }} required={{ $variation->required ? 'true' : 'false' }} allow_multiple={{ $variation->allow_multiple ? 'true' : 'false' }}
-@foreach ($variation->options as $opt)
-      option #{{ $opt->id }}: name_local={{ $opt->name_local }} name_en={{ $opt->name_en }} price_adjust={{ $opt->price_adjust }} is_default={{ $opt->is_default ? 'true' : 'false' }}
-@endforeach
-@endforeach
+    {{-- Overlay --}}
+    <div id="overlay" class="overlay"></div>
 
-  option_groups ({{ $item->optionGroups->count() }}):
-@foreach ($item->optionGroups as $group)
-    group #{{ $group->id }}: name_local={{ $group->name_local }} name_en={{ $group->name_en }} min={{ $group->min_select }} max={{ $group->max_select }}
-@foreach ($group->options as $opt)
-      option #{{ $opt->id }}: name_local={{ $opt->name_local }} name_en={{ $opt->name_en }} price_adjust={{ $opt->price_adjust }}
-@endforeach
-@endforeach
+    {{-- Item Detail Bottom Sheet --}}
+    <div id="item-sheet" class="bottom-sheet" role="dialog" aria-modal="true">
+        <div id="item-sheet-content"></div>
+    </div>
 
-@endforeach
-@endforeach
-@endif
-</pre>
+    {{-- Cart Bottom Sheet --}}
+    <div id="cart-sheet" class="bottom-sheet cart-sheet" role="dialog" aria-modal="true">
+        <div id="cart-sheet-content"></div>
+    </div>
+
+    {{-- Cart FAB --}}
+    <button id="cart-fab" class="cart-fab" aria-label="Cart"></button>
+
+    {{-- Data for JS interactivity --}}
+    @php
+        $config = [
+            'currency' => $currencySymbol,
+            'lang' => $lang,
+            'primaryLang' => $primaryLang,
+            'restaurantId' => $restaurant->id,
+        ];
+    @endphp
+    <script>
+        window.__ITEMS__ = @json($itemsJson);
+        window.__UI__ = @json($uiStrings);
+        window.__CONFIG__ = @json($config);
+    </script>
+    <script src="/icons/vanilla.js" data-src="/icons/food-icons.svg"></script>
+    <script src="/js/menu.js"></script>
 </body>
 </html>
