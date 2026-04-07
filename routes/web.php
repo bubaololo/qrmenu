@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\AnalyzeMenuImageAction;
+use App\Http\Controllers\MenuPageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -9,6 +10,8 @@ Route::get('/', function () {
 });
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
+
+Route::get('/menu/{restaurant_id}', [MenuPageController::class, 'show'])->name('menu.show');
 
 Route::post('/test-menu', function (Request $request) {
     $request->validate(['image_url' => ['required', 'url']]);
