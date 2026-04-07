@@ -187,11 +187,37 @@
     const API = '/api/v1';
     let selectedFiles = [];
 
+    // ── CSRF helpers ──────────────────────────────────────────────────────────
+    function getCsrfToken() {
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    async function initCsrf() {
+        await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
+    }
+
+    function authHeaders(extra = {}) {
+        const csrf = getCsrfToken();
+        return {
+            'Accept': 'application/json',
+            ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+            ...extra,
+        };
+    }
+
     // ── Init ──────────────────────────────────────────────────────────────────
-    (function init() {
-        const token = sessionStorage.getItem('api_token');
-        const email = sessionStorage.getItem('api_email');
-        if (token) showUpload(email);
+    (async function init() {
+        try {
+            const res = await fetch(`${API}/auth/user`, {
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                showUpload(data.email ?? data.data?.email ?? '');
+            }
+        } catch (_) { /* not logged in */ }
     })();
 
     // ── Auth ──────────────────────────────────────────────────────────────────
@@ -206,9 +232,12 @@
         btn.textContent = 'Signing in…';
 
         try {
-            const res = await fetch(`${API}/tokens`, {
+            await initCsrf();
+
+            const res = await fetch(`${API}/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ email, password }),
             });
 
@@ -218,9 +247,7 @@
                 throw new Error(data.errors?.email?.[0] ?? data.message ?? 'Login failed');
             }
 
-            sessionStorage.setItem('api_token', data.token);
-            sessionStorage.setItem('api_email', email);
-            showUpload(email);
+            showUpload(data.email ?? email);
         } catch (e) {
             err.textContent = e.message;
         } finally {
@@ -229,16 +256,14 @@
         }
     }
 
-    function logout() {
-        const token = sessionStorage.getItem('api_token');
-        if (token) {
-            fetch(`${API}/tokens/current`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-            }).catch(() => {});
-        }
-        sessionStorage.removeItem('api_token');
-        sessionStorage.removeItem('api_email');
+    async function logout() {
+        try {
+            await fetch(`${API}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: authHeaders(),
+            });
+        } catch (_) {}
         document.getElementById('auth-section').style.display = 'block';
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
@@ -296,7 +321,6 @@
     }
 
     async function loadRestaurants() {
-        const token = sessionStorage.getItem('api_token');
         const select = document.getElementById('restaurant-select');
         const hint = document.getElementById('restaurant-select-hint');
         if (!select) {
@@ -309,7 +333,8 @@
         }
         try {
             const res = await fetch(`${API}/restaurants`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+                credentials: 'include',
+                headers: authHeaders(),
             });
             const payload = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -377,7 +402,6 @@
     }
 
     async function createRestaurant() {
-        const token = sessionStorage.getItem('api_token');
         const btn = document.getElementById('create-restaurant-btn');
         const status = document.getElementById('create-restaurant-status');
         btn.disabled = true;
@@ -386,7 +410,8 @@
         try {
             const res = await fetch(`${API}/restaurants`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+                credentials: 'include',
+                headers: authHeaders(),
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -480,7 +505,6 @@
     async function analyze() {
         if (selectedFiles.length === 0) return;
 
-        const token = sessionStorage.getItem('api_token');
         const btn = document.getElementById('analyze-btn');
         const spinner = document.getElementById('spinner');
         const err = document.getElementById('analyze-error');
@@ -522,12 +546,12 @@
         try {
             const res = await fetch(`${API}/menu-analyses`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.api+json' },
+                credentials: 'include',
+                headers: authHeaders({ 'Accept': 'application/vnd.api+json' }),
                 body: fd,
             });
 
             if (res.status === 401) {
-                sessionStorage.removeItem('api_token');
                 logout();
                 return;
             }
