@@ -13,12 +13,30 @@ class MenuSection extends Model
 {
     /** @use HasFactory<MenuSectionFactory> */
     use HasFactory;
+
     use HasTranslations;
+
+    /** @var array<int, string> */
+    protected $appends = ['name'];
 
     protected $fillable = [
         'menu_id',
         'sort_order',
     ];
+
+    /** Pending translation value to be written after save */
+    protected ?string $pendingName = null;
+
+    protected static function booted(): void
+    {
+        static::saved(function (MenuSection $section) {
+            $locale = $section->menu?->source_locale ?? 'und';
+            if ($section->pendingName !== null && $locale && $locale !== 'mixed') {
+                $section->setTranslation('name', $locale, $section->pendingName, true);
+                $section->pendingName = null;
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -36,6 +54,11 @@ class MenuSection extends Model
             ->where('field', 'name')
             ->where('is_initial', true)
             ->value('value');
+    }
+
+    public function setNameAttribute(?string $value): void
+    {
+        $this->pendingName = $value;
     }
 
     public function menu(): BelongsTo

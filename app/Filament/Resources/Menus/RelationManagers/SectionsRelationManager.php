@@ -26,6 +26,11 @@ class SectionsRelationManager extends RelationManager
     {
         return $schema
             ->components([
+                TextInput::make('name')
+                    ->label('Section Name')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
@@ -35,8 +40,19 @@ class SectionsRelationManager extends RelationManager
                     ->relationship('items')
                     ->orderColumn('sort_order')
                     ->collapsible()
+                    ->itemLabel(fn (array $state): string => $state['name'] ?? $state['price_original_text'] ?? 'Item')
                     ->columnSpanFull()
                     ->schema([
+                        TextInput::make('name')
+                            ->label('Name')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+
+                        TextInput::make('description')
+                            ->label('Description')
+                            ->maxLength(500)
+                            ->columnSpanFull(),
+
                         FileUpload::make('image')
                             ->label('Photo')
                             ->image()

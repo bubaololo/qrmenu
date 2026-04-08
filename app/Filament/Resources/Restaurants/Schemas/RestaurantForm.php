@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Restaurants\Schemas;
 
+use App\Models\Locale;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -52,15 +53,8 @@ class RestaurantForm
 
                 Select::make('primary_language')
                     ->label('Primary Language')
-                    ->options([
-                        'en' => 'English',
-                        'vi' => 'Vietnamese',
-                        'zh' => 'Chinese',
-                        'ja' => 'Japanese',
-                        'th' => 'Thai',
-                        'ko' => 'Korean',
-                        'id' => 'Indonesian',
-                    ])
+                    ->options(fn () => Locale::orderBy('name')->pluck('name', 'code')->toArray())
+                    ->searchable()
                     ->default('en'),
             ]);
     }
