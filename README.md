@@ -96,6 +96,31 @@ docker compose exec app php artisan prompts:import
 
 ---
 
+## API Authentication (Fortify + Sanctum)
+
+Session-based SPA authentication via Laravel Fortify. CSRF flow:
+
+```
+1. GET  /sanctum/csrf-cookie          — init CSRF
+2. POST /api/v1/auth/register         — create account + start session
+   POST /api/v1/auth/login            — login + start session
+3. All subsequent requests use session cookie automatically
+```
+
+### Auth routes
+
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| `POST` | `/api/v1/auth/register` | — | Register + auto-login |
+| `POST` | `/api/v1/auth/login` | — | Login |
+| `POST` | `/api/v1/auth/logout` | Yes | Logout |
+| `GET` | `/api/v1/auth/user` | Yes | Current user |
+| `PUT` | `/api/v1/auth/user/password` | Yes | Change password |
+| `POST` | `/api/v1/auth/forgot-password` | — | Send reset link |
+| `POST` | `/api/v1/auth/reset-password` | — | Reset password |
+
+---
+
 ## Code Style
 
 ```bash

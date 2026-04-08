@@ -17,6 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
 
+        // Public auth endpoints don't need CSRF — no session to protect yet
+        $middleware->validateCsrfTokens(except: [
+            'api/v1/auth/login',
+            'api/v1/auth/register',
+            'api/v1/auth/forgot-password',
+            'api/v1/auth/reset-password',
+        ]);
+
         $middleware->redirectGuestsTo(fn () => null);
 
         $middleware->trustProxies(
