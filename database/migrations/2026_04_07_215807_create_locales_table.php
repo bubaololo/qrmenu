@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('menu_sections', function (Blueprint $table) {
+        Schema::create('locales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('menu_id')->constrained()->cascadeOnDelete();
-            $table->integer('sort_order')->default(0);
+            $table->string('code', 10)->unique();
+            $table->string('name', 100);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('menu_sections');
+        Schema::dropIfExists('locales');
     }
 };

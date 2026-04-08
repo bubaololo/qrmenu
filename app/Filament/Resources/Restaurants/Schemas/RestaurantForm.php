@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Restaurants\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -21,13 +22,10 @@ class RestaurantForm
                     ->maxSize(4096)
                     ->columnSpanFull(),
 
-                TextInput::make('name_local')
-                    ->label('Name (local)')
-                    ->maxLength(255),
-
-                TextInput::make('name_en')
-                    ->label('Name (English)')
-                    ->maxLength(255),
+                Placeholder::make('name_note')
+                    ->label('Name & Address')
+                    ->content('Name and address are stored as translations and populated automatically from the Menu Analyzer.')
+                    ->columnSpanFull(),
 
                 TextInput::make('city')
                     ->maxLength(255),
@@ -35,26 +33,7 @@ class RestaurantForm
                 TextInput::make('country')
                     ->maxLength(255),
 
-                TextInput::make('address_local')
-                    ->label('Address (local)')
-                    ->maxLength(500),
-
-                TextInput::make('address_en')
-                    ->label('Address (English)')
-                    ->maxLength(500),
-
-                TextInput::make('district')
-                    ->maxLength(255),
-
-                TextInput::make('province')
-                    ->maxLength(255),
-
                 TextInput::make('phone')
-                    ->tel()
-                    ->maxLength(50),
-
-                TextInput::make('phone2')
-                    ->label('Phone 2')
                     ->tel()
                     ->maxLength(50),
 
@@ -80,6 +59,7 @@ class RestaurantForm
                         'ja' => 'Japanese',
                         'th' => 'Thai',
                         'ko' => 'Korean',
+                        'id' => 'Indonesian',
                     ])
                     ->default('en'),
             ]);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RestaurantUserRole;
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\RestaurantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,19 +16,13 @@ class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'created_by_user_id',
-        'name_local',
-        'name_en',
-        'address_local',
-        'address_en',
-        'district',
         'city',
-        'province',
         'country',
         'phone',
-        'phone2',
         'currency',
         'primary_language',
         'opening_hours',

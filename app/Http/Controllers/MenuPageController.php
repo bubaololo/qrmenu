@@ -3,30 +3,38 @@
 namespace App\Http\Controllers;
 
 use App\Models\Restaurant;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MenuPageController extends Controller
 {
-    public function show(Request $request, Restaurant $restaurant): View
+    public function show(Restaurant $restaurant, ?string $lang = null): View
     {
         $restaurant->load([
-            'activeMenu.sections.items.variations.options',
-            'activeMenu.sections.items.optionGroups.options',
+            'translations',
+            'activeMenu.sections.translations',
+            'activeMenu.sections.items.translations',
+            'activeMenu.sections.items.variations.translations',
+            'activeMenu.sections.items.variations.options.translations',
+            'activeMenu.sections.items.optionGroups.translations',
+            'activeMenu.sections.items.optionGroups.options.translations',
         ]);
 
         $menu = $restaurant->activeMenu;
         $primaryLang = $restaurant->primary_language ?? 'en';
-        $lang = $request->query('lang', $primaryLang);
 
-        $languages = $this->getAvailableLanguages($menu, $primaryLang);
+        // Normalize: 'mixed' source locale means no single lang → default to primaryLang
+        if ($lang === null || $lang === 'mixed') {
+            $lang = $primaryLang;
+        }
+
+        $languages = $this->getAvailableLanguages($restaurant, $menu);
 
         if (! collect($languages)->pluck('code')->contains($lang)) {
             $lang = $primaryLang;
         }
 
         $itemsJson = $this->buildItemsJson($menu, $lang);
-        $currencySymbol = $this->getCurrencySymbol($restaurant->currency);
+        $currencySymbol = $this->getCurrencySymbol($restaurant->currency ?? 'USD');
         $uiStrings = $this->getUiStrings($lang);
 
         return view('menu', compact(
@@ -44,30 +52,41 @@ class MenuPageController extends Controller
     /**
      * @return array<int, array{code: string, label: string, flag: string}>
      */
-    private function getAvailableLanguages($menu, string $primaryLang): array
+    private function getAvailableLanguages(Restaurant $restaurant, ?object $menu): array
     {
+        $primaryLang = $restaurant->primary_language ?? 'en';
         $langs = [];
 
-        $langs[] = [
-            'code' => $primaryLang,
-            'label' => $this->getLanguageLabel($primaryLang),
-            'flag' => $this->getLanguageFlag($primaryLang),
-        ];
-
-        if ($primaryLang !== 'en' && $menu) {
-            $hasEnglish = $menu->sections->flatMap->items->contains(fn ($item) => filled($item->name_en));
-            if ($hasEnglish) {
-                $langs[] = ['code' => 'en', 'label' => 'English', 'flag' => "\u{1F1EC}\u{1F1E7}"];
-            }
+        // Always include the source locale (initial translation)
+        if ($menu && $menu->source_locale && $menu->source_locale !== 'mixed') {
+            $langs[] = [
+                'code' => $menu->source_locale,
+                'label' => $this->getLanguageLabel($menu->source_locale),
+                'flag' => $this->getLanguageFlag($menu->source_locale),
+            ];
         }
 
-        return $langs;
+        // Include primary language if different
+        if (! collect($langs)->pluck('code')->contains($primaryLang)) {
+            array_unshift($langs, [
+                'code' => $primaryLang,
+                'label' => $this->getLanguageLabel($primaryLang),
+                'flag' => $this->getLanguageFlag($primaryLang),
+            ]);
+        }
+
+        // Always offer English if not already listed
+        if (! collect($langs)->pluck('code')->contains('en')) {
+            $langs[] = ['code' => 'en', 'label' => 'English', 'flag' => "\u{1F1EC}\u{1F1E7}"];
+        }
+
+        return array_values($langs);
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildItemsJson($menu, string $lang): array
+    private function buildItemsJson(?object $menu, string $lang): array
     {
         if (! $menu) {
             return [];
@@ -79,8 +98,8 @@ class MenuPageController extends Controller
                 $entry = [
                     'id' => $item->id,
                     'sectionId' => $section->id,
-                    'name' => $this->localize($item->name_local, $item->name_en, $lang),
-                    'description' => $this->localize($item->description_local, $item->description_en, $lang),
+                    'name' => $item->translate('name', $lang) ?? $item->translate('name', $menu->source_locale ?? 'und') ?? '',
+                    'description' => $item->translate('description', $lang) ?? $item->translate('description', $menu->source_locale ?? 'und'),
                     'price' => (float) $item->price_value,
                 ];
 
@@ -89,7 +108,7 @@ class MenuPageController extends Controller
                     foreach ($item->variations as $variation) {
                         foreach ($variation->options as $opt) {
                             $variants[] = [
-                                'name' => $this->localize($opt->name_local, $opt->name_en, $lang),
+                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $menu->source_locale ?? 'und') ?? '',
                                 'price' => (float) $item->price_value + (float) $opt->price_adjust,
                             ];
                         }
@@ -102,13 +121,13 @@ class MenuPageController extends Controller
                     foreach ($item->optionGroups as $group) {
                         $options[] = [
                             'id' => $group->id,
-                            'name' => $this->localize($group->name_local, $group->name_en, $lang),
+                            'name' => $group->translate('name', $lang) ?? $group->translate('name', $menu->source_locale ?? 'und') ?? '',
                             'required' => $group->min_select > 0,
                             'type' => $group->max_select === 1 ? 'single' : 'multiple',
                             'max' => $group->max_select,
                             'choices' => $group->options->map(fn ($opt) => [
                                 'id' => $opt->id,
-                                'name' => $this->localize($opt->name_local, $opt->name_en, $lang),
+                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $menu->source_locale ?? 'und') ?? '',
                                 'price' => (float) $opt->price_adjust,
                             ])->all(),
                         ];
@@ -121,15 +140,6 @@ class MenuPageController extends Controller
         }
 
         return $items;
-    }
-
-    private function localize(?string $local, ?string $en, string $lang): string
-    {
-        if ($lang === 'en') {
-            return $en ?: $local ?: '';
-        }
-
-        return $local ?: $en ?: '';
     }
 
     private function getCurrencySymbol(string $currency): string
@@ -155,6 +165,7 @@ class MenuPageController extends Controller
             'ja' => "\u{65E5}\u{672C}\u{8A9E}",
             'ko' => "\u{D55C}\u{AD6D}\u{C5B4}",
             'th' => "\u{0E44}\u{0E17}\u{0E22}",
+            'id' => 'Indonesia',
             default => strtoupper($code),
         };
     }
@@ -217,6 +228,7 @@ class MenuPageController extends Controller
             'ja' => "\u{1F1EF}\u{1F1F5}",
             'ko' => "\u{1F1F0}\u{1F1F7}",
             'th' => "\u{1F1F9}\u{1F1ED}",
+            'id' => "\u{1F1EE}\u{1F1E9}",
             default => "\u{1F3F3}\u{FE0F}",
         };
     }

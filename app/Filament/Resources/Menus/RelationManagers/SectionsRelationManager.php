@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Menus\RelationManagers;
 
 use App\Enums\PriceType;
-use App\Enums\VariationType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -12,7 +11,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -28,15 +26,6 @@ class SectionsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                TextInput::make('name_local')
-                    ->label('Name (local)')
-                    ->required()
-                    ->maxLength(255),
-
-                TextInput::make('name_en')
-                    ->label('Name (English)')
-                    ->maxLength(255),
-
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
@@ -48,23 +37,6 @@ class SectionsRelationManager extends RelationManager
                     ->collapsible()
                     ->columnSpanFull()
                     ->schema([
-                        TextInput::make('name_local')
-                            ->label('Name (local)')
-                            ->required()
-                            ->maxLength(255),
-
-                        TextInput::make('name_en')
-                            ->label('Name (English)')
-                            ->maxLength(255),
-
-                        Textarea::make('description_local')
-                            ->label('Description (local)')
-                            ->rows(2),
-
-                        Textarea::make('description_en')
-                            ->label('Description (English)')
-                            ->rows(2),
-
                         FileUpload::make('image')
                             ->label('Photo')
                             ->image()
@@ -103,7 +75,7 @@ class SectionsRelationManager extends RelationManager
                             ->step(0.01),
 
                         TextInput::make('price_unit')
-                            ->label('Price Unit (local)')
+                            ->label('Price Unit')
                             ->maxLength(50),
 
                         TextInput::make('price_original_text')
@@ -116,27 +88,9 @@ class SectionsRelationManager extends RelationManager
                             ->collapsible()
                             ->columnSpanFull()
                             ->schema([
-                                Select::make('type')
-                                    ->options([
-                                        VariationType::Portion->value => 'Portion',
-                                        VariationType::Size->value => 'Size',
-                                        VariationType::SpiceLevel->value => 'Spice Level',
-                                        VariationType::Sauce->value => 'Sauce',
-                                        VariationType::Base->value => 'Base',
-                                        VariationType::Flavor->value => 'Flavor',
-                                        VariationType::Unit->value => 'Unit',
-                                    ])
-                                    ->default(VariationType::Portion->value)
-                                    ->required(),
-
-                                TextInput::make('name_local')
-                                    ->label('Name (local)')
-                                    ->required()
-                                    ->maxLength(255),
-
-                                TextInput::make('name_en')
-                                    ->label('Name (English)')
-                                    ->maxLength(255),
+                                TextInput::make('type')
+                                    ->label('Type (e.g. size, spice, base)')
+                                    ->maxLength(100),
 
                                 Toggle::make('required')
                                     ->label('Required'),
@@ -150,15 +104,6 @@ class SectionsRelationManager extends RelationManager
                                     ->collapsible()
                                     ->columnSpanFull()
                                     ->schema([
-                                        TextInput::make('name_local')
-                                            ->label('Name (local)')
-                                            ->required()
-                                            ->maxLength(255),
-
-                                        TextInput::make('name_en')
-                                            ->label('Name (English)')
-                                            ->maxLength(255),
-
                                         TextInput::make('price_adjust')
                                             ->label('Price Adjust')
                                             ->numeric()
@@ -176,15 +121,6 @@ class SectionsRelationManager extends RelationManager
                             ->collapsible()
                             ->columnSpanFull()
                             ->schema([
-                                TextInput::make('name_local')
-                                    ->label('Name (local)')
-                                    ->required()
-                                    ->maxLength(255),
-
-                                TextInput::make('name_en')
-                                    ->label('Name (English)')
-                                    ->maxLength(255),
-
                                 TextInput::make('min_select')
                                     ->label('Min Select')
                                     ->numeric()
@@ -200,15 +136,6 @@ class SectionsRelationManager extends RelationManager
                                     ->collapsible()
                                     ->columnSpanFull()
                                     ->schema([
-                                        TextInput::make('name_local')
-                                            ->label('Name (local)')
-                                            ->required()
-                                            ->maxLength(255),
-
-                                        TextInput::make('name_en')
-                                            ->label('Name (English)')
-                                            ->maxLength(255),
-
                                         TextInput::make('price_adjust')
                                             ->label('Price Adjust')
                                             ->numeric()
@@ -229,12 +156,9 @@ class SectionsRelationManager extends RelationManager
                     ->label('#')
                     ->sortable(),
 
-                TextColumn::make('name_local')
+                TextColumn::make('name')
                     ->label('Name')
-                    ->searchable(),
-
-                TextColumn::make('name_en')
-                    ->label('English Name'),
+                    ->state(fn ($record) => $record->name ?? '—'),
 
                 TextColumn::make('items_count')
                     ->label('Items')

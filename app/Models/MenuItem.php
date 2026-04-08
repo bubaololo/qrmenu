@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PriceType;
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,20 +14,16 @@ class MenuItem extends Model
 {
     /** @use HasFactory<MenuItemFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'section_id',
-        'name_local',
-        'name_en',
-        'description_local',
-        'description_en',
         'starred',
         'price_type',
         'price_value',
         'price_min',
         'price_max',
         'price_unit',
-        'price_unit_en',
         'price_original_text',
         'image_bbox',
         'image',
@@ -44,6 +41,17 @@ class MenuItem extends Model
             'image_bbox' => 'array',
             'sort_order' => 'integer',
         ];
+    }
+
+    /**
+     * Returns the initial (source) name translation for display purposes.
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->translations()
+            ->where('field', 'name')
+            ->where('is_initial', true)
+            ->value('value');
     }
 
     public function section(): BelongsTo

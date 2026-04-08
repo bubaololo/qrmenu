@@ -11,7 +11,7 @@ Route::get('/', function () {
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 
-Route::get('/menu/{restaurant}', [MenuPageController::class, 'show'])->name('menu.public');
+Route::get('/menu/{restaurant}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public');
 
 Route::post('/test-menu', function (Request $request) {
     $request->validate(['image_url' => ['required', 'url']]);

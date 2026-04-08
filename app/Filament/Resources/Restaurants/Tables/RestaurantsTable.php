@@ -18,11 +18,10 @@ class RestaurantsTable
                     ->label('ID')
                     ->sortable(),
 
-                TextColumn::make('name_local')
+                TextColumn::make('name')
                     ->label('Name')
                     ->placeholder('—')
-                    ->searchable()
-                    ->sortable(),
+                    ->state(fn ($record) => $record->translate('name', $record->primary_language ?? 'und') ?? "Restaurant #{$record->id}"),
 
                 TextColumn::make('creator.name')
                     ->label('Owner')

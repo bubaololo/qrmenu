@@ -16,6 +16,7 @@ class Menu extends Model
 
     protected $fillable = [
         'restaurant_id',
+        'source_locale',
         'detected_date',
         'source_images_count',
         'is_active',

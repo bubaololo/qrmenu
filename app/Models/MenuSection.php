@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuSectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,11 +13,10 @@ class MenuSection extends Model
 {
     /** @use HasFactory<MenuSectionFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'menu_id',
-        'name_local',
-        'name_en',
         'sort_order',
     ];
 
@@ -25,6 +25,17 @@ class MenuSection extends Model
         return [
             'sort_order' => 'integer',
         ];
+    }
+
+    /**
+     * Returns the initial (source) name translation for display purposes.
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->translations()
+            ->where('field', 'name')
+            ->where('is_initial', true)
+            ->value('value');
     }
 
     public function menu(): BelongsTo

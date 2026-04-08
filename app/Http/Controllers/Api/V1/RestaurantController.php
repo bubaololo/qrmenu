@@ -20,7 +20,7 @@ class RestaurantController extends Controller
      *
      * @response 200 {
      *   "data": [
-     *     { "id": 1, "name": "Phở Hà Nội", "name_en": "Pho Ha Noi", "city": "Hanoi", "country": "Vietnam", "currency": "VND" }
+     *     { "id": 1, "name": "Phở Hà Nội", "city": "Hanoi", "country": "Vietnam", "currency": "VND" }
      *   ]
      * }
      */
@@ -29,13 +29,12 @@ class RestaurantController extends Controller
         $restaurants = $request->user()
             ->ownedRestaurants()
             ->orderBy('restaurants.created_at', 'desc')
-            ->get(['restaurants.id', 'restaurants.name_local', 'restaurants.name_en', 'restaurants.city', 'restaurants.country', 'restaurants.currency']);
+            ->get(['restaurants.id', 'restaurants.city', 'restaurants.country', 'restaurants.currency', 'restaurants.primary_language']);
 
         return response()->json([
             'data' => $restaurants->map(fn ($r) => [
                 'id' => $r->id,
-                'name' => $r->name_local ?? "Restaurant #{$r->id}",
-                'name_en' => $r->name_en,
+                'name' => $r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}",
                 'city' => $r->city,
                 'country' => $r->country,
                 'currency' => $r->currency,
@@ -60,17 +59,16 @@ class RestaurantController extends Controller
      *       "restaurant_name": "Phở Hà Nội",
      *       "menu_id": 7,
      *       "detected_date": "2026-04-07",
+     *       "source_locale": "vi",
      *       "sections": [
      *         {
      *           "id": 12,
-     *           "name_local": "Phở",
-     *           "name_en": "Pho",
+     *           "name": "Phở",
      *           "sort_order": 0,
      *           "items": [
      *             {
      *               "id": 55,
-     *               "name_local": "Phở bò",
-     *               "name_en": "Beef pho",
+     *               "name": "Phở bò",
      *               "price_type": "fixed",
      *               "price_value": "79000.00",
      *               "price_original_text": "79.000",
@@ -92,7 +90,7 @@ class RestaurantController extends Controller
         $menus = Menu::active()
             ->whereIn('restaurant_id', $restaurantIds)
             ->with([
-                'restaurant:id,name_local,name_en,currency',
+                'restaurant',
                 'sections' => fn ($q) => $q->orderBy('sort_order'),
                 'sections.items' => fn ($q) => $q->orderBy('sort_order'),
             ])
@@ -101,20 +99,18 @@ class RestaurantController extends Controller
         return response()->json([
             'data' => $menus->map(fn (Menu $menu) => [
                 'restaurant_id' => $menu->restaurant_id,
-                'restaurant_name' => $menu->restaurant?->name_local ?? "Restaurant #{$menu->restaurant_id}",
+                'restaurant_name' => $menu->restaurant?->translate('name', $menu->restaurant->primary_language ?? 'und') ?? "Restaurant #{$menu->restaurant_id}",
                 'menu_id' => $menu->id,
+                'source_locale' => $menu->source_locale,
                 'detected_date' => $menu->detected_date?->toDateString(),
                 'sections' => $menu->sections->map(fn ($section) => [
                     'id' => $section->id,
-                    'name_local' => $section->name_local,
-                    'name_en' => $section->name_en,
+                    'name' => $section->translate('name', $menu->source_locale ?? 'und'),
                     'sort_order' => $section->sort_order,
                     'items' => $section->items->map(fn ($item) => [
                         'id' => $item->id,
-                        'name_local' => $item->name_local,
-                        'name_en' => $item->name_en,
-                        'description_local' => $item->description_local,
-                        'description_en' => $item->description_en,
+                        'name' => $item->translate('name', $menu->source_locale ?? 'und'),
+                        'description' => $item->translate('description', $menu->source_locale ?? 'und'),
                         'starred' => $item->starred,
                         'price_type' => $item->price_type?->value,
                         'price_value' => $item->price_value,

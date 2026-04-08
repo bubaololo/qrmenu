@@ -39,7 +39,7 @@ final class MenuJson
                 return [
                     'sections' => [
                         [
-                            'category_name' => ['vi' => '', 'en' => ''],
+                            'category_name' => '',
                             'sort_order' => 0,
                             'items' => $decoded,
                         ],
@@ -107,27 +107,33 @@ final class MenuJson
     }
 
     /**
-     * @return array{primary: string, secondary: string|null}
+     * Extract a plain string from a field that may be a string or legacy bilingual array.
+     * Returns null if the value is empty or not extractable.
      */
-    public static function bilingualPair(mixed $field): array
+    public static function extractText(mixed $field): ?string
     {
         if ($field === null) {
-            return ['primary' => '', 'secondary' => null];
+            return null;
         }
         if (is_string($field)) {
-            return ['primary' => $field, 'secondary' => null];
+            $s = trim($field);
+
+            return $s !== '' ? $s : null;
         }
         if (! is_array($field)) {
-            return ['primary' => (string) $field, 'secondary' => null];
+            return null;
         }
-        $en = isset($field['en']) ? (string) $field['en'] : '';
-        $vi = isset($field['vi']) ? (string) $field['vi'] : '';
-        if ($en !== '' && $vi !== '' && $en !== $vi) {
-            return ['primary' => $en, 'secondary' => $vi];
-        }
-        $primary = $en !== '' ? $en : $vi;
+        // Legacy bilingual format: {"local": "...", "en": "..."} or {"vi": "...", "en": "..."}
+        $local = $field['local'] ?? $field['vi'] ?? $field['th'] ?? $field['ko'] ?? $field['ja'] ?? $field['zh'] ?? $field['id'] ?? null;
+        $en = $field['en'] ?? null;
+        $value = $local ?? $en;
+        if (is_string($value)) {
+            $v = trim($value);
 
-        return ['primary' => $primary, 'secondary' => null];
+            return $v !== '' ? $v : null;
+        }
+
+        return null;
     }
 
     /**
@@ -155,7 +161,7 @@ final class MenuJson
         if (! empty($price['original_text'])) {
             $line .= ($line !== '' ? ' ' : '').'('.(string) $price['original_text'].')';
         }
-        $unit = $price['unit_en'] ?? $price['unit'] ?? '';
+        $unit = $price['unit'] ?? '';
         if ($unit !== '') {
             $line .= ($line !== '' ? ' ' : '').(string) $unit;
         }

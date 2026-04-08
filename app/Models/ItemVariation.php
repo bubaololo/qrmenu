@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\VariationType;
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\ItemVariationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,12 +13,11 @@ class ItemVariation extends Model
 {
     /** @use HasFactory<ItemVariationFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'item_id',
         'type',
-        'name_local',
-        'name_en',
         'required',
         'allow_multiple',
         'sort_order',
@@ -27,7 +26,6 @@ class ItemVariation extends Model
     protected function casts(): array
     {
         return [
-            'type' => VariationType::class,
             'required' => 'boolean',
             'allow_multiple' => 'boolean',
             'sort_order' => 'integer',

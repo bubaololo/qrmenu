@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\VariationOptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,10 @@ class VariationOption extends Model
 {
     /** @use HasFactory<VariationOptionFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'variation_id',
-        'name_local',
-        'name_en',
         'price_adjust',
         'is_default',
         'sort_order',

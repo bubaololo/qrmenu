@@ -70,7 +70,7 @@ class MenuAnalyzer extends Page
                                 ->with('restaurant')
                                 ->get()
                                 ->mapWithKeys(fn ($ru) => [
-                                    $ru->restaurant_id => $ru->restaurant->name_local ?? "Restaurant #{$ru->restaurant_id}",
+                                    $ru->restaurant_id => $ru->restaurant->translate('name', $ru->restaurant->primary_language ?? 'und') ?? "Restaurant #{$ru->restaurant_id}",
                                 ])
                                 ->toArray();
                         })

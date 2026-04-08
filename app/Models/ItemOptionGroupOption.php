@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use Database\Factories\ItemOptionGroupOptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,10 @@ class ItemOptionGroupOption extends Model
 {
     /** @use HasFactory<ItemOptionGroupOptionFactory> */
     use HasFactory;
+    use HasTranslations;
 
     protected $fillable = [
         'group_id',
-        'name_local',
-        'name_en',
         'price_adjust',
         'sort_order',
     ];
