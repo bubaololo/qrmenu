@@ -16,7 +16,11 @@ class Restaurant extends Model
 {
     /** @use HasFactory<RestaurantFactory> */
     use HasFactory;
+
     use HasTranslations;
+
+    /** @var array<int, string> */
+    protected $appends = ['name', 'address'];
 
     protected $fillable = [
         'created_by_user_id',
@@ -28,6 +32,16 @@ class Restaurant extends Model
         'opening_hours',
         'image',
     ];
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->initialText('name');
+    }
+
+    public function getAddressAttribute(): ?string
+    {
+        return $this->initialText('address');
+    }
 
     protected function casts(): array
     {

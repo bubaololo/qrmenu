@@ -41,20 +41,57 @@ class RestaurantTest extends TestCase
             ->getJson('/api/v1/restaurants')
             ->assertStatus(200)
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $restaurant1->id);
+            ->assertJsonPath('data.0.type', 'restaurants')
+            ->assertJsonPath('data.0.id', (string) $restaurant1->id);
     }
 
     #[Test]
-    public function test_store_creates_restaurant(): void
+    public function test_store_creates_restaurant_and_attaches_owner(): void
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->postJson('/api/v1/restaurants')
             ->assertStatus(201)
-            ->assertJsonStructure(['data' => ['id', 'name']]);
+            ->assertJsonPath('data.type', 'restaurants');
 
-        $this->assertDatabaseHas('restaurants', ['created_by_user_id' => $user->id]);
+        $restaurantId = $response->json('data.id');
+
+        $this->assertDatabaseHas('restaurants', [
+            'id' => $restaurantId,
+            'created_by_user_id' => $user->id,
+        ]);
+
+        $this->assertDatabaseHas('restaurant_users', [
+            'restaurant_id' => $restaurantId,
+            'user_id' => $user->id,
+            'role' => RestaurantUserRole::Owner->value,
+        ]);
+    }
+
+    #[Test]
+    public function test_show_returns_restaurant_for_owner(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->getJson("/api/v1/restaurants/{$restaurant->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.type', 'restaurants')
+            ->assertJsonPath('data.id', (string) $restaurant->id)
+            ->assertJsonStructure(['data' => ['type', 'id', 'attributes']]);
+    }
+
+    #[Test]
+    public function test_show_returns_403_for_non_owner(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $stranger = User::factory()->create();
+
+        $this->actingAs($stranger)
+            ->getJson("/api/v1/restaurants/{$restaurant->id}")
+            ->assertStatus(403);
     }
 
     #[Test]
@@ -82,7 +119,6 @@ class RestaurantTest extends TestCase
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
 
-        // No active menu created
         $this->actingAs($user)
             ->getJson('/api/v1/restaurants/active-menus')
             ->assertStatus(200)

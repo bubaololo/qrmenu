@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
-use App\Enums\RestaurantUserRole;
 use App\Http\Resources\MenuAnalysisResource;
-use App\Models\RestaurantUser;
+use App\Models\Restaurant;
 use App\Support\MenuJson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
@@ -37,15 +37,11 @@ class MenuAnalysisController extends Controller
         $restaurantId = $request->integer('restaurant_id') ?: null;
 
         if ($restaurantId !== null) {
-            $isOwner = RestaurantUser::where('restaurant_id', $restaurantId)
-                ->where('user_id', $request->user()->id)
-                ->where('role', RestaurantUserRole::Owner->value)
-                ->exists();
+            $restaurant = Restaurant::findOrFail($restaurantId);
+            Gate::authorize('update', $restaurant);
 
-            if ($isOwner) {
-                $savedMenu = app(SaveMenuAnalysisAction::class)->handle($menu, $restaurantId, count($paths));
-                $savedMenuId = $savedMenu->id;
-            }
+            $savedMenu = app(SaveMenuAnalysisAction::class)->handle($menu, $restaurantId, count($paths));
+            $savedMenuId = $savedMenu->id;
         }
 
         return new MenuAnalysisResource([

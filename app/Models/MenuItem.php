@@ -71,15 +71,9 @@ class MenuItem extends Model
         ];
     }
 
-    /**
-     * Returns the initial (source) name translation for display purposes.
-     */
     public function getNameAttribute(): ?string
     {
-        return $this->translations()
-            ->where('field', 'name')
-            ->where('is_initial', true)
-            ->value('value');
+        return $this->initialText('name');
     }
 
     public function setNameAttribute(?string $value): void
@@ -89,10 +83,7 @@ class MenuItem extends Model
 
     public function getDescriptionAttribute(): ?string
     {
-        return $this->translations()
-            ->where('field', 'description')
-            ->where('is_initial', true)
-            ->value('value');
+        return $this->initialText('description');
     }
 
     public function setDescriptionAttribute(?string $value): void

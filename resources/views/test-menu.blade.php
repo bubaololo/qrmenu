@@ -350,8 +350,9 @@
             select.innerHTML = '<option value="">— select —</option>';
             list.forEach((r) => {
                 const opt = document.createElement('option');
+                const attrs = r.attributes ?? r;
                 opt.value = String(r.id);
-                opt.textContent = `#${r.id} ${r.name}` + (r.city ? ` · ${r.city}` : '');
+                opt.textContent = `#${r.id} ${attrs.name ?? ''}` + (attrs.city ? ` · ${attrs.city}` : '');
                 select.appendChild(opt);
             });
             select.onchange = () => {

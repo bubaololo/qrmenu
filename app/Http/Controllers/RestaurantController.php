@@ -2,85 +2,93 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\RestaurantResource;
 use App\Models\Menu;
 use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 class RestaurantController extends Controller
 {
     /**
      * List owned restaurants.
-     *
-     * Returns all restaurants where the authenticated user is an owner.
-     *
-     * @operationId listRestaurants
-     *
-     * @tags Restaurants
-     *
-     * @response 200 {
-     *   "data": [
-     *     { "id": 1, "name": "Phở Hà Nội", "city": "Hanoi", "country": "Vietnam", "currency": "VND" }
-     *   ]
-     * }
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): ResourceCollection
     {
         $restaurants = $request->user()
             ->ownedRestaurants()
             ->orderBy('restaurants.created_at', 'desc')
-            ->get(['restaurants.id', 'restaurants.city', 'restaurants.country', 'restaurants.currency', 'restaurants.primary_language']);
+            ->get();
 
-        return response()->json([
-            'data' => $restaurants->map(fn ($r) => [
-                'id' => $r->id,
-                'name' => $r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}",
-                'city' => $r->city,
-                'country' => $r->country,
-                'currency' => $r->currency,
-            ]),
-        ]);
+        return RestaurantResource::collection($restaurants);
     }
 
     /**
-     * Active menus.
-     *
-     * Returns the active menu (with sections and items) for each of the
-     * authenticated user's owned restaurants. Restaurants without an
-     * active menu are omitted.
-     *
-     * @operationId activeMenus
-     *
-     * @tags Restaurants
-     *
-     * @response 200 {
-     *   "data": [
-     *     {
-     *       "restaurant_id": 1,
-     *       "restaurant_name": "Phở Hà Nội",
-     *       "menu_id": 7,
-     *       "detected_date": "2026-04-07",
-     *       "source_locale": "vi",
-     *       "sections": [
-     *         {
-     *           "id": 12,
-     *           "name": "Phở",
-     *           "sort_order": 0,
-     *           "items": [
-     *             {
-     *               "id": 55,
-     *               "name": "Phở bò",
-     *               "price_type": "fixed",
-     *               "price_value": "79000.00",
-     *               "price_original_text": "79.000",
-     *               "starred": false
-     *             }
-     *           ]
-     *         }
-     *       ]
-     *     }
-     *   ]
-     * }
+     * Show a single restaurant.
+     */
+    public function show(Restaurant $restaurant): RestaurantResource
+    {
+        Gate::authorize('view', $restaurant);
+
+        return new RestaurantResource($restaurant);
+    }
+
+    /**
+     * Create a new restaurant owned by the authenticated user.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        // Observer auto-attaches creator as owner in restaurant_users
+        $restaurant = Restaurant::create([
+            'created_by_user_id' => $request->user()->id,
+        ]);
+
+        return (new RestaurantResource($restaurant))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    /**
+     * Update a restaurant.
+     */
+    public function update(Request $request, Restaurant $restaurant): RestaurantResource
+    {
+        Gate::authorize('update', $restaurant);
+
+        $validated = $request->validate([
+            'city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'country' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'currency' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'primary_language' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'opening_hours' => ['sometimes', 'nullable', 'array'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        $name = $validated['name'] ?? null;
+        $address = $validated['address'] ?? null;
+        unset($validated['name'], $validated['address']);
+
+        $restaurant->update($validated);
+
+        $locale = $restaurant->primary_language ?? 'und';
+
+        if ($name !== null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        if ($address !== null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
+        }
+
+        return new RestaurantResource($restaurant->fresh());
+    }
+
+    /**
+     * Active menus with sections and items.
      */
     public function activeMenus(Request $request): JsonResponse
     {
@@ -123,26 +131,5 @@ class RestaurantController extends Controller
                 ]),
             ]),
         ]);
-    }
-
-    /**
-     * Create a new empty restaurant owned by the authenticated user.
-     *
-     * @operationId createRestaurant
-     *
-     * @tags Restaurants
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $restaurant = Restaurant::create([
-            'created_by_user_id' => $request->user()->id,
-        ]);
-
-        return response()->json([
-            'data' => [
-                'id' => $restaurant->id,
-                'name' => "Restaurant #{$restaurant->id}",
-            ],
-        ], 201);
     }
 }

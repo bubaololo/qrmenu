@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Models\Locale;
 use App\Models\Translation;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 trait HasTranslations
@@ -14,6 +15,30 @@ trait HasTranslations
     public function translations(): MorphMany
     {
         return $this->morphMany(Translation::class, 'translatable');
+    }
+
+    /**
+     * Only initial (source/user-entered) translations — for API responses.
+     */
+    public function initialTranslations(): MorphMany
+    {
+        return $this->morphMany(Translation::class, 'translatable')->where('is_initial', true);
+    }
+
+    /**
+     * Get the initial (source) text for a field. No locale lookup — just the original.
+     * Works with eager-loaded `initialTranslations` to avoid N+1.
+     */
+    public function initialText(string $field): ?string
+    {
+        if ($this->relationLoaded('initialTranslations')) {
+            return $this->initialTranslations->first(fn (Translation $t) => $t->field === $field)?->value;
+        }
+
+        return $this->translations()
+            ->where('field', $field)
+            ->where('is_initial', true)
+            ->value('value');
     }
 
     /**
@@ -35,7 +60,7 @@ trait HasTranslations
      */
     public function translate(string $field, string $localeCode): ?string
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Translation> $loaded */
+        /** @var Collection<int, Translation> $loaded */
         $loaded = $this->relationLoaded('translations') ? $this->translations : collect();
 
         if ($loaded->isNotEmpty()) {

@@ -45,15 +45,9 @@ class MenuSection extends Model
         ];
     }
 
-    /**
-     * Returns the initial (source) name translation for display purposes.
-     */
     public function getNameAttribute(): ?string
     {
-        return $this->translations()
-            ->where('field', 'name')
-            ->where('is_initial', true)
-            ->value('value');
+        return $this->initialText('name');
     }
 
     public function setNameAttribute(?string $value): void
