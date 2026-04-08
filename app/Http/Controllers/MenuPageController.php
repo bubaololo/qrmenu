@@ -2,8 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\TranslateMenuJob;
+use App\Models\Locale;
+use App\Models\MenuItem;
 use App\Models\Restaurant;
+use App\Models\Translation;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Matriphe\ISO639\ISO639;
 
 class MenuPageController extends Controller
 {
@@ -22,12 +28,19 @@ class MenuPageController extends Controller
         $menu = $restaurant->activeMenu;
         $primaryLang = $restaurant->primary_language ?? 'en';
 
-        // Normalize: 'mixed' source locale means no single lang → default to primaryLang
-        if ($lang === null || $lang === 'mixed') {
+        // Normalize: null, 'mixed', or invalid ISO-639-1 code → default to primaryLang
+        $iso = new ISO639;
+        if ($lang === null || $lang === 'mixed' || ($lang !== $primaryLang && $iso->languageByCode1($lang) === '')) {
             $lang = $primaryLang;
         }
 
-        $languages = $this->getAvailableLanguages($restaurant, $menu);
+        // On-demand translation: if locale not initial and no translations exist, trigger LLM
+        if ($menu && $lang !== ($menu->source_locale ?? $primaryLang)) {
+            $this->ensureTranslations($restaurant, $menu, $lang);
+            $menu = $restaurant->activeMenu; // refresh after potential translation
+        }
+
+        $languages = $this->getAvailableLanguages($restaurant, $menu, $lang);
 
         if (! collect($languages)->pluck('code')->contains($lang)) {
             $lang = $primaryLang;
@@ -49,10 +62,51 @@ class MenuPageController extends Controller
         ));
     }
 
+    private function ensureTranslations(Restaurant $restaurant, object $menu, string $lang): void
+    {
+        $itemIds = $menu->sections->flatMap->items->pluck('id');
+
+        if ($itemIds->isEmpty()) {
+            return;
+        }
+
+        $localeId = Locale::where('code', $lang)->value('id');
+        $hasTranslations = $localeId && Translation::where('locale_id', $localeId)
+            ->where('translatable_type', MenuItem::class)
+            ->whereIn('translatable_id', $itemIds)
+            ->exists();
+
+        if ($hasTranslations) {
+            return;
+        }
+
+        // Throttle: max 1 translation per menu+locale per hour
+        $cacheKey = "menu_translation:{$menu->id}:{$lang}";
+
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        Cache::put($cacheKey, true, now()->addHour());
+
+        TranslateMenuJob::dispatchSync($menu, $lang);
+
+        // Reload all translations so the page renders with new data
+        $restaurant->load([
+            'translations',
+            'activeMenu.sections.translations',
+            'activeMenu.sections.items.translations',
+            'activeMenu.sections.items.variations.translations',
+            'activeMenu.sections.items.variations.options.translations',
+            'activeMenu.sections.items.optionGroups.translations',
+            'activeMenu.sections.items.optionGroups.options.translations',
+        ]);
+    }
+
     /**
      * @return array<int, array{code: string, label: string, flag: string}>
      */
-    private function getAvailableLanguages(Restaurant $restaurant, ?object $menu): array
+    private function getAvailableLanguages(Restaurant $restaurant, ?object $menu, ?string $requestedLang = null): array
     {
         $primaryLang = $restaurant->primary_language ?? 'en';
         $langs = [];
@@ -78,6 +132,23 @@ class MenuPageController extends Controller
         // Always offer English if not already listed
         if (! collect($langs)->pluck('code')->contains('en')) {
             $langs[] = ['code' => 'en', 'label' => 'English', 'flag' => "\u{1F1EC}\u{1F1E7}"];
+        }
+
+        // Include requested language if translations were generated for it
+        if ($requestedLang && ! collect($langs)->pluck('code')->contains($requestedLang)) {
+            $localeId = Locale::where('code', $requestedLang)->value('id');
+            $hasTranslations = $localeId && $menu && Translation::where('locale_id', $localeId)
+                ->where('translatable_type', MenuItem::class)
+                ->whereIn('translatable_id', $menu->sections->flatMap->items->pluck('id'))
+                ->exists();
+
+            if ($hasTranslations) {
+                $langs[] = [
+                    'code' => $requestedLang,
+                    'label' => $this->getLanguageLabel($requestedLang),
+                    'flag' => $this->getLanguageFlag($requestedLang),
+                ];
+            }
         }
 
         return array_values($langs);
@@ -156,18 +227,10 @@ class MenuPageController extends Controller
 
     private function getLanguageLabel(string $code): string
     {
-        return match ($code) {
-            'vi' => "Ti\u{1EBF}ng Vi\u{1EC7}t",
-            'en' => 'English',
-            'ru' => "\u{0420}\u{0443}\u{0441}\u{0441}\u{043A}\u{0438}\u{0439}",
-            'kk' => "\u{049A}\u{0430}\u{0437}\u{0430}\u{049B}\u{0448}\u{0430}",
-            'zh' => "\u{4E2D}\u{6587}",
-            'ja' => "\u{65E5}\u{672C}\u{8A9E}",
-            'ko' => "\u{D55C}\u{AD6D}\u{C5B4}",
-            'th' => "\u{0E44}\u{0E17}\u{0E22}",
-            'id' => 'Indonesia',
-            default => strtoupper($code),
-        };
+        $iso = new ISO639;
+        $native = $iso->nativeByCode1($code, true);
+
+        return $native !== '' ? $native : strtoupper($code);
     }
 
     /**

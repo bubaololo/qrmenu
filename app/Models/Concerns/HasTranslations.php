@@ -108,6 +108,15 @@ trait HasTranslations
         // Keep locale cache warm
         self::$localeIdCache[$localeCode] = $locale->id;
 
+        // Only one initial allowed per (type, id, field) — remove old if replacing
+        if ($isInitial) {
+            $this->translations()
+                ->where('field', $field)
+                ->where('is_initial', true)
+                ->where('locale_id', '!=', $locale->id)
+                ->delete();
+        }
+
         $this->translations()->updateOrCreate(
             ['locale_id' => $locale->id, 'field' => $field],
             ['value' => $value, 'is_initial' => $isInitial],

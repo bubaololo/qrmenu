@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>{{ $lang === 'en' ? ($restaurant->name_en ?: $restaurant->name_local) : ($restaurant->name_local ?: $restaurant->name_en) }} — Menu</title>
+    <title>{{ $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu' }} — Menu</title>
     <meta name="theme-color" content="#f8fafc">
     <link rel="icon" href="data:,">
     <style>body{background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0}</style>
@@ -17,7 +17,7 @@
             <div class="flex gap-sm">
                 <div>
                     <h1 class="restaurant-name">
-                        {{ $lang === 'en' ? ($restaurant->name_en ?: $restaurant->name_local) : ($restaurant->name_local ?: $restaurant->name_en) }}
+                        {{ $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu' }}
                     </h1>
                 </div>
             </div>
@@ -62,7 +62,7 @@
                     <button class="tab tab-active" data-cat="all">{{ $uiStrings['all'] }}</button>
                     @foreach($menu->sections as $section)
                         <button class="tab" data-cat="{{ $section->id }}">
-                            {{ $lang === 'en' ? ($section->name_en ?: $section->name_local) : ($section->name_local ?: $section->name_en) }}
+                            {{ $section->translate('name', $lang) ?? $section->name ?? '' }}
                         </button>
                     @endforeach
                 </div>
@@ -77,14 +77,12 @@
                 @foreach($menu->sections as $section)
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <h2 class="category-title">
-                            {{ $lang === 'en' ? ($section->name_en ?: $section->name_local) : ($section->name_local ?: $section->name_en) }}
+                            {{ $section->translate('name', $lang) ?? $section->name ?? '' }}
                         </h2>
                         <div class="menu-grid">
                             @foreach($section->items as $item)
                                 @php
-                                    $itemName = $lang === 'en'
-                                        ? ($item->name_en ?: $item->name_local)
-                                        : ($item->name_local ?: $item->name_en);
+                                    $itemName = $item->translate('name', $lang) ?? $item->name ?? '';
 
                                     if ($item->variations->isNotEmpty()) {
                                         $firstOpt = $item->variations->first()->options->first();

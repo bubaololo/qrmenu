@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -65,7 +66,7 @@ class AnalyzeMenuImageAction
 
         $startedAt = microtime(true);
 
-        info('LLM outbound request', [
+        Log::channel('llm')->info('LLM outbound request', [
             'url' => self::CHAT_COMPLETIONS_URL,
             'model' => self::MODEL,
             'timeout_seconds' => $timeoutSeconds,
@@ -87,7 +88,7 @@ class AnalyzeMenuImageAction
         } catch (ConnectionException $e) {
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
             $telemetry = $this->buildFailureTelemetry($durationMs, $sanitizedPayload, null, $e, $timeoutSeconds);
-            info('LLM connection failed', $telemetry);
+            Log::channel('llm')->info('LLM connection failed', $telemetry);
 
             throw new LlmRequestFailedException($e->getMessage(), $telemetry, 0, $e);
         }
@@ -98,7 +99,7 @@ class AnalyzeMenuImageAction
             $response->throw();
         } catch (RequestException $e) {
             $telemetry = $this->buildFailureTelemetry($durationMs, $sanitizedPayload, $e->response, $e, $timeoutSeconds);
-            info('LLM HTTP error', $telemetry);
+            Log::channel('llm')->info('LLM HTTP error', $telemetry);
 
             throw new LlmRequestFailedException($e->getMessage(), $telemetry, 0, $e);
         }
@@ -108,7 +109,7 @@ class AnalyzeMenuImageAction
         if (! is_string($text) || $text === '') {
             $telemetry = $this->buildFailureTelemetry($durationMs, $sanitizedPayload, $response, null, $timeoutSeconds);
             $telemetry['response']['note'] = 'choices.0.message.content missing or empty';
-            info('LLM empty assistant message', $telemetry);
+            Log::channel('llm')->info('LLM empty assistant message', $telemetry);
 
             throw new LlmRequestFailedException(
                 'LLM returned no assistant text (see debug.response for provider body).',
@@ -119,7 +120,7 @@ class AnalyzeMenuImageAction
         $isPartial = $response->header('x-dashscope-partialresponse') === 'true';
         $finishReason = $response->json('choices.0.finish_reason');
 
-        info('LLM response success', [
+        Log::channel('llm')->info('LLM response success', [
             'duration_ms' => $durationMs,
             'status' => $response->status(),
             'finish_reason' => $finishReason,
@@ -132,7 +133,7 @@ class AnalyzeMenuImageAction
         ]);
 
         if ($isPartial) {
-            info('LLM partial response — DashScope timed out internally, content may be incomplete', [
+            Log::channel('llm')->info('LLM partial response — DashScope timed out internally, content may be incomplete', [
                 'raw_length' => strlen($text),
                 'raw_preview' => substr($text, 0, 500),
             ]);
@@ -275,7 +276,7 @@ class AnalyzeMenuImageAction
         $fullPath = Storage::disk('public')->path($path);
         $mime = mime_content_type($fullPath) ?: 'image/jpeg';
 
-        info('Image prepared', ['path' => $path, 'mime' => $mime]);
+        Log::channel('llm')->info('Image prepared', ['path' => $path, 'mime' => $mime]);
 
         if (! in_array($mime, self::SUPPORTED_MIMES, true)) {
             throw new \InvalidArgumentException(
@@ -288,7 +289,7 @@ class AnalyzeMenuImageAction
         $b64 = base64_encode($raw);
         $b64Bytes = strlen($b64);
 
-        info('Image encoded', [
+        Log::channel('llm')->info('Image encoded', [
             'path' => $path,
             'raw_bytes' => $rawBytes,
             'raw_mb' => round($rawBytes / 1024 / 1024, 2),

@@ -26,6 +26,11 @@ services:
     networks:
       - app_network
 
+  redis:
+    image: redis:7-alpine
+    networks:
+      - app_network
+
 volumes:
   pgdata:
 

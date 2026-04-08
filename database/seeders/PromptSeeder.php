@@ -137,5 +137,51 @@ PROMPT;
         Prompt::where('prompt_type_id', $type->id)
             ->where('name', '!=', 'Default menu analyzer')
             ->update(['is_active' => false]);
+
+        // ── Menu translator prompt ──────────────────────────────────────────
+
+        $translatorType = PromptType::firstOrCreate(
+            ['slug' => 'menu_translator'],
+            ['name' => 'Menu translator'],
+        );
+
+        $translatorSystem = <<<'SYSTEM'
+You are a professional restaurant menu translator. You receive pipe-delimited lines and return the same format with translated text. No explanations, no markdown, no extra output — only the translated lines.
+SYSTEM;
+
+        $translatorUser = <<<'PROMPT'
+Translate the restaurant menu below from {source_locale} to {target_locale}.
+
+Context: {restaurant_name}, {city}, {country}
+
+Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
+- S|id|section name
+- I|id|item name|item description (empty if none)
+- V|id(s)|variation option name (comma-separated IDs share same text)
+- G|id(s)|option group name
+- O|id(s)|option name
+- R|field|value (restaurant field)
+
+Rules:
+- Return EXACTLY the same lines with same IDs, only translate the text parts
+- Preserve brand names and proper nouns as-is
+- Use natural food terminology for {target_locale}
+- Keep empty descriptions empty
+- No extra lines, no markdown fences, no explanations
+
+Lines to translate:
+PROMPT;
+
+        Prompt::updateOrCreate(
+            [
+                'prompt_type_id' => $translatorType->id,
+                'name' => 'Default menu translator',
+            ],
+            [
+                'system_prompt' => $translatorSystem,
+                'user_prompt' => $translatorUser,
+                'is_active' => true,
+            ],
+        );
     }
 }
