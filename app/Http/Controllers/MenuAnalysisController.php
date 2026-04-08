@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
 use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Enums\RestaurantUserRole;
-use App\Http\Controllers\Controller;
 use App\Http\Resources\MenuAnalysisResource;
 use App\Models\RestaurantUser;
 use App\Support\MenuJson;

@@ -7,17 +7,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // PostgreSQL: drop enum constraint by changing the column type to varchar
-        DB::statement(
-            'ALTER TABLE item_variations ALTER COLUMN type TYPE varchar(100)'
-        );
+        // Drop the enum check constraint if it exists (safe no-op when already removed)
+        DB::statement('ALTER TABLE item_variations DROP CONSTRAINT IF EXISTS item_variations_type_check');
+        // Change the column type to unrestricted varchar (no-op if already varchar)
+        DB::statement('ALTER TABLE item_variations ALTER COLUMN type TYPE varchar(100)');
     }
 
     public function down(): void
     {
-        // Restore enum — only works if existing values match; otherwise this will fail
-        DB::statement(
-            "ALTER TABLE item_variations ALTER COLUMN type TYPE varchar(100) USING type::varchar"
-        );
+        // Cannot safely restore enum without knowing existing values; leave as varchar
     }
 };

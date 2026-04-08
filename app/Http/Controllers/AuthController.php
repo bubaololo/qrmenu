@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +21,9 @@ class AuthController extends Controller
      * protection and obtain the `XSRF-TOKEN` cookie.
      *
      * @operationId login
+     *
      * @tags Auth
+     *
      * @unauthenticated
      *
      * @response 200 {
@@ -64,7 +65,9 @@ class AuthController extends Controller
      * Always returns 204 to prevent user enumeration.
      *
      * @operationId forgotPassword
+     *
      * @tags Auth
+     *
      * @unauthenticated
      *
      * @response 204 description="Reset link sent (if the email exists)"
@@ -86,7 +89,9 @@ class AuthController extends Controller
      * Exchange a valid reset token (from the email link) for a new password.
      *
      * @operationId resetPassword
+     *
      * @tags Auth
+     *
      * @unauthenticated
      *
      * @response 204 description="Password reset successfully"
@@ -128,6 +133,7 @@ class AuthController extends Controller
      * Verify the current password and set a new one.
      *
      * @operationId changePassword
+     *
      * @tags Auth
      *
      * @response 204 description="Password changed"
@@ -162,6 +168,7 @@ class AuthController extends Controller
      * Invalidate the current session.
      *
      * @operationId logout
+     *
      * @tags Auth
      *
      * @response 204 description="Session invalidated"
@@ -182,6 +189,7 @@ class AuthController extends Controller
      * Return the currently authenticated user.
      *
      * @operationId currentUser
+     *
      * @tags Auth
      *
      * @response 200 {

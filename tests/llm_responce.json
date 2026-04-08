@@ -1,0 +1,1105 @@
+{
+    "restaurant": {
+        "name": "Amélie Pâtisserie et Café",
+        "address": null,
+        "city": null,
+        "country": "VN",
+        "phone": null,
+        "opening_hours": null,
+        "currency": "VND",
+        "primary_language": "en"
+    },
+    "menu_version": {
+        "detected_date": null,
+        "source_images_count": 1
+    },
+    "sections": [
+        {
+            "category_name": "TRADITIONAL CAFE",
+            "items": [
+                {
+                    "name": "Black coffee",
+                    "description": "Cà phê đen",
+                    "starred": true,
+                    "price": {
+                        "value": 35000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "35.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Milk coffee",
+                    "description": "Cà phê sữa",
+                    "starred": true,
+                    "price": {
+                        "value": 40000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "40.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "White coffee",
+                    "description": "Bạc xỉu",
+                    "starred": true,
+                    "price": {
+                        "value": 45000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "45.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Salted coffee",
+                    "description": "Cà phê muối",
+                    "starred": true,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Cream brulee coffee",
+                    "description": "Bạc xỉu, foam kem trứng nướng",
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Cheese coffee",
+                    "description": "Bạc xỉu, foam kem cheese",
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "category_name": "ITALIAN CAFE",
+            "items": [
+                {
+                    "name": "Espresso",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 35000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "35.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Americano",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 40000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "40.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Yuzu americano",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Capuchino",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Bailey latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Caramel macchiato",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Pandan latte brulee",
+                    "description": "Latte sâm dứa, foam kem trứng nướng",
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Cloudy latte mint",
+                    "description": "Latte bạc hà, milkfoam",
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": [
+                        {
+                            "group_name": "ADD ON",
+                            "min_select": 0,
+                            "max_select": null,
+                            "options": [
+                                {"name": "Extra shot", "price_adjust": 25000},
+                                {"name": "Extra oatside", "price_adjust": 5000},
+                                {"name": "Extra Condensed milk", "price_adjust": 5000}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "category_name": "COLD BREW",
+            "items": [
+                {
+                    "name": "Cold brew",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 40000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "40.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Orange cold brew",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Pinapple cold brew",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Lychee plum cold brew",
+                    "description": "Cold brew vải mận",
+                    "starred": false,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Green apple cold brew",
+                    "description": "Cold brew táo xanh",
+                    "starred": false,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Pomegranate aloe vera",
+                    "description": "Cold brew lựu nha đam",
+                    "starred": false,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        },
+        {
+            "category_name": "MATCHA",
+            "items": [
+                {
+                    "name": "Matcha latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": []
+                },
+                {
+                    "name": "Yuzu matcha",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Lychee yakult matcha",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Bailey matcha latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Strawberry matcha latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Cheese matcha latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 65000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "65.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Tiramisu matcha latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 65000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "65.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        },
+        {
+            "category_name": "CHOCOLATE",
+            "items": [
+                {
+                    "name": "Choco latte",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [
+                        {
+                            "type": "temperature",
+                            "name": null,
+                            "required": false,
+                            "allow_multiple": false,
+                            "options": [
+                                {"name": "hot", "price_adjust": 0, "is_default": false},
+                                {"name": "iced", "price_adjust": 0, "is_default": false}
+                            ]
+                        }
+                    ],
+                    "options": []
+                },
+                {
+                    "name": "Choco latte brulee",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Cheese chocolate",
+                    "description": null,
+                    "starred": true,
+                    "price": {
+                        "value": 65000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "65.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        },
+        {
+            "category_name": "FRUIT JUICE",
+            "items": [
+                {
+                    "name": "Lemon juice",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 45000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "45.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Orange juice",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Pineapple juice",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Watermelon juice",
+                    "description": null,
+                    "starred": false,
+                    "price": {
+                        "value": 50000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "50.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        },
+        {
+            "category_name": "FRESH TEA",
+            "items": [
+                {
+                    "name": "Hot lemon ginger tea",
+                    "description": "Trà chanh gừng nóng",
+                    "starred": false,
+                    "price": {
+                        "value": 45000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "45.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Lychee tea",
+                    "description": "Trà vải",
+                    "starred": false,
+                    "price": {
+                        "value": 55000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "55.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Citron tea",
+                    "description": "Trà Yuzu",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Strawberry tea",
+                    "description": "Trà dâu",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Green apple hibicus tea",
+                    "description": "Trà táo xanh atisô đỏ",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Pink smoky berries tea",
+                    "description": "Trà dâu rừng bá tước khói (phúc bồn tử, việt quất, dâu tây)",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Dark mojito berries tea",
+                    "description": "Trà dâu rừng mojito (việt quất, mâm xôi)",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Grapefruit lemon ginger tea",
+                    "description": "Trà bưởi chanh gừng",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Pomegranate aloe vera hibicus tea",
+                    "description": "Trà lựu nha đam atisô đỏ",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Cherry cherry lady tea",
+                    "description": "Trà anh đào ngâm rượu Kirsch",
+                    "starred": false,
+                    "price": {
+                        "value": 65000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "65.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        },
+        {
+            "category_name": "FRAPUCHINO - ICE BLENDED",
+            "items": [
+                {
+                    "name": "Avocado coffee blended",
+                    "description": "Cà phê bơ đá xay",
+                    "starred": false,
+                    "price": {
+                        "value": null,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "5?d"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Chocolate blended",
+                    "description": "Chocolate đá xay",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Coco coffee blended",
+                    "description": "Cà phê dừa đá xay",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Matcha blended",
+                    "description": "Trà xanh đá xay",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                },
+                {
+                    "name": "Tiramisu frapuchino",
+                    "description": "Tiramisu đá xay",
+                    "starred": false,
+                    "price": {
+                        "value": 60000,
+                        "min": null,
+                        "max": null,
+                        "unit": null,
+                        "original_text": "60.000"
+                    },
+                    "image_bbox": null,
+                    "variations": [],
+                    "options": []
+                }
+            ]
+        }
+    ]
+}

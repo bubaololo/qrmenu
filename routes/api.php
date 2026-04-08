@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\ImageController;
-use App\Http\Controllers\Api\V1\MenuAnalysisController;
-use App\Http\Controllers\Api\V1\RestaurantController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ImageController;
+use App\Http\Controllers\MenuAnalysisController;
+use App\Http\Controllers\RestaurantController;
 use Illuminate\Support\Facades\Route;
 
 /*

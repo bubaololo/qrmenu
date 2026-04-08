@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +15,7 @@ class RestaurantController extends Controller
      * Returns all restaurants where the authenticated user is an owner.
      *
      * @operationId listRestaurants
+     *
      * @tags Restaurants
      *
      * @response 200 {
@@ -50,6 +50,7 @@ class RestaurantController extends Controller
      * active menu are omitted.
      *
      * @operationId activeMenus
+     *
      * @tags Restaurants
      *
      * @response 200 {
@@ -128,6 +129,7 @@ class RestaurantController extends Controller
      * Create a new empty restaurant owned by the authenticated user.
      *
      * @operationId createRestaurant
+     *
      * @tags Restaurants
      */
     public function store(Request $request): JsonResponse

@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +17,9 @@ class TokenController extends Controller
      * to use in the `Authorization` header for all subsequent requests.
      *
      * @operationId createToken
+     *
      * @tags Authentication
+     *
      * @unauthenticated
      *
      * @response 200 {
@@ -58,6 +59,7 @@ class TokenController extends Controller
      * the token can no longer be used for authentication.
      *
      * @operationId revokeToken
+     *
      * @tags Authentication
      *
      * @response 204 description="Token revoked successfully"

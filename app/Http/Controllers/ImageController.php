@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers;
 
 use App\Enums\RestaurantUserRole;
-use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\RestaurantUser;

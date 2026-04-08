@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('item_variations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('item_id')->constrained('menu_items')->cascadeOnDelete();
-            $table->enum('type', ['portion', 'size', 'spice_level', 'sauce', 'base', 'flavor', 'unit']);
+            $table->string('type', 100)->nullable();
             $table->boolean('required')->default(false);
             $table->boolean('allow_multiple')->default(false);
             $table->integer('sort_order')->default(0);
