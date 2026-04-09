@@ -8,7 +8,7 @@ use Database\Factories\MenuItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MenuItem extends Model
 {
@@ -96,13 +96,14 @@ class MenuItem extends Model
         return $this->belongsTo(MenuSection::class, 'section_id');
     }
 
-    public function variations(): HasMany
+    public function optionGroups(): BelongsToMany
     {
-        return $this->hasMany(ItemVariation::class, 'item_id')->orderBy('sort_order');
+        return $this->belongsToMany(MenuOptionGroup::class, 'menu_item_option_group', 'item_id', 'group_id')
+            ->orderBy('sort_order');
     }
 
-    public function optionGroups(): HasMany
+    public function variations(): BelongsToMany
     {
-        return $this->hasMany(ItemOptionGroup::class, 'item_id')->orderBy('sort_order');
+        return $this->optionGroups()->where('is_variation', true);
     }
 }

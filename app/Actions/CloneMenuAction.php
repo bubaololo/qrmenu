@@ -2,10 +2,9 @@
 
 namespace App\Actions;
 
-use App\Models\ItemOptionGroup;
-use App\Models\ItemVariation;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\MenuOptionGroup;
 use App\Models\MenuSection;
 use App\Models\Translation;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class CloneMenuAction
 {
     /**
-     * Deep-clone a menu version (sections → items → variations/options + option groups/options).
+     * Deep-clone a menu version (sections → optionGroups + items with pivot).
      * The clone is inactive and retains a reference to the source menu.
      */
     public function handle(Menu $source): Menu
@@ -28,7 +27,13 @@ class CloneMenuAction
                 'created_from_menu_id' => $source->id,
             ]);
 
-            foreach ($source->sections()->with(['items.variations.options', 'items.optionGroups.options'])->get() as $section) {
+            $sections = $source->sections()->with([
+                'items',
+                'optionGroups.options',
+                'optionGroups.items',
+            ])->get();
+
+            foreach ($sections as $section) {
                 $this->cloneSection($clone, $section);
             }
 
@@ -44,12 +49,53 @@ class CloneMenuAction
 
         $this->copyTranslations($section, $newSection);
 
+        // Map old item IDs to new items
+        /** @var array<int, MenuItem> */
+        $itemMap = [];
         foreach ($section->items as $item) {
-            $this->cloneItem($newSection, $item);
+            $newItem = $this->cloneItem($newSection, $item);
+            $itemMap[$item->id] = $newItem;
+        }
+
+        // Clone section-level groups and re-attach via pivot using mapped item IDs
+        foreach ($section->optionGroups as $group) {
+            $newGroup = MenuOptionGroup::create([
+                'section_id' => $newSection->id,
+                'type' => $group->type,
+                'is_variation' => $group->is_variation,
+                'required' => $group->required,
+                'allow_multiple' => $group->allow_multiple,
+                'min_select' => $group->min_select,
+                'max_select' => $group->max_select,
+                'sort_order' => $group->sort_order,
+            ]);
+
+            $this->copyTranslations($group, $newGroup);
+
+            foreach ($group->options as $option) {
+                $newOption = $newGroup->options()->create([
+                    'price_adjust' => $option->price_adjust,
+                    'is_default' => $option->is_default,
+                    'sort_order' => $option->sort_order,
+                ]);
+                $this->copyTranslations($option, $newOption);
+            }
+
+            // Re-attach to cloned items
+            $newItemIds = $group->items
+                ->pluck('id')
+                ->map(fn (int $oldId) => $itemMap[$oldId]->id ?? null)
+                ->filter()
+                ->values()
+                ->all();
+
+            if (! empty($newItemIds)) {
+                $newGroup->items()->attach($newItemIds);
+            }
         }
     }
 
-    private function cloneItem(MenuSection $newSection, MenuItem $item): void
+    private function cloneItem(MenuSection $newSection, MenuItem $item): MenuItem
     {
         $newItem = $newSection->items()->create([
             'starred' => $item->starred,
@@ -65,55 +111,7 @@ class CloneMenuAction
 
         $this->copyTranslations($item, $newItem);
 
-        foreach ($item->variations as $variation) {
-            $this->cloneVariation($newItem, $variation);
-        }
-
-        foreach ($item->optionGroups as $group) {
-            $this->cloneOptionGroup($newItem, $group);
-        }
-    }
-
-    private function cloneVariation(MenuItem $newItem, ItemVariation $variation): void
-    {
-        $newVariation = ItemVariation::create([
-            'item_id' => $newItem->id,
-            'type' => $variation->type,
-            'required' => $variation->required,
-            'allow_multiple' => $variation->allow_multiple,
-            'sort_order' => $variation->sort_order,
-        ]);
-
-        $this->copyTranslations($variation, $newVariation);
-
-        foreach ($variation->options as $option) {
-            $newOption = $newVariation->options()->create([
-                'price_adjust' => $option->price_adjust,
-                'is_default' => $option->is_default,
-                'sort_order' => $option->sort_order,
-            ]);
-            $this->copyTranslations($option, $newOption);
-        }
-    }
-
-    private function cloneOptionGroup(MenuItem $newItem, ItemOptionGroup $group): void
-    {
-        $newGroup = ItemOptionGroup::create([
-            'item_id' => $newItem->id,
-            'min_select' => $group->min_select,
-            'max_select' => $group->max_select,
-            'sort_order' => $group->sort_order,
-        ]);
-
-        $this->copyTranslations($group, $newGroup);
-
-        foreach ($group->options as $option) {
-            $newOption = $newGroup->options()->create([
-                'price_adjust' => $option->price_adjust,
-                'sort_order' => $option->sort_order,
-            ]);
-            $this->copyTranslations($option, $newOption);
-        }
+        return $newItem;
     }
 
     /**

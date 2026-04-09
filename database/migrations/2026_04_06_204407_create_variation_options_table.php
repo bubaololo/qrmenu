@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('variation_options', function (Blueprint $table) {
+        Schema::create('menu_option_group_options', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('variation_id')->constrained('item_variations')->cascadeOnDelete();
+            $table->foreignId('group_id')->constrained('menu_option_groups')->cascadeOnDelete();
             $table->decimal('price_adjust', 10, 2)->default(0);
             $table->boolean('is_default')->default(false);
             $table->integer('sort_order')->default(0);
@@ -20,6 +20,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('variation_options');
+        Schema::dropIfExists('menu_option_group_options');
     }
 };

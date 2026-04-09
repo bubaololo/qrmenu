@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Enums\PriceType;
 use App\Models\MenuItem;
+use App\Models\MenuOptionGroup;
 use App\Models\Restaurant;
 use App\Support\MenuJson;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -82,8 +84,10 @@ class SaveMenuAnalysisTest extends TestCase
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        $this->assertDatabaseCount('item_variations', 12);
-        $this->assertDatabaseCount('variation_options', 24); // 12 variations × 2 (hot/iced)
+        // 12 per-item variations deduplicate to 4 unique section-level groups
+        $this->assertSame(4, MenuOptionGroup::where('is_variation', true)->count());
+        $variationGroupIds = MenuOptionGroup::where('is_variation', true)->pluck('id');
+        $this->assertDatabaseHas('menu_option_group_options', ['group_id' => $variationGroupIds->first()]);
     }
 
     #[Test]
@@ -91,8 +95,18 @@ class SaveMenuAnalysisTest extends TestCase
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        $this->assertDatabaseCount('item_option_groups', 15);
-        $this->assertDatabaseCount('item_option_group_options', 45); // 15 groups × 3 options
+        // 15 per-item option groups deduplicate to 2 unique section-level groups
+        $this->assertSame(2, MenuOptionGroup::where('is_variation', false)->count());
+    }
+
+    #[Test]
+    public function test_deduplicates_option_groups_at_section_level(): void
+    {
+        (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
+
+        // 27 total (12 + 15) → 6 unique groups, 27 pivot rows (items still linked to their groups)
+        $this->assertSame(6, MenuOptionGroup::count());
+        $this->assertSame(27, DB::table('menu_item_option_group')->count());
     }
 
     #[Test]

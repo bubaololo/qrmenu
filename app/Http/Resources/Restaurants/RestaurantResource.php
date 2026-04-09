@@ -1,14 +1,12 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\Restaurants;
 
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 class RestaurantResource extends JsonApiResource
 {
-    /**
-     * The resource's attributes.
-     */
+    /** @var array<int, string> */
     public $attributes = [
         'name',
         'address',
@@ -21,9 +19,7 @@ class RestaurantResource extends JsonApiResource
         'image',
     ];
 
-    /**
-     * The resource's relationships.
-     */
+    /** @var array<int, string> */
     public $relationships = [
         'activeMenu',
         'menus',

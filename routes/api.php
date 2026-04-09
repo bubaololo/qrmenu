@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
-use App\Http\Controllers\RestaurantController;
+use App\Http\Controllers\Restaurants\RestaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,14 +32,17 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
 
+    // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);
     Route::post('/restaurants', [RestaurantController::class, 'store']);
     Route::get('/restaurants/active-menus', [RestaurantController::class, 'activeMenus']);
     Route::get('/restaurants/{restaurant}', [RestaurantController::class, 'show']);
     Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update']);
+    Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
+
+    // Images
     Route::post('/restaurants/{restaurantId}/image', [ImageController::class, 'updateRestaurant']);
     Route::delete('/restaurants/{restaurantId}/image', [ImageController::class, 'deleteRestaurant']);
-
     Route::post('/menu-items/{itemId}/image', [ImageController::class, 'updateMenuItem']);
     Route::delete('/menu-items/{itemId}/image', [ImageController::class, 'deleteMenuItem']);
 });

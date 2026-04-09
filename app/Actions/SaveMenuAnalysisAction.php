@@ -3,10 +3,9 @@
 namespace App\Actions;
 
 use App\Enums\PriceType;
-use App\Models\ItemOptionGroup;
-use App\Models\ItemVariation;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\MenuOptionGroup;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Support\MenuJson;
@@ -101,19 +100,29 @@ class SaveMenuAnalysisAction
             $section->setTranslation('name', $locale, $name, isInitial: true);
         }
 
+        // Create items first, then deduplicate and attach groups
+        /** @var array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}> */
+        $itemEntries = [];
+
         foreach ($sectionData['items'] ?? [] as $itemIndex => $itemData) {
-            $this->createItem($section, $itemData, $itemIndex, $locale);
+            $item = $this->createItem($section, $itemData, $itemIndex, $locale);
+            $itemEntries[] = [
+                'item' => $item,
+                'variations' => $itemData['variations'] ?? [],
+                'options' => $itemData['option_groups'] ?? $itemData['options'] ?? [],
+            ];
         }
+
+        $this->deduplicateAndAttachGroups($section, $itemEntries, $locale);
     }
 
     /**
      * @param  array<string, mixed>  $itemData
      */
-    private function createItem(MenuSection $section, array $itemData, int $index, string $locale): void
+    private function createItem(MenuSection $section, array $itemData, int $index, string $locale): MenuItem
     {
         $price = is_array($itemData['price'] ?? null) ? $itemData['price'] : [];
 
-        // Infer price type from presence of fields rather than LLM-provided type string
         $priceType = match (true) {
             isset($price['min']) && isset($price['max']) => PriceType::Range,
             isset($price['min']) && ! isset($price['max']) => PriceType::From,
@@ -143,77 +152,95 @@ class SaveMenuAnalysisAction
             $item->setTranslation('description', $locale, $description, isInitial: true);
         }
 
-        foreach ($itemData['variations'] ?? [] as $varIndex => $varData) {
-            $this->createVariation($item, $varData, $varIndex, $locale);
+        return $item;
+    }
+
+    /**
+     * Deduplicate variations and option groups across items in a section,
+     * create unique groups at section level, and attach items via pivot.
+     *
+     * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}>  $itemEntries
+     */
+    private function deduplicateAndAttachGroups(MenuSection $section, array $itemEntries, string $locale): void
+    {
+        // registry: key => ['data' => groupData, 'isVariation' => bool, 'itemIds' => int[], 'sortOrder' => int]
+        $registry = [];
+
+        foreach ($itemEntries as $entry) {
+            $item = $entry['item'];
+
+            foreach ($entry['variations'] as $varIndex => $varData) {
+                $key = $this->buildGroupKey($varData, true);
+                if (! isset($registry[$key])) {
+                    $registry[$key] = ['data' => $varData, 'isVariation' => true, 'itemIds' => [], 'sortOrder' => $varIndex];
+                }
+                $registry[$key]['itemIds'][] = $item->id;
+            }
+
+            foreach ($entry['options'] as $groupIndex => $groupData) {
+                if (! isset($groupData['group_name']) && ! isset($groupData['name'])) {
+                    continue;
+                }
+                $key = $this->buildGroupKey($groupData, false);
+                if (! isset($registry[$key])) {
+                    $registry[$key] = ['data' => $groupData, 'isVariation' => false, 'itemIds' => [], 'sortOrder' => $groupIndex];
+                }
+                $registry[$key]['itemIds'][] = $item->id;
+            }
         }
 
-        // LLM may return option groups under "options" key
-        $optionGroups = $itemData['option_groups'] ?? $itemData['options'] ?? [];
-        foreach ($optionGroups as $groupIndex => $groupData) {
-            if (! isset($groupData['group_name']) && ! isset($groupData['name'])) {
-                continue;
+        $sortOrder = 0;
+        foreach ($registry as $entry) {
+            $groupData = $entry['data'];
+            $isVariation = $entry['isVariation'];
+
+            $group = MenuOptionGroup::create([
+                'section_id' => $section->id,
+                'type' => isset($groupData['type']) && is_string($groupData['type']) ? $groupData['type'] : null,
+                'is_variation' => $isVariation,
+                'required' => (bool) ($groupData['required'] ?? false),
+                'allow_multiple' => (bool) ($groupData['allow_multiple'] ?? false),
+                'min_select' => (int) ($groupData['min_select'] ?? 0),
+                'max_select' => isset($groupData['max_select']) ? (int) $groupData['max_select'] : null,
+                'sort_order' => $sortOrder++,
+            ]);
+
+            $groupName = MenuJson::extractText($groupData['group_name'] ?? $groupData['name'] ?? null);
+            if ($groupName !== null) {
+                $group->setTranslation('name', $locale, $groupName, isInitial: true);
             }
-            $this->createOptionGroup($item, $groupData, $groupIndex, $locale);
+
+            foreach ($groupData['options'] ?? [] as $optIndex => $optData) {
+                $option = $group->options()->create([
+                    'price_adjust' => $optData['price_adjust'] ?? 0,
+                    'is_default' => (bool) ($optData['is_default'] ?? false),
+                    'sort_order' => $optIndex,
+                ]);
+                $optName = MenuJson::extractText($optData['name'] ?? null);
+                if ($optName !== null) {
+                    $option->setTranslation('name', $locale, $optName, isInitial: true);
+                }
+            }
+
+            $group->items()->attach(array_unique($entry['itemIds']));
         }
     }
 
     /**
-     * @param  array<string, mixed>  $varData
+     * Build a deduplication key for a variation/option group.
+     *
+     * @param  array<string, mixed>  $data
      */
-    private function createVariation(MenuItem $item, array $varData, int $index, string $locale): void
+    private function buildGroupKey(array $data, bool $isVariation): string
     {
-        $variation = \App\Models\ItemVariation::create([
-            'item_id' => $item->id,
-            'type' => isset($varData['type']) && is_string($varData['type']) ? $varData['type'] : null,
-            'required' => (bool) ($varData['required'] ?? false),
-            'allow_multiple' => (bool) ($varData['allow_multiple'] ?? false),
-            'sort_order' => $index,
-        ]);
+        $name = strtolower(trim((string) (MenuJson::extractText($data['group_name'] ?? $data['name'] ?? '') ?? '')));
+        $type = $isVariation ? 'v' : 'o';
+        $options = collect($data['options'] ?? [])
+            ->map(fn ($o) => strtolower(trim((string) (MenuJson::extractText($o['name'] ?? '') ?? '')))
+                .':'.($o['price_adjust'] ?? 0))
+            ->sort()
+            ->implode('|');
 
-        $name = MenuJson::extractText($varData['name'] ?? null);
-        if ($name !== null) {
-            $variation->setTranslation('name', $locale, $name, isInitial: true);
-        }
-
-        foreach ($varData['options'] ?? [] as $optIndex => $optData) {
-            $option = $variation->options()->create([
-                'price_adjust' => $optData['price_adjust'] ?? 0,
-                'is_default' => (bool) ($optData['is_default'] ?? false),
-                'sort_order' => $optIndex,
-            ]);
-            $optName = MenuJson::extractText($optData['name'] ?? null);
-            if ($optName !== null) {
-                $option->setTranslation('name', $locale, $optName, isInitial: true);
-            }
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $groupData
-     */
-    private function createOptionGroup(MenuItem $item, array $groupData, int $index, string $locale): void
-    {
-        $group = \App\Models\ItemOptionGroup::create([
-            'item_id' => $item->id,
-            'min_select' => (int) ($groupData['min_select'] ?? 0),
-            'max_select' => isset($groupData['max_select']) ? (int) $groupData['max_select'] : null,
-            'sort_order' => $index,
-        ]);
-
-        $name = MenuJson::extractText($groupData['group_name'] ?? $groupData['name'] ?? null);
-        if ($name !== null) {
-            $group->setTranslation('name', $locale, $name, isInitial: true);
-        }
-
-        foreach ($groupData['options'] ?? [] as $optIndex => $optData) {
-            $option = $group->options()->create([
-                'price_adjust' => $optData['price_adjust'] ?? 0,
-                'sort_order' => $optIndex,
-            ]);
-            $optName = MenuJson::extractText($optData['name'] ?? null);
-            if ($optName !== null) {
-                $option->setTranslation('name', $locale, $optName, isInitial: true);
-            }
-        }
+        return "{$type}:{$name}:{$options}";
     }
 }

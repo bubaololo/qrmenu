@@ -27,10 +27,10 @@ class TranslateMenuJob implements ShouldQueue
     {
         $this->menu->load([
             'restaurant',
-            'sections.items.initialTranslations',
-            'sections.items.variations.options.initialTranslations',
-            'sections.items.optionGroups.options.initialTranslations',
             'sections.initialTranslations',
+            'sections.items.initialTranslations',
+            'sections.optionGroups.initialTranslations',
+            'sections.optionGroups.options.initialTranslations',
         ]);
 
         $restaurant = $this->menu->restaurant;
@@ -113,10 +113,12 @@ class TranslateMenuJob implements ShouldQueue
      *
      * S|section_id|Section Name
      * I|item_id|Item Name|Item Description
-     * V|option_id|Option Name
+     * V|group_id|Group Name  (variation group at section level)
+     * G|group_id|Group Name  (option group at section level)
      * O|option_id|Option Name
+     * R|field|value
      *
-     * Deduplicated: same text across options → translated once.
+     * Groups are at section level — no per-item duplication.
      *
      * @return array{0: string, 1: array<string, mixed>}
      */
@@ -124,15 +126,12 @@ class TranslateMenuJob implements ShouldQueue
     {
         $lines = [];
         $idMap = [
-            'sections' => [],    // id => section model
-            'items' => [],       // id => item model
-            'var_options' => [],  // id => variation option model
-            'opt_options' => [],  // id => option group option model
+            'sections' => [],   // id => section model
+            'items' => [],      // id => item model
+            'groups' => [],     // id => group model (both V and G)
+            'options' => [],    // id => option model
             'items_count' => 0,
         ];
-
-        // Collect unique option names to deduplicate
-        $uniqueOptions = []; // name => [type => [...ids]]
 
         foreach ($this->menu->sections as $section) {
             $sectionName = $section->initialText('name') ?? '';
@@ -145,34 +144,19 @@ class TranslateMenuJob implements ShouldQueue
                 $lines[] = "I|{$item->id}|{$name}|{$desc}";
                 $idMap['items'][$item->id] = $item;
                 $idMap['items_count']++;
-
-                foreach ($item->variations as $variation) {
-                    foreach ($variation->options as $opt) {
-                        $optName = $opt->initialText('name') ?? '';
-                        $idMap['var_options'][$opt->id] = $opt;
-                        $uniqueOptions[$optName]['V'][] = $opt->id;
-                    }
-                }
-
-                foreach ($item->optionGroups as $group) {
-                    $groupName = $group->initialText('name') ?? '';
-                    $idMap['opt_options']['group_'.$group->id] = $group;
-                    $uniqueOptions[$groupName]['G'][] = $group->id;
-
-                    foreach ($group->options as $opt) {
-                        $optName = $opt->initialText('name') ?? '';
-                        $idMap['opt_options'][$opt->id] = $opt;
-                        $uniqueOptions[$optName]['O'][] = $opt->id;
-                    }
-                }
             }
-        }
 
-        // Add deduplicated options as single lines
-        foreach ($uniqueOptions as $name => $types) {
-            foreach ($types as $type => $ids) {
-                $idsStr = implode(',', $ids);
-                $lines[] = "{$type}|{$idsStr}|{$name}";
+            foreach ($section->optionGroups as $group) {
+                $groupName = $group->initialText('name') ?? '';
+                $type = $group->is_variation ? 'V' : 'G';
+                $lines[] = "{$type}|{$group->id}|{$groupName}";
+                $idMap['groups'][$group->id] = $group;
+
+                foreach ($group->options as $opt) {
+                    $optName = $opt->initialText('name') ?? '';
+                    $lines[] = "O|{$opt->id}|{$optName}";
+                    $idMap['options'][$opt->id] = $opt;
+                }
             }
         }
 
@@ -233,38 +217,23 @@ class TranslateMenuJob implements ShouldQueue
                     break;
 
                 case 'V':
-                    $ids = array_map('intval', explode(',', $parts[1] ?? ''));
-                    $name = $parts[2] ?? '';
-                    foreach ($ids as $id) {
-                        $opt = $idMap['var_options'][$id] ?? null;
-                        if ($opt && $name !== '') {
-                            $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
-                            $count++;
-                        }
-                    }
-                    break;
-
                 case 'G':
-                    $ids = array_map('intval', explode(',', $parts[1] ?? ''));
+                    $id = (int) ($parts[1] ?? 0);
                     $name = $parts[2] ?? '';
-                    foreach ($ids as $id) {
-                        $group = $idMap['opt_options']['group_'.$id] ?? null;
-                        if ($group && $name !== '') {
-                            $group->setTranslation('name', $this->targetLocale, $name, isInitial: false);
-                            $count++;
-                        }
+                    $group = $idMap['groups'][$id] ?? null;
+                    if ($group && $name !== '') {
+                        $group->setTranslation('name', $this->targetLocale, $name, isInitial: false);
+                        $count++;
                     }
                     break;
 
                 case 'O':
-                    $ids = array_map('intval', explode(',', $parts[1] ?? ''));
+                    $id = (int) ($parts[1] ?? 0);
                     $name = $parts[2] ?? '';
-                    foreach ($ids as $id) {
-                        $opt = $idMap['opt_options'][$id] ?? null;
-                        if ($opt && $name !== '') {
-                            $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
-                            $count++;
-                        }
+                    $opt = $idMap['options'][$id] ?? null;
+                    if ($opt && $name !== '') {
+                        $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
+                        $count++;
                     }
                     break;
 

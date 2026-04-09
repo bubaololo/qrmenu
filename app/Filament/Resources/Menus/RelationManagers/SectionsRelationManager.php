@@ -98,66 +98,61 @@ class SectionsRelationManager extends RelationManager
                             ->label('Original Price Text')
                             ->maxLength(255),
 
-                        Repeater::make('variations')
-                            ->relationship('variations')
+                    ]),
+
+                Repeater::make('optionGroups')
+                    ->relationship('optionGroups')
+                    ->orderColumn('sort_order')
+                    ->collapsible()
+                    ->label('Option Groups (shared across items in this section)')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Group Name')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+
+                        Toggle::make('is_variation')
+                            ->label('Is Variation (mutually exclusive choices)'),
+
+                        Toggle::make('required')
+                            ->label('Required'),
+
+                        Toggle::make('allow_multiple')
+                            ->label('Allow Multiple'),
+
+                        TextInput::make('type')
+                            ->label('Type (e.g. size, spice)')
+                            ->maxLength(100),
+
+                        TextInput::make('min_select')
+                            ->label('Min Select')
+                            ->numeric()
+                            ->default(0),
+
+                        TextInput::make('max_select')
+                            ->label('Max Select')
+                            ->numeric(),
+
+                        Repeater::make('options')
+                            ->relationship('options')
                             ->orderColumn('sort_order')
                             ->collapsible()
                             ->columnSpanFull()
                             ->schema([
-                                TextInput::make('type')
-                                    ->label('Type (e.g. size, spice, base)')
-                                    ->maxLength(100),
+                                TextInput::make('name')
+                                    ->label('Option Name')
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
 
-                                Toggle::make('required')
-                                    ->label('Required'),
-
-                                Toggle::make('allow_multiple')
-                                    ->label('Allow Multiple'),
-
-                                Repeater::make('options')
-                                    ->relationship('options')
-                                    ->orderColumn('sort_order')
-                                    ->collapsible()
-                                    ->columnSpanFull()
-                                    ->schema([
-                                        TextInput::make('price_adjust')
-                                            ->label('Price Adjust')
-                                            ->numeric()
-                                            ->step(0.01)
-                                            ->default(0),
-
-                                        Toggle::make('is_default')
-                                            ->label('Default'),
-                                    ]),
-                            ]),
-
-                        Repeater::make('optionGroups')
-                            ->relationship('optionGroups')
-                            ->orderColumn('sort_order')
-                            ->collapsible()
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('min_select')
-                                    ->label('Min Select')
+                                TextInput::make('price_adjust')
+                                    ->label('Price Adjust')
                                     ->numeric()
+                                    ->step(0.01)
                                     ->default(0),
 
-                                TextInput::make('max_select')
-                                    ->label('Max Select')
-                                    ->numeric(),
-
-                                Repeater::make('options')
-                                    ->relationship('options')
-                                    ->orderColumn('sort_order')
-                                    ->collapsible()
-                                    ->columnSpanFull()
-                                    ->schema([
-                                        TextInput::make('price_adjust')
-                                            ->label('Price Adjust')
-                                            ->numeric()
-                                            ->step(0.01)
-                                            ->default(0),
-                                    ]),
+                                Toggle::make('is_default')
+                                    ->label('Default'),
                             ]),
                     ]),
             ]);

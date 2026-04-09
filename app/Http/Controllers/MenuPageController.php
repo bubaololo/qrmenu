@@ -19,8 +19,6 @@ class MenuPageController extends Controller
             'translations',
             'activeMenu.sections.translations',
             'activeMenu.sections.items.translations',
-            'activeMenu.sections.items.variations.translations',
-            'activeMenu.sections.items.variations.options.translations',
             'activeMenu.sections.items.optionGroups.translations',
             'activeMenu.sections.items.optionGroups.options.translations',
         ]);
@@ -87,17 +85,15 @@ class MenuPageController extends Controller
             return;
         }
 
-        Cache::put($cacheKey, true, now()->addHour());
-
         TranslateMenuJob::dispatchSync($menu, $lang);
+
+        Cache::put($cacheKey, true, now()->addHour());
 
         // Reload all translations so the page renders with new data
         $restaurant->load([
             'translations',
             'activeMenu.sections.translations',
             'activeMenu.sections.items.translations',
-            'activeMenu.sections.items.variations.translations',
-            'activeMenu.sections.items.variations.options.translations',
             'activeMenu.sections.items.optionGroups.translations',
             'activeMenu.sections.items.optionGroups.options.translations',
         ]);
@@ -174,12 +170,16 @@ class MenuPageController extends Controller
                     'price' => (float) $item->price_value,
                 ];
 
-                if ($item->variations->isNotEmpty()) {
+                $allGroups = $item->optionGroups;
+                $sourceLocale = $menu->source_locale ?? 'und';
+
+                $variationGroups = $allGroups->where('is_variation', true);
+                if ($variationGroups->isNotEmpty()) {
                     $variants = [];
-                    foreach ($item->variations as $variation) {
-                        foreach ($variation->options as $opt) {
+                    foreach ($variationGroups as $group) {
+                        foreach ($group->options as $opt) {
                             $variants[] = [
-                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $menu->source_locale ?? 'und') ?? '',
+                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
                                 'price' => (float) $item->price_value + (float) $opt->price_adjust,
                             ];
                         }
@@ -187,18 +187,19 @@ class MenuPageController extends Controller
                     $entry['variants'] = $variants;
                 }
 
-                if ($item->optionGroups->isNotEmpty()) {
+                $optionGroups = $allGroups->where('is_variation', false);
+                if ($optionGroups->isNotEmpty()) {
                     $options = [];
-                    foreach ($item->optionGroups as $group) {
+                    foreach ($optionGroups as $group) {
                         $options[] = [
                             'id' => $group->id,
-                            'name' => $group->translate('name', $lang) ?? $group->translate('name', $menu->source_locale ?? 'und') ?? '',
+                            'name' => $group->translate('name', $lang) ?? $group->translate('name', $sourceLocale) ?? '',
                             'required' => $group->min_select > 0,
                             'type' => $group->max_select === 1 ? 'single' : 'multiple',
                             'max' => $group->max_select,
                             'choices' => $group->options->map(fn ($opt) => [
                                 'id' => $opt->id,
-                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $menu->source_locale ?? 'und') ?? '',
+                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
                                 'price' => (float) $opt->price_adjust,
                             ])->all(),
                         ];
