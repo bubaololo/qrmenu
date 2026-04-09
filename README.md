@@ -90,6 +90,12 @@ docker compose exec app php artisan prompts:import
 
 ---
 
+## Admin Panel
+
+Filament admin panel: `http://localhost:8000/panel`
+
+---
+
 ## API Authentication
 
 Session-based SPA auth via Laravel Fortify + Sanctum. CSRF flow:
