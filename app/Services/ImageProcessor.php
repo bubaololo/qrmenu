@@ -34,8 +34,8 @@ class ImageProcessor
         $filename = $baseName.'.'.$format;
         $thumbname = $baseName.'_thumb.'.$format;
 
-        Storage::disk($disk)->put($targetDir.'/'.$filename, $main->getImagesBlob());
-        Storage::disk($disk)->put($targetDir.'/'.$thumbname, $thumb->getImagesBlob());
+        Storage::disk($disk)->put($targetDir.'/'.$filename, $main->getImagesBlob(), 'public');
+        Storage::disk($disk)->put($targetDir.'/'.$thumbname, $thumb->getImagesBlob(), 'public');
 
         $main->clear();
         $main->destroy();
