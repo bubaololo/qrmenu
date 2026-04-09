@@ -73,7 +73,7 @@ class MenuItem extends Model
 
     public function getNameAttribute(): ?string
     {
-        return $this->initialText('name');
+        return $this->localizedText('name');
     }
 
     public function setNameAttribute(?string $value): void
@@ -83,7 +83,7 @@ class MenuItem extends Model
 
     public function getDescriptionAttribute(): ?string
     {
-        return $this->initialText('description');
+        return $this->localizedText('description');
     }
 
     public function setDescriptionAttribute(?string $value): void

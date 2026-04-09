@@ -59,7 +59,7 @@ class MenuOptionGroup extends Model
 
     public function getNameAttribute(): ?string
     {
-        return $this->initialText('name');
+        return $this->localizedText('name');
     }
 
     public function setNameAttribute(?string $value): void

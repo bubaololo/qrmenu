@@ -80,6 +80,21 @@ trait HasTranslations
     }
 
     /**
+     * Return translated text for the given field, respecting the Accept-Language request header.
+     * Falls back to the initial (source) translation when no header locale is set or no translation exists.
+     */
+    public function localizedText(string $field): ?string
+    {
+        $locale = request()->attributes->get('locale_from_header');
+
+        if ($locale) {
+            return $this->translate($field, $locale);
+        }
+
+        return $this->initialText($field);
+    }
+
+    /**
      * Persist a translation for the given field + locale.
      */
     public function setTranslation(string $field, string $locale, string $value, bool $isInitial = false): void

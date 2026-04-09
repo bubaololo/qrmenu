@@ -124,6 +124,73 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
+    public function test_full_menu_returns_translated_content(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $item->setTranslation('name', 'vi', 'Phở bò', isInitial: true);
+        $item->setTranslation('name', 'en', 'Beef Pho', isInitial: false);
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'en'])
+            ->assertStatus(200);
+
+        $name = $response->json('data.sections.0.items.0.name');
+        $this->assertEquals('Beef Pho', $name);
+    }
+
+    #[Test]
+    public function test_full_menu_falls_back_to_source_when_translation_missing(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $item->setTranslation('name', 'vi', 'Phở bò', isInitial: true);
+        // No French translation exists
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'fr'])
+            ->assertStatus(200);
+
+        $name = $response->json('data.sections.0.items.0.name');
+        $this->assertEquals('Phở bò', $name, 'Should fall back to source text when translation is missing');
+    }
+
+    #[Test]
+    public function test_update_then_read_translation(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        // Write English translation
+        $this->actingAs($user)
+            ->putJson(
+                "/api/v1/menu-items/{$item->id}",
+                ['name' => 'Beef Noodle Soup', 'description' => 'Classic dish'],
+                ['Accept-Language' => 'en']
+            )
+            ->assertStatus(200);
+
+        // Read back in English
+        $response = $this->actingAs($user)
+            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'en'])
+            ->assertStatus(200);
+
+        $this->assertEquals('Beef Noodle Soup', $response->json('data.sections.0.items.0.name'));
+        $this->assertEquals('Classic dish', $response->json('data.sections.0.items.0.description'));
+    }
+
+    #[Test]
     public function test_store_dispatches_translation_job(): void
     {
         $restaurant = Restaurant::factory()->create();

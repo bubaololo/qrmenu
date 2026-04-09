@@ -35,12 +35,12 @@ class Restaurant extends Model
 
     public function getNameAttribute(): ?string
     {
-        return $this->initialText('name');
+        return $this->localizedText('name');
     }
 
     public function getAddressAttribute(): ?string
     {
-        return $this->initialText('address');
+        return $this->localizedText('address');
     }
 
     protected function casts(): array

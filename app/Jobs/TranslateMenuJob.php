@@ -7,6 +7,7 @@ use App\Models\Prompt;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Matriphe\ISO639\ISO639;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\ValueObjects\Messages\SystemMessage;
@@ -36,6 +37,10 @@ class TranslateMenuJob implements ShouldQueue
         $restaurant = $this->menu->restaurant;
         $sourceLocale = $this->menu->source_locale ?? $restaurant->primary_language ?? 'und';
 
+        $iso = new ISO639;
+        $targetLocaleName = $iso->languageByCode1($this->targetLocale) ?: $this->targetLocale;
+        $sourceLocaleName = $iso->languageByCode1($sourceLocale) ?: $sourceLocale;
+
         $prompt = Prompt::activeForType(self::PROMPT_TYPE);
 
         if (! $prompt) {
@@ -52,7 +57,7 @@ class TranslateMenuJob implements ShouldQueue
 
         $userPrompt = str_replace(
             ['{target_locale}', '{source_locale}', '{restaurant_name}', '{city}', '{country}'],
-            [$this->targetLocale, $sourceLocale, $restaurant->name ?? '', $restaurant->city ?? '', $restaurant->country ?? ''],
+            ["{$targetLocaleName} ({$this->targetLocale})", "{$sourceLocaleName} ({$sourceLocale})", $restaurant->name ?? '', $restaurant->city ?? '', $restaurant->country ?? ''],
             $prompt->user_prompt,
         );
 
