@@ -130,7 +130,7 @@ class CloneMenuAction
             Translation::create([
                 'translatable_type' => $targetType,
                 'translatable_id' => $target->id,
-                'locale_id' => $t->locale_id,
+                'locale' => $t->locale,
                 'field' => $t->field,
                 'value' => $t->value,
                 'is_initial' => $t->is_initial,

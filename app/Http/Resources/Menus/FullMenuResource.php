@@ -13,14 +13,16 @@ class FullMenuResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $locale = $this->source_locale ?? 'und';
+        $locale = $request->attributes->get('locale_from_header') ?? ($this->source_locale ?? 'und');
 
         return [
             'id' => $this->id,
             'restaurant_id' => $this->restaurant_id,
             'source_locale' => $this->source_locale,
+            'locale' => $locale,
             'detected_date' => $this->detected_date?->toDateString(),
             'is_active' => $this->is_active,
+            'locales' => $this->availableLocales(),
             'sections' => $this->sections->map(fn ($section) => [
                 'id' => $section->id,
                 'name' => $section->translate('name', $locale),

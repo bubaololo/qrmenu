@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Menus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Menus\Concerns\ResolvesLocale;
 use App\Http\Requests\Menus\ReorderRequest;
 use App\Http\Requests\Menus\StoreMenuSectionRequest;
 use App\Http\Requests\Menus\UpdateMenuSectionRequest;
@@ -15,26 +16,7 @@ use Illuminate\Support\Facades\Gate;
 
 class MenuSectionController extends Controller
 {
-    /**
-     * List all sections for a menu.
-     */
-    public function index(Menu $menu): AnonymousResourceCollection
-    {
-        Gate::authorize('view', $menu);
-
-        return MenuSectionResource::collection($menu->sections);
-    }
-
-    /**
-     * Show a single section.
-     */
-    public function show(MenuSection $menuSection): MenuSectionResource
-    {
-        Gate::authorize('view', $menuSection->menu);
-
-        return new MenuSectionResource($menuSection);
-    }
-
+    use ResolvesLocale;
     /**
      * Create a section in a menu.
      */
@@ -67,8 +49,9 @@ class MenuSectionController extends Controller
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            $locale = $menuSection->menu->source_locale ?? 'und';
-            $menuSection->setTranslation('name', $locale, $validated['name'], isInitial: true);
+            $sourceLocale = $menuSection->menu->source_locale ?? 'und';
+            [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+            $menuSection->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }
 

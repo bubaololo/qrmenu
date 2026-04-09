@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\TranslateMenuJob;
-use App\Models\Locale;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\Translation;
@@ -69,8 +68,7 @@ class MenuPageController extends Controller
             return;
         }
 
-        $localeId = Locale::where('code', $lang)->value('id');
-        $hasTranslations = $localeId && Translation::where('locale_id', $localeId)
+        $hasTranslations = Translation::where('locale', $lang)
             ->where('translatable_type', MenuItem::class)
             ->whereIn('translatable_id', $itemIds)
             ->exists();
@@ -134,8 +132,7 @@ class MenuPageController extends Controller
 
         // Include requested language if translations were generated for it
         if ($requestedLang && ! collect($langs)->pluck('code')->contains($requestedLang)) {
-            $localeId = Locale::where('code', $requestedLang)->value('id');
-            $hasTranslations = $localeId && $menu && Translation::where('locale_id', $localeId)
+            $hasTranslations = $menu && Translation::where('locale', $requestedLang)
                 ->where('translatable_type', MenuItem::class)
                 ->whereIn('translatable_id', $menu->sections->flatMap->items->pluck('id'))
                 ->exists();

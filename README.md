@@ -184,17 +184,9 @@ Execute in order:
 
 ## Translation System
 
-Переводы хранятся в двух вспомогательных таблицах и подключаются к любой модели через трейт `HasTranslations`.
+Переводы хранятся в таблице `translations` и подключаются к любой модели через трейт `HasTranslations`.
 
 ### Таблицы
-
-**`locales`** — справочник языков:
-
-| Колонка | Тип | Описание |
-|---------|-----|----------|
-| `id` | bigint | PK |
-| `code` | varchar(10) | BCP-47 код (`uk`, `en`, `und`) |
-| `name` | varchar(100) | Человекочитаемое название |
 
 **`translations`** — все переводы всех моделей (полиморфная таблица):
 
@@ -202,12 +194,12 @@ Execute in order:
 |---------|-----|----------|
 | `translatable_type` | string | Класс модели (напр. `App\Models\MenuItem`) |
 | `translatable_id` | bigint | ID записи |
-| `locale_id` | FK → locales | Язык перевода |
+| `locale` | varchar(10) | ISO 639-1 код языка (`vi`, `en`, `und`) |
 | `field` | varchar(100) | Поле (`name`, `description`, `address`) |
 | `value` | text | Текст |
-| `is_initial` | bool | `true` = оригинал, `false` = LLM-перевод |
+| `is_initial` | bool | `true` = оригинал, `false` = перевод |
 
-Уникальный индекс: `(translatable_type, translatable_id, locale_id, field)` — одна запись на поле + язык.
+Уникальный индекс: `(translatable_type, translatable_id, locale, field)` — одна запись на поле + язык.
 
 ### Модели с переводами
 
@@ -389,42 +381,38 @@ Authorization: owners can create/update/delete; owners and waiters can read.
 |--------|-----|-------------|
 | `GET` | `/api/v1/restaurants/{id}/menus` | List menus for a restaurant |
 | `POST` | `/api/v1/restaurants/{id}/menus` | Create menu |
-| `GET` | `/api/v1/menus/{id}` | Get menu |
+| `GET` | `/api/v1/menus/{id}` | Full menu tree (locale via `Accept-Language` header) |
 | `PUT` | `/api/v1/menus/{id}` | Update menu |
 | `DELETE` | `/api/v1/menus/{id}` | Delete menu |
 | `POST` | `/api/v1/menus/{id}/activate` | Activate menu (deactivates siblings) |
 | `POST` | `/api/v1/menus/{id}/clone` | Clone menu (deep copy with sections/items/groups) |
+| `GET` | `/api/v1/menus/{id}/locales` | List locales that have translations |
+| `POST` | `/api/v1/menus/{id}/translations/{locale}` | Trigger LLM translation to a locale |
 
 #### Sections
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| `GET` | `/api/v1/menus/{id}/sections` | List sections |
 | `POST` | `/api/v1/menus/{id}/sections` | Create section |
 | `PUT` | `/api/v1/menus/{id}/sections/reorder` | Bulk reorder sections |
-| `GET` | `/api/v1/menu-sections/{id}` | Get section |
-| `PUT` | `/api/v1/menu-sections/{id}` | Update section |
+| `PUT` | `/api/v1/menu-sections/{id}` | Update section (use `Accept-Language` to target a translation locale) |
 | `DELETE` | `/api/v1/menu-sections/{id}` | Delete section |
 
 #### Items
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| `GET` | `/api/v1/menu-sections/{id}/items` | List items |
 | `POST` | `/api/v1/menu-sections/{id}/items` | Create item |
 | `PUT` | `/api/v1/menu-sections/{id}/items/reorder` | Bulk reorder items |
-| `GET` | `/api/v1/menu-items/{id}` | Get item |
-| `PUT` | `/api/v1/menu-items/{id}` | Update item |
+| `PUT` | `/api/v1/menu-items/{id}` | Update item (use `Accept-Language` to target a translation locale) |
 | `DELETE` | `/api/v1/menu-items/{id}` | Delete item |
 
 #### Option Groups
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| `GET` | `/api/v1/menu-sections/{id}/option-groups` | List option groups |
 | `POST` | `/api/v1/menu-sections/{id}/option-groups` | Create option group |
-| `GET` | `/api/v1/menu-option-groups/{id}` | Get option group |
-| `PUT` | `/api/v1/menu-option-groups/{id}` | Update option group |
+| `PUT` | `/api/v1/menu-option-groups/{id}` | Update option group (use `Accept-Language` to target a translation locale) |
 | `DELETE` | `/api/v1/menu-option-groups/{id}` | Delete option group |
 | `POST` | `/api/v1/menu-option-groups/{id}/attach-items` | Link items to group |
 | `POST` | `/api/v1/menu-option-groups/{id}/detach-items` | Unlink items from group |
@@ -433,10 +421,8 @@ Authorization: owners can create/update/delete; owners and waiters can read.
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| `GET` | `/api/v1/menu-option-groups/{id}/options` | List options |
 | `POST` | `/api/v1/menu-option-groups/{id}/options` | Create option |
-| `GET` | `/api/v1/menu-option-group-options/{id}` | Get option |
-| `PUT` | `/api/v1/menu-option-group-options/{id}` | Update option |
+| `PUT` | `/api/v1/menu-option-group-options/{id}` | Update option (use `Accept-Language` to target a translation locale) |
 | `DELETE` | `/api/v1/menu-option-group-options/{id}` | Delete option |
 
 ---
@@ -665,6 +651,133 @@ Links menu items to an option group. Only items belonging to the same section as
   }
 }
 ```
+
+---
+
+## Translation API
+
+The full menu tree returns text in `source_locale` by default. All read and write endpoints respect the `Accept-Language` header to select the active locale.
+
+### Localization via Accept-Language
+
+Send `Accept-Language: {code}` (ISO 639-1) with any API request:
+
+```
+Accept-Language: vi
+```
+
+**Effect on reads** — `GET /api/v1/menus/{id}` returns translations for that locale, falling back to source text when a translation doesn't exist yet.
+
+**Effect on writes** — `PUT /api/v1/menu-items/{id}` (and sections, groups, options) writes the provided field values as a translation for that locale:
+- Header locale = `source_locale` → overwrites the source text (`is_initial: true`)
+- Header locale ≠ `source_locale` → saves a translation (`is_initial: false`)
+- No header → falls back to `source_locale`, same as writing to source
+
+**Frontend integration** — set the header globally in your HTTP client when the user selects a language:
+
+```js
+axios.defaults.headers.common['Accept-Language'] = selectedLocale;
+```
+
+---
+
+### GET /api/v1/menus/{id}
+
+Without `Accept-Language` — returns `source_locale` text.
+With `Accept-Language: en` — returns English translations, falling back to source text if none exist.
+
+The response includes `locale` (active locale) and `locales` (all available locales for the selector):
+
+```json
+{
+  "data": {
+    "id": "1",
+    "source_locale": "vi",
+    "locale": "en",
+    "locales": [
+      { "code": "en", "name": "English", "is_source": false },
+      { "code": "vi", "name": "Tiếng Việt", "is_source": true }
+    ],
+    "sections": [
+      {
+        "id": "3",
+        "name": "Starters",
+        "items": [...]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/v1/menus/{id}/locales
+
+Returns all locales that have translations for this menu. Always includes `source_locale` and the restaurant's `primary_language` even if no translations exist yet.
+
+**Response** `200 OK`:
+
+```json
+{
+  "data": [
+    { "code": "en", "name": "English", "is_source": false },
+    { "code": "ru", "name": "русский язык", "is_source": false },
+    { "code": "vi", "name": "Tiếng Việt", "is_source": true }
+  ],
+  "meta": {
+    "source_locale": "vi",
+    "primary_language": "ru"
+  }
+}
+```
+
+`meta.primary_language` is the restaurant's default language — use it to set the initial `Accept-Language` value when the owner opens a menu.
+
+---
+
+### POST /api/v1/menus/{id}/translations/{locale}
+
+Triggers an LLM translation job for the whole menu. Rate-limited: 1 job per menu+locale per hour.
+
+```
+POST /api/v1/menus/1/translations/en
+```
+
+**Response** `202 Accepted`:
+
+```json
+{ "message": "Translation queued." }
+```
+
+Returns `422` for invalid locale codes or if `locale === source_locale`.
+
+---
+
+### PUT /api/v1/menu-items/{id} (with Accept-Language)
+
+Manually update a translation by sending the regular update request with an `Accept-Language` header. Only the fields you include are updated.
+
+```
+PUT /api/v1/menu-items/5
+Accept-Language: en
+Content-Type: application/json
+
+{
+  "name": "Beef Pho",
+  "description": "Classic Vietnamese noodle soup with beef"
+}
+```
+
+**Response** `200 OK` — updated item resource.
+
+The same pattern applies to sections, option groups, and options:
+
+| Entity | Endpoint |
+|--------|----------|
+| Section | `PUT /api/v1/menu-sections/{id}` |
+| Item | `PUT /api/v1/menu-items/{id}` |
+| Option Group | `PUT /api/v1/menu-option-groups/{id}` |
+| Option | `PUT /api/v1/menu-option-group-options/{id}` |
 
 ---
 

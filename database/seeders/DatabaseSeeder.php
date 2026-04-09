@@ -22,7 +22,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        $this->call(LocaleSeeder::class);
         $this->call(PromptTypeSeeder::class);
         $this->call(PromptSeeder::class);
     }

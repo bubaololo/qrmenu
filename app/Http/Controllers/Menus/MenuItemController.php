@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Menus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Menus\Concerns\ResolvesLocale;
 use App\Http\Requests\Menus\ReorderRequest;
 use App\Http\Requests\Menus\StoreMenuItemRequest;
 use App\Http\Requests\Menus\UpdateMenuItemRequest;
@@ -15,26 +16,7 @@ use Illuminate\Support\Facades\Gate;
 
 class MenuItemController extends Controller
 {
-    /**
-     * List all items in a section.
-     */
-    public function index(MenuSection $menuSection): AnonymousResourceCollection
-    {
-        Gate::authorize('view', $menuSection->menu);
-
-        return MenuItemResource::collection($menuSection->items);
-    }
-
-    /**
-     * Show a single item.
-     */
-    public function show(MenuItem $menuItem): MenuItemResource
-    {
-        Gate::authorize('view', $menuItem->section->menu);
-
-        return new MenuItemResource($menuItem);
-    }
-
+    use ResolvesLocale;
     /**
      * Create an item in a section.
      */
@@ -77,16 +59,17 @@ class MenuItemController extends Controller
 
         $validated = $request->validated();
 
-        $locale = $menuItem->section->menu->source_locale ?? 'und';
+        $sourceLocale = $menuItem->section->menu->source_locale ?? 'und';
+        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
 
         if (isset($validated['name'])) {
-            $menuItem->setTranslation('name', $locale, $validated['name'], isInitial: true);
+            $menuItem->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }
 
         if (array_key_exists('description', $validated)) {
             if ($validated['description'] !== null) {
-                $menuItem->setTranslation('description', $locale, $validated['description'], isInitial: true);
+                $menuItem->setTranslation('description', $locale, $validated['description'], isInitial: $isInitial);
             }
             unset($validated['description']);
         }

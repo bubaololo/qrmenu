@@ -26,32 +26,6 @@ class MenuOptionGroupTest extends TestCase
     }
 
     #[Test]
-    public function test_owner_can_list_option_groups(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        MenuOptionGroup::factory()->count(2)->create(['section_id' => $section->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menu-sections/{$section->id}/option-groups")
-            ->assertStatus(200)
-            ->assertJsonCount(2, 'data');
-    }
-
-    #[Test]
-    public function test_non_member_cannot_list_option_groups(): void
-    {
-        $section = MenuSection::factory()->create();
-        $stranger = User::factory()->create();
-
-        $this->actingAs($stranger)
-            ->getJson("/api/v1/menu-sections/{$section->id}/option-groups")
-            ->assertStatus(403);
-    }
-
-    #[Test]
     public function test_store_creates_option_group_with_name(): void
     {
         $restaurant = Restaurant::factory()->create();
@@ -76,21 +50,6 @@ class MenuOptionGroupTest extends TestCase
             'field' => 'name',
             'value' => 'ADD ON',
         ]);
-    }
-
-    #[Test]
-    public function test_show_returns_option_group(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menu-option-groups/{$group->id}")
-            ->assertStatus(200)
-            ->assertJsonPath('data.id', (string) $group->id);
     }
 
     #[Test]

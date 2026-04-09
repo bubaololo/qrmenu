@@ -37,6 +37,7 @@ class MenuController extends Controller
         Gate::authorize('view', $menu);
 
         $menu->load([
+            'restaurant',
             'sections.translations',
             'sections.items.translations',
             'sections.items.optionGroups.translations',

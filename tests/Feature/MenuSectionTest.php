@@ -24,31 +24,6 @@ class MenuSectionTest extends TestCase
     }
 
     #[Test]
-    public function test_owner_can_list_sections(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        MenuSection::factory()->count(3)->create(['menu_id' => $menu->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}/sections")
-            ->assertStatus(200)
-            ->assertJsonCount(3, 'data');
-    }
-
-    #[Test]
-    public function test_non_member_cannot_list_sections(): void
-    {
-        $menu = Menu::factory()->create();
-        $stranger = User::factory()->create();
-
-        $this->actingAs($stranger)
-            ->getJson("/api/v1/menus/{$menu->id}/sections")
-            ->assertStatus(403);
-    }
-
-    #[Test]
     public function test_store_creates_section_with_name_translation(): void
     {
         $restaurant = Restaurant::factory()->create();
@@ -72,20 +47,6 @@ class MenuSectionTest extends TestCase
             'value' => 'Starters',
             'is_initial' => true,
         ]);
-    }
-
-    #[Test]
-    public function test_show_returns_section(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menu-sections/{$section->id}")
-            ->assertStatus(200)
-            ->assertJsonPath('data.id', (string) $section->id);
     }
 
     #[Test]

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Menus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Menus\Concerns\ResolvesLocale;
 use App\Http\Requests\Menus\AttachDetachItemsRequest;
 use App\Http\Requests\Menus\StoreMenuOptionGroupRequest;
 use App\Http\Requests\Menus\UpdateMenuOptionGroupRequest;
@@ -10,31 +11,11 @@ use App\Http\Resources\Menus\MenuOptionGroupResource;
 use App\Models\MenuOptionGroup;
 use App\Models\MenuSection;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class MenuOptionGroupController extends Controller
 {
-    /**
-     * List all option groups for a section.
-     */
-    public function index(MenuSection $menuSection): AnonymousResourceCollection
-    {
-        Gate::authorize('view', $menuSection->menu);
-
-        return MenuOptionGroupResource::collection($menuSection->optionGroups);
-    }
-
-    /**
-     * Show a single option group.
-     */
-    public function show(MenuOptionGroup $menuOptionGroup): MenuOptionGroupResource
-    {
-        Gate::authorize('view', $menuOptionGroup->section->menu);
-
-        return new MenuOptionGroupResource($menuOptionGroup);
-    }
-
+    use ResolvesLocale;
     /**
      * Create an option group in a section.
      */
@@ -73,8 +54,9 @@ class MenuOptionGroupController extends Controller
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            $locale = $menuOptionGroup->section->menu->source_locale ?? 'und';
-            $menuOptionGroup->setTranslation('name', $locale, $validated['name'], isInitial: true);
+            $sourceLocale = $menuOptionGroup->section->menu->source_locale ?? 'und';
+            [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+            $menuOptionGroup->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }
 

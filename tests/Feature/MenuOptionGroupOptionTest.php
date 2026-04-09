@@ -26,34 +26,6 @@ class MenuOptionGroupOptionTest extends TestCase
     }
 
     #[Test]
-    public function test_owner_can_list_options(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
-        MenuOptionGroupOption::factory()->count(3)->create(['group_id' => $group->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menu-option-groups/{$group->id}/options")
-            ->assertStatus(200)
-            ->assertJsonCount(3, 'data');
-    }
-
-    #[Test]
-    public function test_non_member_cannot_list_options(): void
-    {
-        $section = MenuSection::factory()->create();
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
-        $stranger = User::factory()->create();
-
-        $this->actingAs($stranger)
-            ->getJson("/api/v1/menu-option-groups/{$group->id}/options")
-            ->assertStatus(403);
-    }
-
-    #[Test]
     public function test_store_creates_option_with_name(): void
     {
         $restaurant = Restaurant::factory()->create();
@@ -79,22 +51,6 @@ class MenuOptionGroupOptionTest extends TestCase
             'field' => 'name',
             'value' => 'Extra Spicy',
         ]);
-    }
-
-    #[Test]
-    public function test_show_returns_option(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
-        $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
-
-        $this->actingAs($user)
-            ->getJson("/api/v1/menu-option-group-options/{$option->id}")
-            ->assertStatus(200)
-            ->assertJsonPath('data.id', (string) $option->id);
     }
 
     #[Test]

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Restaurants\Schemas;
 
-use App\Models\Locale;
 use Filament\Forms\Components\FileUpload;
+use Matriphe\ISO639\ISO639;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -53,7 +53,18 @@ class RestaurantForm
 
                 Select::make('primary_language')
                     ->label('Primary Language')
-                    ->options(fn () => Locale::orderBy('name')->pluck('name', 'code')->toArray())
+                    ->options(function (): array {
+                        $iso = new ISO639;
+                        $options = [];
+                        foreach ($iso->allLanguages() as $lang) {
+                            if ($lang[0] !== '') {
+                                $options[$lang[0]] = $lang[5] !== '' ? $lang[5] : $lang[4];
+                            }
+                        }
+                        asort($options);
+
+                        return $options;
+                    })
                     ->searchable()
                     ->default('en'),
             ]);

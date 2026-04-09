@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
 
+        $middleware->api(append: [
+            \App\Http\Middleware\SetLocaleFromHeader::class,
+        ]);
+
         // Public auth endpoints don't need CSRF — no session to protect yet
         $middleware->validateCsrfTokens(except: [
             'api/v1/auth/login',

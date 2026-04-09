@@ -3,6 +3,7 @@
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
 use App\Http\Controllers\Menus\MenuController;
+use App\Http\Controllers\Menus\MenuTranslationController;
 use App\Http\Controllers\Menus\MenuItemController;
 use App\Http\Controllers\Menus\MenuOptionGroupController;
 use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
@@ -53,36 +54,30 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/menus/{menu}', [MenuController::class, 'destroy']);
     Route::post('/menus/{menu}/activate', [MenuController::class, 'activate']);
     Route::post('/menus/{menu}/clone', [MenuController::class, 'clone']);
+    Route::get('/menus/{menu}/locales', [MenuTranslationController::class, 'locales']);
+    Route::post('/menus/{menu}/translations/{locale}', [MenuTranslationController::class, 'store']);
 
     // Menu Sections
-    Route::get('/menus/{menu}/sections', [MenuSectionController::class, 'index']);
     Route::post('/menus/{menu}/sections', [MenuSectionController::class, 'store']);
     Route::put('/menus/{menu}/sections/reorder', [MenuSectionController::class, 'reorder']);
-    Route::get('/menu-sections/{menuSection}', [MenuSectionController::class, 'show']);
     Route::put('/menu-sections/{menuSection}', [MenuSectionController::class, 'update']);
     Route::delete('/menu-sections/{menuSection}', [MenuSectionController::class, 'destroy']);
 
     // Menu Items
-    Route::get('/menu-sections/{menuSection}/items', [MenuItemController::class, 'index']);
     Route::post('/menu-sections/{menuSection}/items', [MenuItemController::class, 'store']);
     Route::put('/menu-sections/{menuSection}/items/reorder', [MenuItemController::class, 'reorder']);
-    Route::get('/menu-items/{menuItem}', [MenuItemController::class, 'show']);
     Route::put('/menu-items/{menuItem}', [MenuItemController::class, 'update']);
     Route::delete('/menu-items/{menuItem}', [MenuItemController::class, 'destroy']);
 
     // Menu Option Groups
-    Route::get('/menu-sections/{menuSection}/option-groups', [MenuOptionGroupController::class, 'index']);
     Route::post('/menu-sections/{menuSection}/option-groups', [MenuOptionGroupController::class, 'store']);
-    Route::get('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'show']);
     Route::put('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'update']);
     Route::delete('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'destroy']);
     Route::post('/menu-option-groups/{menuOptionGroup}/attach-items', [MenuOptionGroupController::class, 'attachItems']);
     Route::post('/menu-option-groups/{menuOptionGroup}/detach-items', [MenuOptionGroupController::class, 'detachItems']);
 
     // Menu Option Group Options
-    Route::get('/menu-option-groups/{menuOptionGroup}/options', [MenuOptionGroupOptionController::class, 'index']);
     Route::post('/menu-option-groups/{menuOptionGroup}/options', [MenuOptionGroupOptionController::class, 'store']);
-    Route::get('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'show']);
     Route::put('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'update']);
     Route::delete('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'destroy']);
 
