@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessImageJob;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
+use App\Services\ImageProcessor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,19 +15,22 @@ class ImageController extends Controller
 {
     public function updateRestaurant(Request $request, int $restaurantId): JsonResponse
     {
-        $request->validate(['image' => ['required', 'image', 'max:4096']]);
+        $request->validate(['image' => ['required', 'image', 'max:10240']]);
 
         $restaurant = Restaurant::findOrFail($restaurantId);
         Gate::authorize('update', $restaurant);
 
-        $this->deleteFile($restaurant->image);
+        $tempPath = $request->file('image')->store('originals', config('image.disk'));
 
-        $path = $request->file('image')->store('restaurants', 'public');
-        $restaurant->update(['image' => $path]);
+        ProcessImageJob::dispatch(
+            Restaurant::class,
+            $restaurant->id,
+            $tempPath,
+            'restaurants',
+            $restaurant->image,
+        );
 
-        return response()->json([
-            'data' => ['image_url' => Storage::disk('public')->url($path)],
-        ]);
+        return response()->json(null, 202);
     }
 
     public function deleteRestaurant(Request $request, int $restaurantId): JsonResponse
@@ -33,7 +38,7 @@ class ImageController extends Controller
         $restaurant = Restaurant::findOrFail($restaurantId);
         Gate::authorize('update', $restaurant);
 
-        $this->deleteFile($restaurant->image);
+        $this->deleteImageFiles($restaurant->image);
         $restaurant->update(['image' => null]);
 
         return response()->json(null, 204);
@@ -41,19 +46,22 @@ class ImageController extends Controller
 
     public function updateMenuItem(Request $request, int $itemId): JsonResponse
     {
-        $request->validate(['image' => ['required', 'image', 'max:4096']]);
+        $request->validate(['image' => ['required', 'image', 'max:10240']]);
 
         $item = MenuItem::with('section.menu.restaurant')->findOrFail($itemId);
         Gate::authorize('update', $item->section->menu->restaurant);
 
-        $this->deleteFile($item->image);
+        $tempPath = $request->file('image')->store('originals', config('image.disk'));
 
-        $path = $request->file('image')->store('menu-items', 'public');
-        $item->update(['image' => $path]);
+        ProcessImageJob::dispatch(
+            MenuItem::class,
+            $item->id,
+            $tempPath,
+            'menu-items',
+            $item->image,
+        );
 
-        return response()->json([
-            'data' => ['image_url' => Storage::disk('public')->url($path)],
-        ]);
+        return response()->json(null, 202);
     }
 
     public function deleteMenuItem(Request $request, int $itemId): JsonResponse
@@ -61,16 +69,28 @@ class ImageController extends Controller
         $item = MenuItem::with('section.menu.restaurant')->findOrFail($itemId);
         Gate::authorize('update', $item->section->menu->restaurant);
 
-        $this->deleteFile($item->image);
+        $this->deleteImageFiles($item->image);
         $item->update(['image' => null]);
 
         return response()->json(null, 204);
     }
 
-    private function deleteFile(?string $path): void
+    private function deleteImageFiles(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if (! $path) {
+            return;
+        }
+
+        $disk = config('image.disk');
+        $processor = app(ImageProcessor::class);
+
+        if (Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+        }
+
+        $thumb = $processor->thumbPath($path);
+        if (Storage::disk($disk)->exists($thumb)) {
+            Storage::disk($disk)->delete($thumb);
         }
     }
 }

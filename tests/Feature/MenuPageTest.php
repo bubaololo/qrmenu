@@ -30,7 +30,7 @@ class MenuPageTest extends TestCase
     #[Test]
     public function test_returns_200_for_restaurant_with_active_menu(): void
     {
-        $this->get("/menu/{$this->restaurant->id}")
+        $this->get("/menu/{$this->restaurant->uniqid}")
             ->assertStatus(200)
             ->assertSee('Black coffee');
     }
@@ -38,19 +38,19 @@ class MenuPageTest extends TestCase
     #[Test]
     public function test_returns_404_for_nonexistent_restaurant(): void
     {
-        $this->get('/menu/999999')->assertStatus(404);
+        $this->get('/menu/nonexistent-uid')->assertStatus(404);
     }
 
     #[Test]
     public function test_shows_menu_without_lang_param(): void
     {
-        $this->get("/menu/{$this->restaurant->id}")->assertStatus(200);
+        $this->get("/menu/{$this->restaurant->uniqid}")->assertStatus(200);
     }
 
     #[Test]
     public function test_shows_menu_with_explicit_lang(): void
     {
-        $this->get("/menu/{$this->restaurant->id}/vi")->assertStatus(200);
+        $this->get("/menu/{$this->restaurant->uniqid}/vi")->assertStatus(200);
     }
 
     #[Test]
@@ -58,6 +58,6 @@ class MenuPageTest extends TestCase
     {
         $empty = Restaurant::factory()->create();
 
-        $this->get("/menu/{$empty->id}")->assertStatus(200);
+        $this->get("/menu/{$empty->uniqid}")->assertStatus(200);
     }
 }

@@ -6,7 +6,14 @@ RUN apk add --no-cache \
     icu-dev \
     oniguruma-dev \
     linux-headers \
+    imagemagick \
+    imagemagick-dev \
+    libwebp-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     $PHPIZE_DEPS \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo_pgsql \
         pgsql \
@@ -15,6 +22,9 @@ RUN apk add --no-cache \
         pcntl \
         bcmath \
         opcache \
+        gd \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick \
     && apk del $PHPIZE_DEPS
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

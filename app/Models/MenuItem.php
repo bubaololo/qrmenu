@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
 {
@@ -18,7 +19,7 @@ class MenuItem extends Model
     use HasTranslations;
 
     /** @var array<int, string> */
-    protected $appends = ['name', 'description'];
+    protected $appends = ['name', 'description', 'image_url', 'thumb_url'];
 
     protected $fillable = [
         'section_id',
@@ -89,6 +90,25 @@ class MenuItem extends Model
     public function setDescriptionAttribute(?string $value): void
     {
         $this->pendingDescription = $value;
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image
+            ? Storage::disk(config('image.disk'))->url($this->image)
+            : null;
+    }
+
+    public function getThumbUrlAttribute(): ?string
+    {
+        if (! $this->image) {
+            return null;
+        }
+
+        $ext = pathinfo($this->image, PATHINFO_EXTENSION);
+        $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
+
+        return Storage::disk(config('image.disk'))->url($thumb);
     }
 
     public function section(): BelongsTo

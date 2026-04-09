@@ -45,6 +45,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::get('/restaurants/{restaurant}', [RestaurantController::class, 'show']);
     Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update']);
     Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
+    Route::get('/restaurants/{restaurant}/qr', [RestaurantController::class, 'qr']);
 
     // Menus
     Route::get('/restaurants/{restaurant}/menus', [MenuController::class, 'index']);

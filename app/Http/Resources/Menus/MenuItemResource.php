@@ -21,7 +21,8 @@ class MenuItemResource extends JsonApiResource
         'price_max',
         'price_unit',
         'price_original_text',
-        'image',
+        'image_url',
+        'thumb_url',
         'sort_order',
     ];
 

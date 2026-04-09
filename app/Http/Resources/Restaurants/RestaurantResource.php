@@ -8,6 +8,7 @@ class RestaurantResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
+        'uniqid',
         'name',
         'address',
         'city',
@@ -16,7 +17,8 @@ class RestaurantResource extends JsonApiResource
         'currency',
         'primary_language',
         'opening_hours',
-        'image',
+        'image_url',
+        'thumb_url',
     ];
 
     /** @var array<int, string> */

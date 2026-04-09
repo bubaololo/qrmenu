@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Restaurants;
 
+use App\Actions\GenerateRestaurantQrCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurants\StoreRestaurantRequest;
 use App\Http\Requests\Restaurants\UpdateRestaurantRequest;
@@ -108,6 +109,15 @@ class RestaurantController extends Controller
         $restaurant->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function qr(Restaurant $restaurant): JsonResponse
+    {
+        Gate::authorize('view', $restaurant);
+
+        $url = app(GenerateRestaurantQrCode::class)->handle($restaurant);
+
+        return response()->json(['data' => ['qr_url' => $url]]);
     }
 
     /**

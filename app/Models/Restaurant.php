@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Restaurant extends Model
 {
@@ -19,8 +21,19 @@ class Restaurant extends Model
 
     use HasTranslations;
 
+    public static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $restaurant): void {
+            if (empty($restaurant->uniqid)) {
+                $restaurant->uniqid = Str::random(8);
+            }
+        });
+    }
+
     /** @var array<int, string> */
-    protected $appends = ['name', 'address'];
+    protected $appends = ['name', 'address', 'image_url', 'thumb_url'];
 
     protected $fillable = [
         'created_by_user_id',
@@ -41,6 +54,25 @@ class Restaurant extends Model
     public function getAddressAttribute(): ?string
     {
         return $this->localizedText('address');
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image
+            ? Storage::disk(config('image.disk'))->url($this->image)
+            : null;
+    }
+
+    public function getThumbUrlAttribute(): ?string
+    {
+        if (! $this->image) {
+            return null;
+        }
+
+        $ext = pathinfo($this->image, PATHINFO_EXTENSION);
+        $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
+
+        return Storage::disk(config('image.disk'))->url($thumb);
     }
 
     protected function casts(): array
