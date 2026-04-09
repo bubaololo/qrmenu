@@ -375,6 +375,299 @@ Returns all active menus across restaurants owned by the current user, with full
 
 ---
 
+## Menu API
+
+All endpoints require authentication. Responses follow [JSON:API](https://jsonapi.org/) format.
+
+Authorization: owners can create/update/delete; owners and waiters can read.
+
+### Endpoints
+
+#### Menus
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/v1/restaurants/{id}/menus` | List menus for a restaurant |
+| `POST` | `/api/v1/restaurants/{id}/menus` | Create menu |
+| `GET` | `/api/v1/menus/{id}` | Get menu |
+| `PUT` | `/api/v1/menus/{id}` | Update menu |
+| `DELETE` | `/api/v1/menus/{id}` | Delete menu |
+| `POST` | `/api/v1/menus/{id}/activate` | Activate menu (deactivates siblings) |
+| `POST` | `/api/v1/menus/{id}/clone` | Clone menu (deep copy with sections/items/groups) |
+
+#### Sections
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/v1/menus/{id}/sections` | List sections |
+| `POST` | `/api/v1/menus/{id}/sections` | Create section |
+| `PUT` | `/api/v1/menus/{id}/sections/reorder` | Bulk reorder sections |
+| `GET` | `/api/v1/menu-sections/{id}` | Get section |
+| `PUT` | `/api/v1/menu-sections/{id}` | Update section |
+| `DELETE` | `/api/v1/menu-sections/{id}` | Delete section |
+
+#### Items
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/v1/menu-sections/{id}/items` | List items |
+| `POST` | `/api/v1/menu-sections/{id}/items` | Create item |
+| `PUT` | `/api/v1/menu-sections/{id}/items/reorder` | Bulk reorder items |
+| `GET` | `/api/v1/menu-items/{id}` | Get item |
+| `PUT` | `/api/v1/menu-items/{id}` | Update item |
+| `DELETE` | `/api/v1/menu-items/{id}` | Delete item |
+
+#### Option Groups
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/v1/menu-sections/{id}/option-groups` | List option groups |
+| `POST` | `/api/v1/menu-sections/{id}/option-groups` | Create option group |
+| `GET` | `/api/v1/menu-option-groups/{id}` | Get option group |
+| `PUT` | `/api/v1/menu-option-groups/{id}` | Update option group |
+| `DELETE` | `/api/v1/menu-option-groups/{id}` | Delete option group |
+| `POST` | `/api/v1/menu-option-groups/{id}/attach-items` | Link items to group |
+| `POST` | `/api/v1/menu-option-groups/{id}/detach-items` | Unlink items from group |
+
+#### Options
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| `GET` | `/api/v1/menu-option-groups/{id}/options` | List options |
+| `POST` | `/api/v1/menu-option-groups/{id}/options` | Create option |
+| `GET` | `/api/v1/menu-option-group-options/{id}` | Get option |
+| `PUT` | `/api/v1/menu-option-group-options/{id}` | Update option |
+| `DELETE` | `/api/v1/menu-option-group-options/{id}` | Delete option |
+
+---
+
+### POST /api/v1/restaurants/{id}/menus — Create Menu
+
+```json
+{
+  "source_locale": "vi",
+  "detected_date": "2026-04-01",
+  "is_active": false
+}
+```
+
+**Response** `201 Created`:
+
+```json
+{
+  "data": {
+    "id": "1",
+    "type": "menus",
+    "attributes": {
+      "source_locale": "vi",
+      "detected_date": "2026-04-01",
+      "source_images_count": 0,
+      "is_active": false,
+      "created_from_menu_id": null,
+      "created_at": "2026-04-09T12:00:00Z"
+    },
+    "relationships": {
+      "restaurant": { "data": { "id": "1", "type": "restaurants" } },
+      "sections": { "data": [] }
+    }
+  }
+}
+```
+
+---
+
+### POST /api/v1/menus/{id}/activate — Activate Menu
+
+No body. Deactivates all other menus for the same restaurant, activates this one.
+
+**Response** `200 OK` — updated menu resource with `"is_active": true`.
+
+---
+
+### POST /api/v1/menus/{id}/clone — Clone Menu
+
+No body. Creates a deep copy: new menu + all sections, items, option groups, options, and their translations.
+
+**Response** `201 Created` — new menu resource with `"created_from_menu_id": <original_id>`.
+
+---
+
+### POST /api/v1/menus/{id}/sections — Create Section
+
+`name` is stored as a translation in `menu.source_locale` (or `und` if not set).
+
+```json
+{
+  "name": "Salads",
+  "sort_order": 0
+}
+```
+
+**Response** `201 Created`:
+
+```json
+{
+  "data": {
+    "id": "5",
+    "type": "menu-sections",
+    "attributes": {
+      "name": "Salads",
+      "sort_order": 0
+    },
+    "relationships": {
+      "items": { "data": [] },
+      "optionGroups": { "data": [] }
+    }
+  }
+}
+```
+
+---
+
+### PUT /api/v1/menus/{id}/sections/reorder — Reorder Sections
+
+```json
+{
+  "order": [
+    { "id": 5, "sort_order": 0 },
+    { "id": 3, "sort_order": 1 },
+    { "id": 8, "sort_order": 2 }
+  ]
+}
+```
+
+**Response** `200 OK` — array of updated section resources.
+
+---
+
+### POST /api/v1/menu-sections/{id}/items — Create Item
+
+```json
+{
+  "name": "Caesar Salad",
+  "description": "Romaine, croutons, parmesan",
+  "starred": false,
+  "price_type": "fixed",
+  "price_value": "12.50",
+  "price_original_text": "12.50",
+  "sort_order": 0
+}
+```
+
+`price_type` values: `fixed`, `range`, `per_unit`, `market`, `free`.
+
+**Response** `201 Created`:
+
+```json
+{
+  "data": {
+    "id": "42",
+    "type": "menu-items",
+    "attributes": {
+      "name": "Caesar Salad",
+      "description": "Romaine, croutons, parmesan",
+      "starred": false,
+      "price_type": "fixed",
+      "price_value": "12.50",
+      "price_min": null,
+      "price_max": null,
+      "price_unit": null,
+      "price_original_text": "12.50",
+      "image": null,
+      "sort_order": 0
+    },
+    "relationships": {
+      "optionGroups": { "data": [] }
+    }
+  }
+}
+```
+
+---
+
+### POST /api/v1/menu-sections/{id}/option-groups — Create Option Group
+
+```json
+{
+  "name": "Add-ons",
+  "is_variation": false,
+  "required": false,
+  "allow_multiple": true,
+  "min_select": 0,
+  "max_select": 3,
+  "sort_order": 0
+}
+```
+
+**Response** `201 Created`:
+
+```json
+{
+  "data": {
+    "id": "10",
+    "type": "menu-option-groups",
+    "attributes": {
+      "name": "Add-ons",
+      "type": null,
+      "is_variation": false,
+      "required": false,
+      "allow_multiple": true,
+      "min_select": 0,
+      "max_select": 3,
+      "sort_order": 0
+    },
+    "relationships": {
+      "options": { "data": [] },
+      "items": { "data": [] }
+    }
+  }
+}
+```
+
+---
+
+### POST /api/v1/menu-option-groups/{id}/attach-items
+
+Links menu items to an option group. Only items belonging to the same section as the group are linked (others are silently ignored).
+
+```json
+{ "item_ids": [42, 43] }
+```
+
+**Response** `200 OK` — updated option group resource with populated `items` relationship.
+
+---
+
+### POST /api/v1/menu-option-groups/{id}/options — Create Option
+
+```json
+{
+  "name": "Extra Spicy",
+  "price_adjust": "0.50",
+  "is_default": false,
+  "sort_order": 0
+}
+```
+
+**Response** `201 Created`:
+
+```json
+{
+  "data": {
+    "id": "20",
+    "type": "menu-option-group-options",
+    "attributes": {
+      "name": "Extra Spicy",
+      "price_adjust": "0.50",
+      "is_default": false,
+      "sort_order": 0
+    }
+  }
+}
+```
+
+---
+
 ## Code Style
 
 ```bash

@@ -110,7 +110,7 @@ class RestaurantTest extends TestCase
             ->assertStatus(200);
 
         $response->assertJsonPath('data.0.restaurant_id', $restaurant->id);
-        $this->assertCount(8, $response->json('data.0.sections'));
+        $response->assertJsonPath('data.0.sections_count', 8);
     }
 
     #[Test]

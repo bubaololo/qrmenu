@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
+use Database\Factories\MenuOptionGroupFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MenuOptionGroup extends Model
 {
+    /** @use HasFactory<MenuOptionGroupFactory> */
+    use HasFactory;
+
     use HasTranslations;
 
     /** @var array<int, string> */

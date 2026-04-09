@@ -19,6 +19,7 @@ class MenuPageController extends Controller
             'translations',
             'activeMenu.sections.translations',
             'activeMenu.sections.items.translations',
+            'activeMenu.sections.items.variations.options.translations',
             'activeMenu.sections.items.optionGroups.translations',
             'activeMenu.sections.items.optionGroups.options.translations',
         ]);
@@ -94,6 +95,7 @@ class MenuPageController extends Controller
             'translations',
             'activeMenu.sections.translations',
             'activeMenu.sections.items.translations',
+            'activeMenu.sections.items.variations.options.translations',
             'activeMenu.sections.items.optionGroups.translations',
             'activeMenu.sections.items.optionGroups.options.translations',
         ]);

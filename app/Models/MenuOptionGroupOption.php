@@ -3,11 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
+use Database\Factories\MenuOptionGroupOptionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MenuOptionGroupOption extends Model
 {
+    /** @use HasFactory<MenuOptionGroupOptionFactory> */
+    use HasFactory;
+
     use HasTranslations;
 
     /** @var array<int, string> */

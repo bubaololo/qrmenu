@@ -121,11 +121,7 @@ class RestaurantController extends Controller
 
         $menus = Menu::active()
             ->whereIn('restaurant_id', $restaurantIds)
-            ->with([
-                'restaurant',
-                'sections' => fn ($q) => $q->orderBy('sort_order'),
-                'sections.items' => fn ($q) => $q->orderBy('sort_order'),
-            ])
+            ->with(['restaurant', 'sections'])
             ->get();
 
         return ActiveMenuResource::collection($menus);

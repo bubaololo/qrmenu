@@ -12,6 +12,11 @@ trait HasTranslations
     /** @var array<string, int|null> In-memory cache: locale code → locale id */
     private static array $localeIdCache = [];
 
+    public static function bootHasTranslations(): void
+    {
+        static::deleting(fn ($model) => $model->translations()->delete());
+    }
+
     public function translations(): MorphMany
     {
         return $this->morphMany(Translation::class, 'translatable');
