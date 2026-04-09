@@ -14,6 +14,7 @@
         "filament/filament": "^5.4",
         "laravel/fortify": "^1.36",
         "laravel/framework": "^13.0",
+        "laravel/horizon": "^5.45",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
         "matriphe/iso-639": "^2.0",
