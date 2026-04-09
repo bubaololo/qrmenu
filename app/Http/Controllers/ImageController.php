@@ -21,26 +21,13 @@ class ImageController extends Controller
         $restaurant = Restaurant::findOrFail($restaurantId);
         Gate::authorize('update', $restaurant);
 
-        $tempPath = $request->file('image')->store('originals', config('image.disk'));
-        $baseName = Str::uuid()->toString();
-        $disk = config('image.disk');
-        $format = config('image.format');
-
-        ProcessImageJob::dispatch(
+        return $this->storeAndDispatch(
+            $request,
             Restaurant::class,
             $restaurant->id,
-            $tempPath,
-            'restaurants',
-            $baseName,
+            config('image.paths.restaurants'),
             $restaurant->image,
         );
-
-        $mainPath = "restaurants/{$baseName}.{$format}";
-
-        return response()->json(['data' => [
-            'image_url' => Storage::disk($disk)->url($mainPath),
-            'thumb_url' => Storage::disk($disk)->url("restaurants/{$baseName}_thumb.{$format}"),
-        ]], 202);
     }
 
     public function deleteRestaurant(Request $request, int $restaurantId): JsonResponse
@@ -61,26 +48,13 @@ class ImageController extends Controller
         $item = MenuItem::with('section.menu.restaurant')->findOrFail($itemId);
         Gate::authorize('update', $item->section->menu->restaurant);
 
-        $tempPath = $request->file('image')->store('originals', config('image.disk'));
-        $baseName = Str::uuid()->toString();
-        $disk = config('image.disk');
-        $format = config('image.format');
-
-        ProcessImageJob::dispatch(
+        return $this->storeAndDispatch(
+            $request,
             MenuItem::class,
             $item->id,
-            $tempPath,
-            'menu-items',
-            $baseName,
+            config('image.paths.menu_items'),
             $item->image,
         );
-
-        $mainPath = "menu-items/{$baseName}.{$format}";
-
-        return response()->json(['data' => [
-            'image_url' => Storage::disk($disk)->url($mainPath),
-            'thumb_url' => Storage::disk($disk)->url("menu-items/{$baseName}_thumb.{$format}"),
-        ]], 202);
     }
 
     public function deleteMenuItem(Request $request, int $itemId): JsonResponse
@@ -94,6 +68,31 @@ class ImageController extends Controller
         return response()->json(null, 204);
     }
 
+    private function storeAndDispatch(
+        Request $request,
+        string $modelClass,
+        int $modelId,
+        string $targetDir,
+        ?string $oldImagePath,
+    ): JsonResponse {
+        $originalsDisk = config('image.originals_disk');
+        $disk = config('image.disk');
+        $format = config('image.format');
+        $baseName = Str::uuid()->toString();
+
+        $tempPath = $request->file('image')->store(
+            config('image.paths.originals'),
+            $originalsDisk,
+        );
+
+        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath);
+
+        return response()->json(['data' => [
+            'image_url' => Storage::disk($disk)->url("{$targetDir}/{$baseName}.{$format}"),
+            'thumb_url' => Storage::disk($disk)->url("{$targetDir}/{$baseName}_thumb.{$format}"),
+        ]], 202);
+    }
+
     private function deleteImageFiles(?string $path): void
     {
         if (! $path) {
@@ -103,13 +102,7 @@ class ImageController extends Controller
         $disk = config('image.disk');
         $processor = app(ImageProcessor::class);
 
-        if (Storage::disk($disk)->exists($path)) {
-            Storage::disk($disk)->delete($path);
-        }
-
-        $thumb = $processor->thumbPath($path);
-        if (Storage::disk($disk)->exists($thumb)) {
-            Storage::disk($disk)->delete($thumb);
-        }
+        Storage::disk($disk)->delete($path);
+        Storage::disk($disk)->delete($processor->thumbPath($path));
     }
 }

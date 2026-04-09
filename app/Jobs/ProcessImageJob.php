@@ -33,17 +33,7 @@ class ProcessImageJob implements ShouldQueue
 
         try {
             if (! Storage::disk($disk)->exists($this->tempPath)) {
-                info('ProcessImageJob: temporary upload missing', [
-                    'disk' => $disk,
-                    'temp_path' => $this->tempPath,
-                    'model' => $this->modelClass,
-                    'model_id' => $this->modelId,
-                ]);
-
-                throw new \RuntimeException(
-                    "Temporary upload not found on disk [{$disk}]: {$this->tempPath}. ".
-                    'If app and queue worker run in separate containers, mount the same storage path on both.',
-                );
+                return;
             }
 
             $content = Storage::disk($disk)->get($this->tempPath);

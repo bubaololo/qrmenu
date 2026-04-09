@@ -9,6 +9,7 @@ use App\Models\Restaurant;
 use App\Support\MenuJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
@@ -21,17 +22,22 @@ class MenuAnalysisController extends Controller
             'restaurant_id' => ['nullable', 'integer', 'exists:restaurants,id'],
         ]);
 
+        $disk = config('image.originals_disk');
         $paths = [];
         foreach ($request->file('images') as $file) {
-            $paths[] = $file->store('menu-analyzer-uploads', 'public');
+            $paths[] = $file->store('menu-analyzer-uploads', $disk);
         }
 
-        $llmStarted = microtime(true);
-        $raw = $action->handle($paths);
-        $llmDurationMs = (int) round((microtime(true) - $llmStarted) * 1000);
+        try {
+            $llmStarted = microtime(true);
+            $raw = $action->handle($paths, $disk);
+            $llmDurationMs = (int) round((microtime(true) - $llmStarted) * 1000);
 
-        /** @var array<string, mixed> $menu */
-        $menu = MenuJson::decodeMenuFromLlmText($raw);
+            /** @var array<string, mixed> $menu */
+            $menu = MenuJson::decodeMenuFromLlmText($raw);
+        } finally {
+            Storage::disk($disk)->delete($paths);
+        }
 
         $savedMenuId = null;
         $restaurantId = $request->integer('restaurant_id') ?: null;

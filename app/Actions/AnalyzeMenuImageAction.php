@@ -35,9 +35,10 @@ class AnalyzeMenuImageAction
     ];
 
     /**
-     * @param  string|string[]  $images  Local storage paths (disk: public) or data URIs
+     * @param  string|string[]  $images  Local storage paths or data URIs
+     * @param  string  $disk  Filesystem disk the paths reside on
      */
-    public function handle(string|array $images): string
+    public function handle(string|array $images, string $disk = 'public'): string
     {
         $timeoutSeconds = $this->resolveHttpTimeoutSeconds();
 
@@ -48,7 +49,7 @@ class AnalyzeMenuImageAction
 
         $content = [];
         foreach ($images as $image) {
-            $dataUri = $this->toDataUri($image);
+            $dataUri = $this->toDataUri($image, $disk);
             $content[] = ['type' => 'image_url', 'image_url' => ['url' => $dataUri]];
         }
         $content[] = ['type' => 'text', 'text' => $prompt->user_prompt];
@@ -267,13 +268,13 @@ class AnalyzeMenuImageAction
         return $out;
     }
 
-    private function toDataUri(string $path): string
+    private function toDataUri(string $path, string $disk = 'public'): string
     {
         if (str_starts_with($path, 'data:')) {
             return $path;
         }
 
-        $fullPath = Storage::disk('public')->path($path);
+        $fullPath = Storage::disk($disk)->path($path);
         $mime = mime_content_type($fullPath) ?: 'image/jpeg';
 
         Log::channel('llm')->info('Image prepared', ['path' => $path, 'mime' => $mime]);
@@ -284,7 +285,7 @@ class AnalyzeMenuImageAction
             );
         }
 
-        $raw = Storage::disk('public')->get($path);
+        $raw = Storage::disk($disk)->get($path);
         $rawBytes = strlen($raw);
         $b64 = base64_encode($raw);
         $b64Bytes = strlen($b64);
