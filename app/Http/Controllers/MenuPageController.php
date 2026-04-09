@@ -12,9 +12,11 @@ use Matriphe\ISO639\ISO639;
 
 class MenuPageController extends Controller
 {
-    public function show(string $uniqid, ?string $lang = null): View
+    public function show(string $identifier, ?string $lang = null): View
     {
-        $restaurant = Restaurant::where('uniqid', $uniqid)->firstOrFail();
+        $restaurant = is_numeric($identifier)
+            ? Restaurant::findOrFail((int) $identifier)
+            : Restaurant::where('uniqid', $identifier)->firstOrFail();
 
         $restaurant->load([
             'translations',
@@ -169,6 +171,8 @@ class MenuPageController extends Controller
                     'name' => $item->translate('name', $lang) ?? $item->translate('name', $menu->source_locale ?? 'und') ?? '',
                     'description' => $item->translate('description', $lang) ?? $item->translate('description', $menu->source_locale ?? 'und'),
                     'price' => (float) $item->price_value,
+                    'image_url' => $item->image_url,
+                    'thumb_url' => $item->thumb_url,
                 ];
 
                 $allGroups = $item->optionGroups;

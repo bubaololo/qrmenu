@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ImageController extends Controller
 {
@@ -21,16 +22,25 @@ class ImageController extends Controller
         Gate::authorize('update', $restaurant);
 
         $tempPath = $request->file('image')->store('originals', config('image.disk'));
+        $baseName = Str::uuid()->toString();
+        $disk = config('image.disk');
+        $format = config('image.format');
 
         ProcessImageJob::dispatch(
             Restaurant::class,
             $restaurant->id,
             $tempPath,
             'restaurants',
+            $baseName,
             $restaurant->image,
         );
 
-        return response()->json(null, 202);
+        $mainPath = "restaurants/{$baseName}.{$format}";
+
+        return response()->json(['data' => [
+            'image_url' => Storage::disk($disk)->url($mainPath),
+            'thumb_url' => Storage::disk($disk)->url("restaurants/{$baseName}_thumb.{$format}"),
+        ]], 202);
     }
 
     public function deleteRestaurant(Request $request, int $restaurantId): JsonResponse
@@ -52,16 +62,25 @@ class ImageController extends Controller
         Gate::authorize('update', $item->section->menu->restaurant);
 
         $tempPath = $request->file('image')->store('originals', config('image.disk'));
+        $baseName = Str::uuid()->toString();
+        $disk = config('image.disk');
+        $format = config('image.format');
 
         ProcessImageJob::dispatch(
             MenuItem::class,
             $item->id,
             $tempPath,
             'menu-items',
+            $baseName,
             $item->image,
         );
 
-        return response()->json(null, 202);
+        $mainPath = "menu-items/{$baseName}.{$format}";
+
+        return response()->json(['data' => [
+            'image_url' => Storage::disk($disk)->url($mainPath),
+            'thumb_url' => Storage::disk($disk)->url("menu-items/{$baseName}_thumb.{$format}"),
+        ]], 202);
     }
 
     public function deleteMenuItem(Request $request, int $itemId): JsonResponse

@@ -11,7 +11,9 @@ Route::get('/', function () {
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 
-Route::get('/menu/{uniqid}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public');
+Route::get('/{identifier}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public')
+    ->where('identifier', '[0-9]+|[a-zA-Z0-9]{8,}')
+    ->where('lang', '[a-z]{2}');
 
 Route::post('/test-menu', function (Request $request) {
     $request->validate(['image_url' => ['required', 'url']]);

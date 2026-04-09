@@ -8,7 +8,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ProcessImageJob implements ShouldQueue
 {
@@ -23,6 +22,7 @@ class ProcessImageJob implements ShouldQueue
         public int $modelId,
         public string $tempPath,
         public string $targetDir,
+        public string $baseName,
         public ?string $oldImagePath = null,
     ) {}
 
@@ -43,7 +43,7 @@ class ProcessImageJob implements ShouldQueue
             [$mainPath] = $processor->processAndStore(
                 $tmpFile,
                 $this->targetDir,
-                Str::uuid()->toString(),
+                $this->baseName,
             );
 
             $model = $this->modelClass::findOrFail($this->modelId);

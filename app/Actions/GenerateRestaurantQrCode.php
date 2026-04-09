@@ -15,7 +15,7 @@ class GenerateRestaurantQrCode
         $path = "qrcodes/{$restaurant->id}.svg";
 
         if (! Storage::disk($disk)->exists($path)) {
-            $url = config('app.url').'/menu/'.$restaurant->uniqid;
+            $url = config('app.url').'/'.$restaurant->uniqid;
 
             $options = new QROptions([
                 'outputType' => QRCode::OUTPUT_MARKUP_SVG,

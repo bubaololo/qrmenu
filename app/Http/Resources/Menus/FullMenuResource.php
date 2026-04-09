@@ -38,6 +38,8 @@ class FullMenuResource extends JsonResource
                     'price_max' => $item->price_max,
                     'price_unit' => $item->price_unit,
                     'price_original_text' => $item->price_original_text,
+                    'image_url' => $item->image_url,
+                    'thumb_url' => $item->thumb_url,
                     'sort_order' => $item->sort_order,
                     'option_groups' => $item->optionGroups->map(fn ($group) => [
                         'id' => $group->id,

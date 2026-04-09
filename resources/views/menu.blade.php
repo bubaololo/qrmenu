@@ -97,9 +97,11 @@
                                     $hasOptions = $item->optionGroups->isNotEmpty();
                                 @endphp
                                 <div class="menu-card" data-item-id="{{ $item->id }}">
+                                    @if($item->image)
                                     <div class="menu-card-visual">
-                                   <img src="{{ Storage::url($item->image) }}" alt="" class="menu-card__image">
+                                        <img src="{{ $item->thumb_url }}" alt="" class="menu-card__image">
                                     </div>
+                                    @endif
                                     <div class="menu-card-body">
                                         <h3 class="menu-card-name">{{ $itemName }}</h3>
                                         <span class="menu-card-price">{{ number_format($displayPrice, 0, '', '.') }}{{ $currencySymbol }}</span>

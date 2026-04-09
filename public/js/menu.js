@@ -210,10 +210,12 @@ const App = {
     const unitPrice = basePrice + optionsExtra;
     const totalPrice = unitPrice * this._sheet.qty;
 
-    // Icon placeholder for sheet
-    const iconHtml = (typeof FoodIcons !== 'undefined')
-      ? '<div class="sheet-icon">' + FoodIcons.render('dish', 56, 'food-icon') + '</div>'
-      : '<div class="sheet-icon"><svg class="food-icon" width="56" height="56"><use href="/icons/food-icons.svg#dish"/></svg></div>';
+    // Image or icon placeholder for sheet
+    const iconHtml = item.image_url
+      ? '<img src="' + item.image_url + '" alt="" class="sheet-image" onload="this.classList.add(\'loaded\')">'
+      : (typeof FoodIcons !== 'undefined')
+        ? '<div class="sheet-icon">' + FoodIcons.render('dish', 56, 'food-icon') + '</div>'
+        : '<div class="sheet-icon"><svg class="food-icon" width="56" height="56"><use href="/icons/food-icons.svg#dish"/></svg></div>';
 
     let variantsHtml = '';
     if (item.variants && item.variants.length) {

@@ -32,7 +32,8 @@ class ImageUploadTest extends TestCase
             ->post("/api/v1/restaurants/{$restaurant->id}/image", [
                 'image' => UploadedFile::fake()->create('photo.jpg', 100, 'image/jpeg'),
             ], ['Accept-Language' => ''])
-            ->assertStatus(202);
+            ->assertStatus(202)
+            ->assertJsonStructure(['data' => ['image_url', 'thumb_url']]);
 
         Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === Restaurant::class
             && $job->modelId === $restaurant->id);
@@ -54,7 +55,8 @@ class ImageUploadTest extends TestCase
             ->post("/api/v1/menu-items/{$item->id}/image", [
                 'image' => UploadedFile::fake()->create('photo.jpg', 100, 'image/jpeg'),
             ], ['Accept-Language' => ''])
-            ->assertStatus(202);
+            ->assertStatus(202)
+            ->assertJsonStructure(['data' => ['image_url', 'thumb_url']]);
 
         Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === MenuItem::class
             && $job->modelId === $item->id);

@@ -28,29 +28,37 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
-    public function test_returns_200_for_restaurant_with_active_menu(): void
+    public function test_returns_200_by_numeric_id(): void
     {
-        $this->get("/menu/{$this->restaurant->uniqid}")
+        $this->get("/{$this->restaurant->id}")
             ->assertStatus(200)
             ->assertSee('Black coffee');
     }
 
     #[Test]
-    public function test_returns_404_for_nonexistent_restaurant(): void
+    public function test_returns_200_by_uniqid(): void
     {
-        $this->get('/menu/nonexistent-uid')->assertStatus(404);
+        $this->get("/{$this->restaurant->uniqid}")
+            ->assertStatus(200)
+            ->assertSee('Black coffee');
     }
 
     #[Test]
-    public function test_shows_menu_without_lang_param(): void
+    public function test_returns_404_for_nonexistent_id(): void
     {
-        $this->get("/menu/{$this->restaurant->uniqid}")->assertStatus(200);
+        $this->get('/99999')->assertStatus(404);
+    }
+
+    #[Test]
+    public function test_returns_404_for_nonexistent_uniqid(): void
+    {
+        $this->get('/nonexst')->assertStatus(404);
     }
 
     #[Test]
     public function test_shows_menu_with_explicit_lang(): void
     {
-        $this->get("/menu/{$this->restaurant->uniqid}/vi")->assertStatus(200);
+        $this->get("/{$this->restaurant->id}/vi")->assertStatus(200);
     }
 
     #[Test]
@@ -58,6 +66,6 @@ class MenuPageTest extends TestCase
     {
         $empty = Restaurant::factory()->create();
 
-        $this->get("/menu/{$empty->uniqid}")->assertStatus(200);
+        $this->get("/{$empty->id}")->assertStatus(200);
     }
 }

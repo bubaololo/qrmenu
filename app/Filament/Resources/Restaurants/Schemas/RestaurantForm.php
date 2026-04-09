@@ -2,7 +2,11 @@
 
 namespace App\Filament\Resources\Restaurants\Schemas;
 
+use App\Services\ImageProcessor;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Matriphe\ISO639\ISO639;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -18,9 +22,34 @@ class RestaurantForm
                 FileUpload::make('image')
                     ->label('Logo / Cover Image')
                     ->image()
-                    ->disk('public')
-                    ->directory('restaurants')
-                    ->maxSize(4096)
+                    ->disk(config('image.disk'))
+                    ->maxSize(10240)
+                    ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record): string {
+                        $processor = app(ImageProcessor::class);
+                        $disk = config('image.disk');
+
+                        if ($record?->image) {
+                            Storage::disk($disk)->delete($record->image);
+                            Storage::disk($disk)->delete($processor->thumbPath($record->image));
+                        }
+
+                        [$mainPath] = $processor->processAndStore(
+                            $file->getRealPath(),
+                            'restaurants',
+                            Str::uuid()->toString(),
+                        );
+
+                        return $mainPath;
+                    })
+                    ->deleteUploadedFileUsing(function (?string $file) {
+                        if (! $file) {
+                            return;
+                        }
+                        $processor = app(ImageProcessor::class);
+                        $disk = config('image.disk');
+                        Storage::disk($disk)->delete($file);
+                        Storage::disk($disk)->delete($processor->thumbPath($file));
+                    })
                     ->columnSpanFull(),
 
                 Placeholder::make('name_note')

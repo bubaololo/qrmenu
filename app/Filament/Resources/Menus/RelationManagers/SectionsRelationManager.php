@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Menus\RelationManagers;
 
 use App\Enums\PriceType;
+use App\Services\ImageProcessor;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -10,6 +11,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -56,9 +60,34 @@ class SectionsRelationManager extends RelationManager
                         FileUpload::make('image')
                             ->label('Photo')
                             ->image()
-                            ->disk('public')
-                            ->directory('menu-items')
-                            ->maxSize(4096)
+                            ->disk(config('image.disk'))
+                            ->maxSize(10240)
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record): string {
+                                $processor = app(ImageProcessor::class);
+                                $disk = config('image.disk');
+
+                                if ($record?->image) {
+                                    Storage::disk($disk)->delete($record->image);
+                                    Storage::disk($disk)->delete($processor->thumbPath($record->image));
+                                }
+
+                                [$mainPath] = $processor->processAndStore(
+                                    $file->getRealPath(),
+                                    'menu-items',
+                                    Str::uuid()->toString(),
+                                );
+
+                                return $mainPath;
+                            })
+                            ->deleteUploadedFileUsing(function (?string $file) {
+                                if (! $file) {
+                                    return;
+                                }
+                                $processor = app(ImageProcessor::class);
+                                $disk = config('image.disk');
+                                Storage::disk($disk)->delete($file);
+                                Storage::disk($disk)->delete($processor->thumbPath($file));
+                            })
                             ->columnSpanFull(),
 
                         Toggle::make('starred')
