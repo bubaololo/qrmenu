@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ProcessImageJob implements ShouldQueue
@@ -30,13 +31,14 @@ class ProcessImageJob implements ShouldQueue
     {
         $tmpFile = null;
         $disk = config('image.disk');
+        $originalsDisk = config('image.originals_disk');
 
         try {
-            if (! Storage::disk($disk)->exists($this->tempPath)) {
+            if (! Storage::disk($originalsDisk)->exists($this->tempPath)) {
                 return;
             }
 
-            $content = Storage::disk($disk)->get($this->tempPath);
+            $content = Storage::disk($originalsDisk)->get($this->tempPath);
             $tmpFile = tempnam(sys_get_temp_dir(), 'img_');
             file_put_contents($tmpFile, $content);
 
@@ -49,14 +51,22 @@ class ProcessImageJob implements ShouldQueue
             $model = $this->modelClass::findOrFail($this->modelId);
             $model->update(['image' => $mainPath]);
 
-            Storage::disk($disk)->delete($this->tempPath);
+            Storage::disk($originalsDisk)->delete($this->tempPath);
 
             if ($this->oldImagePath) {
                 $this->deleteOldFiles($processor, $disk);
             }
         } catch (\Exception $e) {
+            Log::error('ProcessImageJob: failed', [
+                'model' => $this->modelClass,
+                'modelId' => $this->modelId,
+                'attempt' => $this->attempts(),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+            ]);
+
             if ($this->attempts() >= $this->tries) {
-                Storage::disk($disk)->delete($this->tempPath);
+                Storage::disk($originalsDisk)->delete($this->tempPath);
             }
 
             throw $e;

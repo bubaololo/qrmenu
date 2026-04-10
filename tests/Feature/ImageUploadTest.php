@@ -24,6 +24,7 @@ class ImageUploadTest extends TestCase
     {
         Queue::fake();
         Storage::fake('public');
+        Storage::fake('local');
 
         $user = User::factory()->create();
         $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
@@ -44,6 +45,7 @@ class ImageUploadTest extends TestCase
     {
         Queue::fake();
         Storage::fake('public');
+        Storage::fake('local');
 
         $user = User::factory()->create();
         $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
