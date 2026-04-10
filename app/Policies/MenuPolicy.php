@@ -19,8 +19,12 @@ class MenuPolicy
     /**
      * Only owner can create menus for a restaurant.
      */
-    public function create(User $user, Restaurant $restaurant): bool
+    public function create(User $user, ?Restaurant $restaurant = null): bool
     {
+        if ($restaurant === null) {
+            return $user->restaurants()->wherePivot('role', 'owner')->exists();
+        }
+
         return $restaurant->owners()->where('user_id', $user->id)->exists();
     }
 

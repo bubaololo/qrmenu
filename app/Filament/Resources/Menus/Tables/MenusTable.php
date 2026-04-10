@@ -20,6 +20,7 @@ class MenusTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->query(fn () => Menu::query()->with('restaurant'))
             ->columns([
                 TextColumn::make('restaurant_name')
                     ->label('Restaurant')
@@ -51,7 +52,7 @@ class MenusTable
                     ->options(fn () => Restaurant::query()
                         ->orderBy('id')
                         ->get()
-                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id " . ($r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}")])
+                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id ".($r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}")])
                         ->toArray()
                     ),
             ])
