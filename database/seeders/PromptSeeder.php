@@ -20,29 +20,32 @@ You are a precise menu digitization assistant. Your only job is to extract struc
 SYSTEM;
 
         $userPrompt = <<<'PROMPT'
-Извлеки данные из меню, следуя правилам:
+Extract structured data from the menu image(s) following these rules.
 
-**Текст** — ТОЧНЫЙ оригинальный текст как написано на меню. Никаких переводов. null если отсутствует.
+=== FIELD RULES ===
 
-**primary_language** — ISO 639-1 код языка текста меню (vi, th, ko, ja, zh, id, en, ar …). Если несколько языков без доминирующего — "mixed".
+**Text fields** — exact original text as printed on the menu. No translations. null if absent.
 
-**currency** — трёхбуквенный код ISO 4217 (VND, THB, JPY, KRW, CNY, TWD, USD, EUR, IDR, PHP, MYR, SGD, BDT, INR, PKR, …). Определяй по символам и контексту.
+**primary_language** — ISO 639-1 code of the menu text language. Use "mixed" only when multiple languages are present with no single dominant one.
 
-**opening_hours** — режим работы ресторана. Всегда заполняй raw_text точным текстом с меню. Периоды работы представляй как массив объектов: days — список дней (mon/tue/wed/thu/fri/sat/sun), open/close — время в формате HH:MM (24ч). Если в день есть перерыв (split-shift) — добавляй два объекта с одинаковыми days. Дни на любом языке (Thứ 2, 月, 월, จันทร์, الإثنين…) — переводи в стандартные коды. null если режим работы не указан.
+**currency** — ISO 4217 three-letter code. Infer from symbols and regional context.
 
-**image_bbox** — [x1, y1, x2, y2] нормализованные координаты 0.0–1.0 фотографии блюда/напитка включая тарелку/стакан с небольшим отступом. null если фото нет.
+**opening_hours** — always fill raw_text with the exact text from the menu. Represent periods as objects: days (mon/tue/wed/thu/fri/sat/sun), open/close in HH:MM 24h format. For split shifts add two period objects with the same days. Convert day names from any language to standard codes. null if not shown.
 
-**price** — числовые данные о цене:
-- value: числовая цена. null если цена не фиксированная.
-- min, max: для диапазонов цен (например "50–80k"). null если не диапазон.
-- unit: единица продажи точно как в меню ("con", "quả", "100g", "порция" и т.д.). null если не указана.
-- original_text: точный текст цены с меню — всегда заполняй.
+**image_bbox** — [x1, y1, x2, y2] normalized coordinates 0.0–1.0 of the dish/drink photo including plate/glass with a small margin. null if no photo.
 
-**variations** — используй когда блюдо представлено в нескольких взаимоисключающих вариантах, из которых клиент должен или может выбрать один. Типичные случаи: размер порции, тип мяса/белка, вид основы (рис/лапша/хлеб), метод приготовления, уровень остроты, — и любые другие случаи когда выбор меняет суть или цену блюда. Каждая группа вариантов — отдельный объект. Поле type — свободное описание группы на английском (size, meat_type, spice_level, base, cooking_method и т.п.). Иногда вариации обозначены пиктограммами - если понятно по контексту что обозначает пиктограмма (у напитков часто снежинка холдная версия, несколько пиктограмм с перцем - степень остроты) интерпретируем это как вариации и сохраняем текстом, нужно при этом различать просто выделение некоторых отдельных пунктов как starred и несущие некий конкретный смысл пиктограммы
+**price** — value: numeric price, null if not fixed. min/max: for price ranges, null otherwise. unit: unit of sale exactly as printed, null if not shown. original_text: exact price text from the menu — always fill.
 
-**options** — используй для необязательных добавок и топпингов, которые клиент может добавить по желанию. Можно выбирать несколько из группы. Примеры: дополнительный соус, сыр, топпинг, дополнительное мясо, иногда эти опции вынесены в отдельный блок на страницу и касаются всего меню или какого то раздела, нужно это понимать и добавлять опции к каждому пункту меню на который по твоему мнению распространяется эта опция
+**variations** — mutually exclusive choices the customer must or may pick ONE from. Typical groups: portion size, protein type, base (rice/noodles/bread), cooking method, spice level, or any other choice that changes the essence or price of the dish. type: free-form English label for the group. Pictograms that carry specific meaning in context (snowflake = cold version, chili icons = spice levels) should be interpreted as variation options and stored as text. Distinguish meaningful pictograms from purely decorative star/highlight marks.
 
-**starred** — true если блюдо явно выделено в меню (звёздочка, пометка "popular"/"bestseller"/"chef's choice" или аналогичная).
+**options** — optional add-ons/toppings the customer may select MULTIPLE from. Extras like sauce, cheese, toppings, additional protein.
+
+**Options/variations scope resolution** — before assigning options or variations to items, determine their scope:
+1. Block at the start/end of the menu or on a dedicated page with no adjacent section → GLOBAL scope: apply to every item in the menu.
+2. Block directly before, after, or inside a specific section → SECTION scope: apply to every item in that section.
+3. Never leave a standalone options/variations block unassigned. Always propagate it to every item within its determined scope.
+
+**starred** — true if the item is explicitly highlighted (star mark, "popular", "bestseller", "chef's choice" or similar label).
 
 === JSON SCHEMA ===
 

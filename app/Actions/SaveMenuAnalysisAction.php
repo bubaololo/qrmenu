@@ -39,6 +39,8 @@ class SaveMenuAnalysisAction
                 'detected_date' => $version['detected_date'] ?? now()->toDateString(),
             ]);
 
+            $menu->activate();
+
             foreach (MenuJson::sections($menuData) as $sectionIndex => $sectionData) {
                 $this->createSection($menu, $sectionData, $sectionIndex, $sourceLocale);
             }

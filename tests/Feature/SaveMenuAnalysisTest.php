@@ -36,7 +36,7 @@ class SaveMenuAnalysisTest extends TestCase
         $menu = (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
         $this->assertSame('en', $menu->source_locale);
-        $this->assertFalse($menu->is_active);
+        $this->assertTrue($menu->is_active);
         $this->assertSame(1, $menu->source_images_count);
     }
 
