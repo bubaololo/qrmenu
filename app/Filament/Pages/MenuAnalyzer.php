@@ -5,6 +5,8 @@ namespace App\Filament\Pages;
 use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Enums\RestaurantUserRole;
+use App\Llm\GeminiVisionProvider;
+use App\Llm\OpenRouterGemmaProvider;
 use App\Models\RestaurantUser;
 use App\Support\MenuJson;
 use Filament\Actions\Action;
@@ -53,11 +55,26 @@ class MenuAnalyzer extends Page
         $this->form->fill();
     }
 
+    /** @return array<string, string> */
+    public static function visionModels(): array
+    {
+        return [
+            'gemini' => 'Gemini 2.5 Flash',
+            'openrouter_gemma' => 'Gemma 4 26B (free)',
+        ];
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
                 Form::make([
+                    Select::make('vision_model')
+                        ->label('Vision Model')
+                        ->options(self::visionModels())
+                        ->default('gemini')
+                        ->selectablePlaceholder(false),
+
                     Select::make('restaurant_id')
                         ->label('Restaurant')
                         ->helperText('Select a restaurant to save the analyzed menu.')
@@ -118,8 +135,13 @@ class MenuAnalyzer extends Page
         $this->results = [];
         $action = app(AnalyzeMenuImageAction::class);
 
+        $provider = match ($state['vision_model'] ?? 'gemini') {
+            'openrouter_gemma' => app(OpenRouterGemmaProvider::class),
+            default => app(GeminiVisionProvider::class),
+        };
+
         try {
-            $raw = $action->handle($files);
+            $raw = $action->handle($files, 'public', $provider);
             /** @var array<string, mixed> $menu */
             $menu = MenuJson::decodeMenuFromLlmText($raw);
 

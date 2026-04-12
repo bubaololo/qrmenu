@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\LlmRequestFailedException;
+use App\Llm\DeepSeekTextProvider;
 use App\Models\Menu;
 use App\Models\Prompt;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Matriphe\ISO639\ISO639;
-use Prism\Prism\Enums\Provider;
-use Prism\Prism\Facades\Prism;
 use Prism\Prism\ValueObjects\Messages\SystemMessage;
 use Prism\Prism\ValueObjects\Messages\UserMessage;
 
@@ -24,7 +24,7 @@ class TranslateMenuJob implements ShouldQueue
         public string $targetLocale,
     ) {}
 
-    public function handle(): void
+    public function handle(DeepSeekTextProvider $provider): void
     {
         $this->menu->load([
             'restaurant',
@@ -49,10 +49,6 @@ class TranslateMenuJob implements ShouldQueue
             return;
         }
 
-        $llm = Log::channel('llm');
-        $totalCount = 0;
-
-        // Build compact TSV payload for the entire menu and send in one request
         [$tsvPayload, $idMap] = $this->buildTsvPayload();
 
         $userPrompt = str_replace(
@@ -63,50 +59,27 @@ class TranslateMenuJob implements ShouldQueue
 
         $fullUserMessage = $userPrompt."\n\n".$tsvPayload;
 
-        $llm->info('Translation request', [
-            'menu_id' => $this->menu->id,
-            'target_locale' => $this->targetLocale,
-            'source_locale' => $sourceLocale,
-            'items_total' => $idMap['items_count'],
-            'payload_size' => strlen($tsvPayload),
-            'user_prompt' => $fullUserMessage,
-        ]);
-
-        $startedAt = microtime(true);
-
         try {
-            $response = Prism::text()
-                ->using(Provider::DeepSeek, 'deepseek-chat')
-                ->withClientOptions(['timeout' => 120])
-                ->withMessages([
+            $text = $provider->execute(
+                [
                     new SystemMessage($prompt->system_prompt),
                     new UserMessage($fullUserMessage),
-                ])
-                ->asText();
-        } catch (\Throwable $e) {
-            $llm->error('Translation LLM failed', [
-                'menu_id' => $this->menu->id,
-                'error' => $e->getMessage(),
-                'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
-            ]);
-
+                ],
+                [
+                    'menu_id' => $this->menu->id,
+                    'target_locale' => $this->targetLocale,
+                    'source_locale' => $sourceLocale,
+                    'items_total' => $idMap['items_count'],
+                    'payload_size' => strlen($tsvPayload),
+                ]
+            );
+        } catch (LlmRequestFailedException) {
             return;
         }
 
-        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $totalCount = $this->parseTsvAndSave($text, $idMap);
 
-        $llm->info('Translation response', [
-            'menu_id' => $this->menu->id,
-            'target_locale' => $this->targetLocale,
-            'duration_ms' => $durationMs,
-            'tokens' => ($response->usage->promptTokens ?? 0) + ($response->usage->completionTokens ?? 0),
-            'finish_reason' => $response->finishReason->name ?? 'unknown',
-            'response_text' => $response->text,
-        ]);
-
-        $totalCount = $this->parseTsvAndSave($response->text, $idMap);
-
-        $llm->info('Translation complete', [
+        Log::channel('llm')->info('Translation complete', [
             'menu_id' => $this->menu->id,
             'locale' => $this->targetLocale,
             'fields_count' => $totalCount,

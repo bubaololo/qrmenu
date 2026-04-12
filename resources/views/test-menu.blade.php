@@ -152,6 +152,14 @@
         </div>
     </div>
 
+    <div style="margin-bottom:1.25rem;">
+        <label style="display:block; font-size:.875rem; margin-bottom:.5rem; color:#444;">Vision Model</label>
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+            <button type="button" class="model-btn active" data-model="openrouter_gemma" onclick="setVisionModel('openrouter_gemma')" style="padding:.35rem .9rem; border-radius:6px; border:1px solid #1a56db; background:#1a56db; color:#fff; cursor:pointer; font-size:.875rem;">Gemma 4 26B (free)</button>
+            <button type="button" class="model-btn" data-model="gemini" onclick="setVisionModel('gemini')" style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">Gemini 2.5 Flash</button>
+        </div>
+    </div>
+
     <div class="actions">
         <button class="btn" id="analyze-btn" onclick="analyze()">Analyze</button>
         <div class="spinner" id="spinner">
@@ -186,6 +194,17 @@
 <script>
     const API = '/api/v1';
     let selectedFiles = [];
+    let selectedVisionModel = 'openrouter_gemma';
+
+    function setVisionModel(model) {
+        selectedVisionModel = model;
+        document.querySelectorAll('.model-btn').forEach((btn) => {
+            const active = btn.dataset.model === model;
+            btn.style.background = active ? '#1a56db' : '#fff';
+            btn.style.color = active ? '#fff' : '';
+            btn.style.borderColor = active ? '#1a56db' : '#ccc';
+        });
+    }
 
     // ── CSRF helpers ──────────────────────────────────────────────────────────
     function getCsrfToken() {
@@ -543,6 +562,7 @@
         if (restaurantId) {
             fd.append('restaurant_id', restaurantId);
         }
+        fd.append('model', selectedVisionModel);
 
         try {
             const res = await fetch(`${API}/menu-analyses`, {

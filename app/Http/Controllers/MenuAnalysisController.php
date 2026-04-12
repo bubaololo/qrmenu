@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Http\Resources\MenuAnalysisResource;
+use App\Llm\GeminiVisionProvider;
+use App\Llm\OpenRouterGemmaProvider;
 use App\Models\Restaurant;
 use App\Support\MenuJson;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class MenuAnalysisController extends Controller
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['required', 'image', 'max:10240'],
             'restaurant_id' => ['nullable', 'integer', 'exists:restaurants,id'],
+            'model' => ['nullable', 'string', 'in:gemini,openrouter_gemma'],
         ]);
 
         $disk = config('image.originals_disk');
@@ -28,9 +31,14 @@ class MenuAnalysisController extends Controller
             $paths[] = $file->store('menu-analyzer-uploads', $disk);
         }
 
+        $provider = match ($request->input('model', 'openrouter_gemma')) {
+            'gemini' => app(GeminiVisionProvider::class),
+            default => app(OpenRouterGemmaProvider::class),
+        };
+
         try {
             $llmStarted = microtime(true);
-            $raw = $action->handle($paths, $disk);
+            $raw = $action->handle($paths, $disk, $provider);
             $llmDurationMs = (int) round((microtime(true) - $llmStarted) * 1000);
 
             /** @var array<string, mixed> $menu */
