@@ -3,7 +3,7 @@
 namespace App\Actions;
 
 use App\Contracts\LlmProvider;
-use App\Llm\OpenRouterGemmaProvider;
+use App\Llm\OpenRouterProvider;
 use App\Models\Prompt;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
@@ -23,7 +23,7 @@ class AnalyzeMenuImageAction
         'image/tiff', 'image/webp', 'image/heic',
     ];
 
-    public function __construct(private readonly OpenRouterGemmaProvider $defaultProvider) {}
+    public function __construct(private readonly OpenRouterProvider $defaultProvider) {}
 
     /**
      * @param  string|string[]  $images  Local storage paths

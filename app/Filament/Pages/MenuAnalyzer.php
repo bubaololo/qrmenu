@@ -6,7 +6,7 @@ use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Enums\RestaurantUserRole;
 use App\Llm\GeminiVisionProvider;
-use App\Llm\OpenRouterGemmaProvider;
+use App\Llm\OpenRouterProvider;
 use App\Models\RestaurantUser;
 use App\Support\MenuJson;
 use Filament\Actions\Action;
@@ -60,7 +60,15 @@ class MenuAnalyzer extends Page
     {
         return [
             'gemini' => 'Gemini 2.5 Flash',
-            'openrouter_gemma' => 'google/gemma-4-26b-a4b-it:free',
+            'google/gemma-4-26b-a4b-it:free' => 'Gemma 4 26B (free)',
+            'google/gemma-4-26b-a4b-it' => 'Gemma 4 26B',
+            'google/gemma-4-31b-it:free' => 'Gemma 4 31B (free)',
+            'google/gemma-4-31b-it' => 'Gemma 4 31B',
+            'qwen/qwen3.6-plus' => 'Qwen 3.6 Plus',
+            'opengvlab/internvl3-78b' => 'InternVL3 78B',
+            'rekaai/reka-edge' => 'Reka Edge',
+            'arcee-ai/spotlight' => 'Arcee Spotlight',
+            'meta-llama/llama-4-maverick' => 'Llama 4 Maverick',
         ];
     }
 
@@ -135,10 +143,9 @@ class MenuAnalyzer extends Page
         $this->results = [];
         $action = app(AnalyzeMenuImageAction::class);
 
-        $provider = match ($state['vision_model'] ?? 'gemini') {
-            'openrouter_gemma' => app(OpenRouterGemmaProvider::class),
-            default => app(GeminiVisionProvider::class),
-        };
+        $provider = ($state['vision_model'] ?? 'gemini') === 'gemini'
+            ? app(GeminiVisionProvider::class)
+            : app()->makeWith(OpenRouterProvider::class, ['openRouterModel' => $state['vision_model']]);
 
         try {
             $raw = $action->handle($files, 'public', $provider);

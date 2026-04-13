@@ -154,9 +154,19 @@
 
     <div style="margin-bottom:1.25rem;">
         <label style="display:block; font-size:.875rem; margin-bottom:.5rem; color:#444;">Vision Model</label>
-        <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-            <button type="button" class="model-btn active" data-model="openrouter_gemma" onclick="setVisionModel('openrouter_gemma')" style="padding:.35rem .9rem; border-radius:6px; border:1px solid #1a56db; background:#1a56db; color:#fff; cursor:pointer; font-size:.875rem;">Gemma 4 26B (free)</button>
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
             <button type="button" class="model-btn" data-model="gemini" onclick="setVisionModel('gemini')" style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">Gemini 2.5 Flash</button>
+            <select id="openrouter-select" onchange="setVisionModel(this.value)" style="padding:.35rem .9rem; border-radius:6px; border:2px solid #1a56db; background:#fff; cursor:pointer; font-size:.875rem; color:#111;">
+                <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B (free)</option>
+                <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
+                <option value="google/gemma-4-31b-it:free">Gemma 4 31B (free)</option>
+                <option value="google/gemma-4-31b-it">Gemma 4 31B</option>
+                <option value="qwen/qwen3.6-plus">Qwen 3.6 Plus</option>
+                <option value="opengvlab/internvl3-78b">InternVL3 78B</option>
+                <option value="rekaai/reka-edge">Reka Edge</option>
+                <option value="arcee-ai/spotlight">Arcee Spotlight</option>
+                <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+            </select>
         </div>
     </div>
 
@@ -194,16 +204,23 @@
 <script>
     const API = '/api/v1';
     let selectedFiles = [];
-    let selectedVisionModel = 'openrouter_gemma';
+    let selectedVisionModel = 'google/gemma-4-26b-a4b-it:free';
 
     function setVisionModel(model) {
         selectedVisionModel = model;
-        document.querySelectorAll('.model-btn').forEach((btn) => {
-            const active = btn.dataset.model === model;
-            btn.style.background = active ? '#1a56db' : '#fff';
-            btn.style.color = active ? '#fff' : '';
-            btn.style.borderColor = active ? '#1a56db' : '#ccc';
-        });
+        const isGemini = model === 'gemini';
+
+        const geminiBtn = document.querySelector('.model-btn[data-model="gemini"]');
+        geminiBtn.style.background = isGemini ? '#1a56db' : '#fff';
+        geminiBtn.style.color = isGemini ? '#fff' : '';
+        geminiBtn.style.borderColor = isGemini ? '#1a56db' : '#ccc';
+
+        const orSelect = document.getElementById('openrouter-select');
+        orSelect.style.borderColor = isGemini ? '#ccc' : '#1a56db';
+        orSelect.style.borderWidth = '2px';
+        if (!isGemini) {
+            orSelect.value = model;
+        }
     }
 
     // ── CSRF helpers ──────────────────────────────────────────────────────────
