@@ -33,8 +33,6 @@ WORKDIR /var/www/html
 
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
-FROM base AS dev
-
 RUN apk add --no-cache \
     $PHPIZE_DEPS \
     && pecl install xdebug \
@@ -43,19 +41,10 @@ RUN apk add --no-cache \
 
 RUN printf '%s\n' \
     'xdebug.mode=develop,debug' \
-    'xdebug.start_with_request=yes' \
-    > /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+    'xdebug.start_with_request=trigger' \
+    'xdebug.client_host=host.docker.internal' \
+    'xdebug.client_port=9003' \
+    'xdebug.discover_client_host=0' \
+    >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
-
-FROM base AS prod
-
-COPY --chown=www-data:www-data . /var/www/html
-
-USER www-data
-
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-
-USER root
-
-CMD ["php-fpm", "-F"]

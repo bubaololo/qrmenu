@@ -60,7 +60,7 @@ class MenuAnalyzer extends Page
     {
         return [
             'gemini' => 'Gemini 2.5 Flash',
-            'openrouter_gemma' => 'Gemma 4 26B (free)',
+            'openrouter_gemma' => 'google/gemma-4-26b-a4b-it:free',
         ];
     }
 

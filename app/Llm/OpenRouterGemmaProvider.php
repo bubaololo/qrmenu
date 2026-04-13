@@ -18,6 +18,6 @@ class OpenRouterGemmaProvider extends BaseLlmProvider
 
     public function timeoutSeconds(): int
     {
-        return 120;
+        return 300;
     }
 }
