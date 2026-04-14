@@ -17,9 +17,4 @@ class OpenRouterProvider extends BaseLlmProvider
     {
         return $this->openRouterModel;
     }
-
-    public function timeoutSeconds(): int
-    {
-        return 300;
-    }
 }

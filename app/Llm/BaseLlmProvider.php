@@ -12,6 +12,11 @@ use Throwable;
 
 abstract class BaseLlmProvider implements LlmProvider
 {
+    protected function timeoutSeconds(): int
+    {
+        return (int) config('services.openai_compatible.http_timeout_seconds', 3600);
+    }
+
     /** @return array<string, mixed> */
     protected function providerOptions(): array
     {

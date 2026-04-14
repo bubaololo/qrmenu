@@ -11,8 +11,6 @@ interface LlmProvider
 
     public function model(): string;
 
-    public function timeoutSeconds(): int;
-
     /**
      * @param  Message[]  $messages
      * @param  array<string, mixed>  $logContext

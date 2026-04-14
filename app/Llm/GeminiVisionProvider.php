@@ -16,13 +16,6 @@ class GeminiVisionProvider extends BaseLlmProvider
         return 'gemini-2.5-flash';
     }
 
-    public function timeoutSeconds(): int
-    {
-        $configured = (int) config('services.openai_compatible.http_timeout_seconds', 3600);
-
-        return max(60, min($configured, 3600));
-    }
-
     protected function providerOptions(): array
     {
         return ['thinkingBudget' => 0];

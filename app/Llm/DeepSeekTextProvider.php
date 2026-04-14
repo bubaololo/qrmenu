@@ -15,9 +15,4 @@ class DeepSeekTextProvider extends BaseLlmProvider
     {
         return 'deepseek-chat';
     }
-
-    public function timeoutSeconds(): int
-    {
-        return 120;
-    }
 }
