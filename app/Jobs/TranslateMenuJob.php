@@ -44,7 +44,11 @@ class TranslateMenuJob implements ShouldQueue
         $prompt = Prompt::activeForType(self::PROMPT_TYPE);
 
         if (! $prompt) {
-            Log::channel('llm')->warning('Translation aborted: no active prompt', ['type' => self::PROMPT_TYPE]);
+            Log::channel('llm')->warning('Translation aborted: no active prompt', [
+                'type' => self::PROMPT_TYPE,
+                'menu_id' => $this->menu->id,
+                'target_locale' => $this->targetLocale,
+            ]);
 
             return;
         }
@@ -60,7 +64,7 @@ class TranslateMenuJob implements ShouldQueue
         $fullUserMessage = $userPrompt."\n\n".$tsvPayload;
 
         try {
-            $text = $provider->execute(
+            $result = $provider->execute(
                 [
                     new SystemMessage($prompt->system_prompt),
                     new UserMessage($fullUserMessage),
@@ -77,7 +81,7 @@ class TranslateMenuJob implements ShouldQueue
             return;
         }
 
-        $totalCount = $this->parseTsvAndSave($text, $idMap);
+        $totalCount = $this->parseTsvAndSave($result['text'], $idMap);
 
         Log::channel('llm')->info('Translation complete', [
             'menu_id' => $this->menu->id,

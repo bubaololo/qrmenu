@@ -1,6 +1,15 @@
 <x-filament::page>
     {{ $this->form }}
 
+    @if ($this->pendingAnalysisId)
+        <div wire:poll.5s="checkAnalysisStatus" class="mt-6 flex items-center gap-3 p-4 rounded-lg bg-primary-50 dark:bg-primary-900/20">
+            <x-filament::loading-indicator class="h-5 w-5 text-primary-500" />
+            <span class="text-sm font-medium text-primary-700 dark:text-primary-300">
+                Processing menu images...
+            </span>
+        </div>
+    @endif
+
     @foreach ($this->results as $result)
         <div class="mt-6">
             <div class="flex items-center gap-2 mb-3 flex-wrap">

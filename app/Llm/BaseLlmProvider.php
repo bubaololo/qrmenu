@@ -26,8 +26,9 @@ abstract class BaseLlmProvider implements LlmProvider
     /**
      * @param  Message[]  $messages
      * @param  array<string, mixed>  $logContext
+     * @return array{text: string, usage: array{input_tokens: ?int, output_tokens: ?int}}
      */
-    public function execute(array $messages, array $logContext = []): string
+    public function execute(array $messages, array $logContext = []): array
     {
         $llm = Log::channel('llm');
 
@@ -94,6 +95,12 @@ abstract class BaseLlmProvider implements LlmProvider
             throw new LlmRequestFailedException('LLM returned no text.', $telemetry);
         }
 
-        return $response->text;
+        return [
+            'text' => $response->text,
+            'usage' => [
+                'input_tokens' => $response->usage->promptTokens ?? null,
+                'output_tokens' => $response->usage->completionTokens ?? null,
+            ],
+        ];
     }
 }

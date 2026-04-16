@@ -90,7 +90,15 @@ class MenuPageController extends Controller
 
         TranslateMenuJob::dispatchSync($menu, $lang);
 
-        Cache::put($cacheKey, true, now()->addHour());
+        // Only cache if translations were actually saved — job may abort silently (no prompt, empty payload, LLM error)
+        $translationsSaved = Translation::where('locale', $lang)
+            ->where('translatable_type', MenuItem::class)
+            ->whereIn('translatable_id', $itemIds)
+            ->exists();
+
+        if ($translationsSaved) {
+            Cache::put($cacheKey, true, now()->addHour());
+        }
 
         // Reload all translations so the page renders with new data
         $restaurant->load([

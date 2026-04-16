@@ -14,6 +14,7 @@ interface LlmProvider
     /**
      * @param  Message[]  $messages
      * @param  array<string, mixed>  $logContext
+     * @return array{text: string, usage: array{input_tokens: ?int, output_tokens: ?int}}
      */
-    public function execute(array $messages, array $logContext = []): string;
+    public function execute(array $messages, array $logContext = []): array;
 }

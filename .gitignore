@@ -27,3 +27,4 @@ Thumbs.db
 .claude/
 .env.testing
 *.png
+/tests/image_test_sets/benchmarks/

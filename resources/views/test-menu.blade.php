@@ -155,8 +155,13 @@
     <div style="margin-bottom:1.25rem;">
         <label style="display:block; font-size:.875rem; margin-bottom:.5rem; color:#444;">Vision Model</label>
         <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
-            <button type="button" class="model-btn" data-model="gemini" onclick="setVisionModel('gemini')" style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem;">Gemini 2.5 Flash</button>
-            <select id="openrouter-select" onchange="setVisionModel(this.value)" style="padding:.35rem .9rem; border-radius:6px; border:2px solid #1a56db; background:#fff; cursor:pointer; font-size:.875rem; color:#111;">
+            <button type="button" class="model-btn" data-model="auto" onclick="setVisionModel('auto')"
+                style="padding:.35rem .9rem; border-radius:6px; border:2px solid #1a56db; background:#1a56db; color:#fff; cursor:pointer; font-size:.875rem;">
+                Auto (cascade)
+            </button>
+            <select id="openrouter-select" onchange="setVisionModel(this.value)"
+                style="padding:.35rem .9rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:.875rem; color:#111;">
+                <option value="" disabled selected>— force specific model —</option>
                 <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B (free)</option>
                 <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
                 <option value="google/gemma-4-31b-it:free">Gemma 4 31B (free)</option>
@@ -168,6 +173,9 @@
                 <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
             </select>
         </div>
+        <p id="model-hint" style="font-size:.8rem; color:#6b7280; margin-top:.4rem;">
+            Qwen → Gemini → Gemma cascade with automatic fallback
+        </p>
     </div>
 
     <div class="actions">
@@ -204,22 +212,32 @@
 <script>
     const API = '/api/v1';
     let selectedFiles = [];
-    let selectedVisionModel = 'google/gemma-4-26b-a4b-it:free';
+    let selectedVisionModel = 'auto';
 
     function setVisionModel(model) {
         selectedVisionModel = model;
-        const isGemini = model === 'gemini';
+        const isAuto = model === 'auto';
 
-        const geminiBtn = document.querySelector('.model-btn[data-model="gemini"]');
-        geminiBtn.style.background = isGemini ? '#1a56db' : '#fff';
-        geminiBtn.style.color = isGemini ? '#fff' : '';
-        geminiBtn.style.borderColor = isGemini ? '#1a56db' : '#ccc';
+        const autoBtn = document.querySelector('.model-btn[data-model="auto"]');
+        autoBtn.style.background = isAuto ? '#1a56db' : '#fff';
+        autoBtn.style.color = isAuto ? '#fff' : '#111';
+        autoBtn.style.borderColor = isAuto ? '#1a56db' : '#ccc';
+        autoBtn.style.borderWidth = '2px';
 
         const orSelect = document.getElementById('openrouter-select');
-        orSelect.style.borderColor = isGemini ? '#ccc' : '#1a56db';
-        orSelect.style.borderWidth = '2px';
-        if (!isGemini) {
+        orSelect.style.borderColor = isAuto ? '#ccc' : '#1a56db';
+        orSelect.style.borderWidth = isAuto ? '1px' : '2px';
+        if (!isAuto) {
             orSelect.value = model;
+        } else {
+            orSelect.selectedIndex = 0;
+        }
+
+        const hint = document.getElementById('model-hint');
+        if (isAuto) {
+            hint.textContent = 'Qwen → Gemini → Gemma cascade with automatic fallback';
+        } else {
+            hint.textContent = `Direct call to ${model} — no fallback`;
         }
     }
 
@@ -579,7 +597,9 @@
         if (restaurantId) {
             fd.append('restaurant_id', restaurantId);
         }
-        fd.append('model', selectedVisionModel);
+        if (selectedVisionModel !== 'auto') {
+            fd.append('model', selectedVisionModel);
+        }
 
         try {
             const res = await fetch(`${API}/menu-analyses`, {
@@ -611,13 +631,67 @@
                 return;
             }
 
-            const attrs = data.data?.attributes ?? data.data ?? data;
-            renderResults(attrs);
+            const uuid = data.data?.id;
+            const initialAttrs = data.data?.attributes ?? {};
+
+            if (initialAttrs.status === 'completed') {
+                renderResults(initialAttrs);
+                return;
+            }
+
+            // Poll until completed or failed
+            await pollAnalysis(uuid);
         } catch (e) {
             err.textContent = e.message;
         } finally {
             btn.disabled = false;
             spinner.classList.remove('active');
+        }
+    }
+
+    async function pollAnalysis(uuid) {
+        const spinner = document.getElementById('spinner');
+        const err = document.getElementById('analyze-error');
+        // Find the text node inside spinner (after the SVG)
+        const textNode = Array.from(spinner.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+
+        let elapsed = 0;
+        while (true) {
+            await new Promise(r => setTimeout(r, 2500));
+            elapsed += 2;
+
+            if (textNode) {
+                textNode.textContent = ` Analyzing, please wait… (${elapsed}s)`;
+            }
+
+            let data;
+            try {
+                const res = await fetch(`${API}/menu-analyses/${uuid}`, {
+                    credentials: 'include',
+                    headers: authHeaders({ 'Accept': 'application/vnd.api+json' }),
+                });
+                data = await res.json();
+
+                if (!res.ok) {
+                    err.textContent = data.message ?? `Polling error ${res.status}`;
+                    return;
+                }
+            } catch (e) {
+                err.textContent = 'Network error while polling: ' + e.message;
+                return;
+            }
+
+            const attrs = data.data?.attributes ?? {};
+
+            if (attrs.status === 'completed') {
+                renderResults(attrs);
+                return;
+            }
+
+            if (attrs.status === 'failed') {
+                err.textContent = attrs.error_message ?? 'Analysis failed.';
+                return;
+            }
         }
     }
 
@@ -897,7 +971,7 @@
         if (attrs.saved_menu_id) {
             const note = document.createElement('p');
             note.style.cssText = 'color:#16a34a; font-size:.875rem; margin-bottom:.75rem;';
-            note.textContent = `✓ Saved as Menu #${attrs.saved_menu_id}`;
+            note.innerHTML = `✓ Saved as Menu #${attrs.saved_menu_id} — <a href="/${attrs.saved_menu_id}" target="_blank" style="color:#16a34a; font-weight:600;">View public page →</a>`;
             document.querySelector('.results-header').appendChild(note);
         }
         document.getElementById('upload-section').style.display = 'none';

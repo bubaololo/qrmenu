@@ -1,0 +1,248 @@
+{
+    "restaurant": {
+        "name": "Pizza Dalat 24h",
+        "address": "60 Hai Thượng, P.6, Tp Đà Lạt",
+        "city": "Đà Lạt",
+        "country": "VN",
+        "phone": "02633510540",
+        "opening_hours": null,
+        "currency": "VND",
+        "primary_language": "vi"
+    },
+    "menu_version": {
+        "detected_date": null,
+        "source_images_count": 15
+    },
+    "sections": [
+        {
+            "category_name": "PIZZA",
+            "sort_order": 0,
+            "items": [
+                {"name": "Phomai - Margherita",            "description": "Tomato sauce with cheese",                                           "starred": false, "sort_order": 0,  "price": {"value": null, "min": 109000, "max": 199000, "unit": null, "original_text": "109k / 149k / 199k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [
+                        {"name": "S", "price_adjust": 0,      "is_default": false},
+                        {"name": "M", "price_adjust": 40000,  "is_default": false},
+                        {"name": "L", "price_adjust": 90000,  "is_default": false}
+                    ]}], "options": []},
+                {"name": "Bò băm - Beef",                  "description": "Tomato sauce, beef, onion, pineapple, basil, cheese",               "starred": false, "sort_order": 1,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Bò kim chi - Beef with kimchi",  "description": "Tomato sauce, beef, onion, kim chi Korea, basil, cheese",          "starred": false, "sort_order": 2,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Bò khô cay - Dried Beef",        "description": "Tomato sauce, dried beef, cheese",                                   "starred": false, "sort_order": 3,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Bắp bò đế thân tre - Beef & Corn", "description": "Tomato sauce, beef, corn, basil, onion, cheese",                  "starred": false, "sort_order": 4,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Hải sản - Seafood",              "description": "Tomato sauce, shrimp, squid, octopus, pineapple, basil, cheese",    "starred": false, "sort_order": 5,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Hải sản lực vị - Seafood 2",     "description": "Tomato sauce, shrimp, squid, clam, corn, onion, garlic, basil, cheese", "starred": false, "sort_order": 6, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Cá hồi rong biển - Salmon Seaweed", "description": "Tomato sauce, salmon, seaweed, cheese",                           "starred": false, "sort_order": 7,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Cá ngừ - Tuna",                  "description": "Tomato sauce, tuna, onion, pineapple, cheese, mayonnaise",           "starred": false, "sort_order": 8,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Bacon",                          "description": "Tomato sauce, bacon, broccoli, cheese",                               "starred": false, "sort_order": 9,  "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Bacon 2",                        "description": "Tomato cherry, basil, bacon, onion, cheese",                          "starred": false, "sort_order": 10, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Gà nấm - Chicken",               "description": "Tomato sauce, chicken, garlic, fresh mushroom, cheese",               "starred": false, "sort_order": 11, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Gà viên - Fried Chicken Nuggets","description": "Tomato sauce, fried chicken nuggets, cheese",                         "starred": false, "sort_order": 12, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Cà chua - Tomato",               "description": "Tomato cherry, garlic, basil, cheese",                                "starred": false, "sort_order": 13, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Xanh - Green",                   "description": "Tomato sauce, broccoli, peas, basil, cheese",                         "starred": false, "sort_order": 14, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null,
+                    "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Chả bông đế than tre - Soap",    "description": "Tomato sauce, soap, broccoli, cheese",                                "starred": false, "sort_order": 15, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Salami",                         "description": "Tomato sauce, salami, olive, cheese",                                 "starred": false, "sort_order": 16, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Xúc xích - Sausage",             "description": "Tomato sauce, sausage, cheese",                                       "starred": false, "sort_order": 17, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Xông khói - Ham with Bacon",     "description": "Tomato sauce, ham, bacon, onion, olive, corn, cheese",                "starred": false, "sort_order": 18, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Ham - Hawai",                    "description": "Tomato sauce, ham, pineapple, cheese",                                "starred": false, "sort_order": 19, "price": {"value": null, "min": 119000, "max": 209000, "unit": null, "original_text": "119k / 159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Pesto hải sản",                  "description": "Seafood with pesto sauce, onion, and broccoli",                       "starred": false, "sort_order": 20, "price": {"value": null, "min": 169000, "max": 219000, "unit": null, "original_text": "169k / 219k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "M", "price_adjust": 0, "is_default": false},{"name": "L", "price_adjust": 50000, "is_default": false}]}], "options": []},
+                {"name": "Gà mẫn",                         "description": "Fried chicken with pesto sauce and onions",                           "starred": false, "sort_order": 21, "price": {"value": null, "min": 129000, "max": 219000, "unit": null, "original_text": "129k / 169k / 219k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 40000, "is_default": false},{"name": "L", "price_adjust": 90000, "is_default": false}]}], "options": []},
+                {"name": "Hạt dẻ cười",                    "description": "Ham with burrata cheese and chestnuts",                               "starred": false, "sort_order": 22, "price": {"value": null, "min": 199000, "max": 249000, "unit": null, "original_text": "199k / 249k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "M", "price_adjust": 0, "is_default": false},{"name": "L", "price_adjust": 50000, "is_default": false}]}], "options": []},
+                {"name": "Cá hồi xông khói",               "description": "Smoked salmon with cheese burrata and tomatoes",                      "starred": false, "sort_order": 23, "price": {"value": 199000, "min": null, "max": null, "unit": null, "original_text": "199k"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Phomai mắt ong",                 "description": "Phomai & honey",                                                      "starred": false, "sort_order": 24, "price": {"value": null, "min": 109000, "max": 209000, "unit": null, "original_text": "109k / 169k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "S", "price_adjust": 0, "is_default": false},{"name": "M", "price_adjust": 60000, "is_default": false},{"name": "L", "price_adjust": 100000, "is_default": false}]}], "options": []},
+                {"name": "Bò lúc lắc",                     "description": "Bò úc, tỏi chuông đầu mè, ngò rí và phomai",                          "starred": false, "sort_order": 25, "price": {"value": null, "min": 159000, "max": 209000, "unit": null, "original_text": "159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "M", "price_adjust": 0, "is_default": false},{"name": "L", "price_adjust": 50000, "is_default": false}]}], "options": []},
+                {"name": "Tôm tempura",                    "description": "Tôm tẩm bột chiên giòn cùng xốt phomai béo béo",                      "starred": false, "sort_order": 26, "price": {"value": null, "min": 159000, "max": 209000, "unit": null, "original_text": "159k / 209k"}, "image_bbox": null, "variations": [{"type": "size", "name": null, "required": true, "allow_multiple": false, "options": [{"name": "M", "price_adjust": 0, "is_default": false},{"name": "L", "price_adjust": 50000, "is_default": false}]}], "options": []}
+            ]
+        },
+        {
+            "category_name": "BURGER",
+            "sort_order": 1,
+            "items": [
+                {"name": "Dalat 24h Burger",          "description": "Beef or chicken, bacon, cheese, lettuce, cucumber & tomato",             "starred": false, "sort_order": 0, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Burger Bacon",              "description": "Beef, bacon, cheese, lettuce, cucumber & tomato",                         "starred": false, "sort_order": 1, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Burger Bò",                 "description": "Beef, cheese, lettuce, cucumber & tomato",                                "starred": false, "sort_order": 2, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Burger Gà",                 "description": "Chicken, cheese, lettuce, cucumber & tomato",                             "starred": false, "sort_order": 3, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Burger Trứng",              "description": "Eggs, ham, cheese, lettuce, cucumber & tomato",                           "starred": false, "sort_order": 4, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "SPAGHETTI",
+            "sort_order": 2,
+            "items": [
+                {"name": "Mỳ ý bacon sốt kem",        "description": "Spaghetti Carbonara",                                                     "starred": false, "sort_order": 0, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý tôm sốt kem",          "description": "Spaghetti with shrimp and cream sauce",                                   "starred": false, "sort_order": 1, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý nấm sốt kem",          "description": "Spaghetti with mushrooms and cream sauce",                                "starred": false, "sort_order": 2, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý cá hồi sốt kem",       "description": "Salmon cream spaghetti",                                                  "starred": false, "sort_order": 3, "price": {"value": 129000, "min": null, "max": null, "unit": null, "original_text": "129K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý steak bò sốt kem",     "description": "Spaghetti with beef steak and cream sauce",                               "starred": false, "sort_order": 4, "price": {"value": 129000, "min": null, "max": null, "unit": null, "original_text": "129K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý steak bò sốt kem cà",  "description": "Spaghetti with beef steak and cream tomato sauce",                        "starred": false, "sort_order": 5, "price": {"value": 129000, "min": null, "max": null, "unit": null, "original_text": "129K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý bò lúc lắc",           "description": "Spaghetti with beef, onions, garlic, basil and tomato sauce",             "starred": false, "sort_order": 6, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý bò bằm",               "description": "Spaghetti with minced beef, onions, garlic, basil and tomato sauce",      "starred": false, "sort_order": 7, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý hải sản",              "description": "Seafood Spaghetti with onions, garlic, basil and tomato sauce",           "starred": false, "sort_order": 8, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý nấm rau củ",           "description": "Spaghetti with mushrooms, vegetables, onions, garlic, basil and tomato sauce", "starred": false, "sort_order": 9, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý cá ngừ",               "description": "Spaghetti with tuna, onions, garlic, basil and tomato sauce",             "starred": false, "sort_order": 10, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý gà rán",               "description": "Spaghetti with fried chicken, onions, garlic, basil and tomato sauce",    "starred": false, "sort_order": 11, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mỳ ý xúc xích",             "description": "Spaghetti with sausage, onions, garlic, basil and tomato sauce",          "starred": false, "sort_order": 12, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "CHICKENS",
+            "sort_order": 3,
+            "items": [
+                {"name": "Fried Chicken Balls",       "description": null, "starred": false, "sort_order": 0, "price": {"value": 59000,  "min": null, "max": null, "unit": null, "original_text": "59.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chicken Drumstick",         "description": null, "starred": false, "sort_order": 1, "price": {"value": 49000,  "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chicken Wing",              "description": null, "starred": false, "sort_order": 2, "price": {"value": 49000,  "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fried Chicken",             "description": null, "starred": false, "sort_order": 3, "price": {"value": 69000,  "min": null, "max": null, "unit": null, "original_text": "69.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chicken Sauce Korean",      "description": null, "starred": false, "sort_order": 4, "price": {"value": 69000,  "min": null, "max": null, "unit": null, "original_text": "69.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chickens Seaweed",          "description": null, "starred": false, "sort_order": 5, "price": {"value": 69000,  "min": null, "max": null, "unit": null, "original_text": "69.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Combo 5 đùi hoặc 5 cánh gà chiên giòn", "description": "5 chicken wings or 5 chicken drumsticks", "starred": true, "sort_order": 6, "price": {"value": 169000, "min": null, "max": null, "unit": null, "original_text": "169K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Set gà giòn tứ sắc",        "description": "Gà chiên giòn ăn kèm 3 loại sốt, kem hành - phô mai - sốt Hàn Quốc",       "starred": false, "sort_order": 7, "price": {"value": 159000, "min": null, "max": null, "unit": null, "original_text": "159K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Set gà tứ vị",              "description": "Đùi gà hoặc cánh gà ăn kèm khoai tây chiên, phô mai 3 loại sốt, kem hành - phở mài - sốt Hàn Quốc", "starred": false, "sort_order": 8, "price": {"value": 199000, "min": null, "max": null, "unit": null, "original_text": "199K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "FASTFOODS",
+            "sort_order": 4,
+            "items": [
+                {"name": "Fried Kimbap",              "description": null, "starred": false, "sort_order": 0,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mandu",                     "description": null, "starred": false, "sort_order": 1,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pizza",                     "description": null, "starred": false, "sort_order": 2,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cá viên chiên",             "description": null, "starred": false, "sort_order": 3,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fried Sausage",             "description": null, "starred": false, "sort_order": 4,  "price": {"value": 89000, "min": null, "max": null, "unit": null, "original_text": "89.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Hồ lô chiên",               "description": "Meatballs", "starred": false, "sort_order": 5,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "French Fries",              "description": null, "starred": false, "sort_order": 6,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "French Fries 2",            "description": null, "starred": false, "sort_order": 7,  "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mandu Kimchi",              "description": null, "starred": false, "sort_order": 8,  "price": {"value": 59000, "min": null, "max": null, "unit": null, "original_text": "59.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "FF with Cheese",            "description": null, "starred": false, "sort_order": 9,  "price": {"value": 59000, "min": null, "max": null, "unit": null, "original_text": "59.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "FF with Cheese 2",          "description": null, "starred": false, "sort_order": 10, "price": {"value": 59000, "min": null, "max": null, "unit": null, "original_text": "59.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tokbokki",                  "description": null, "starred": false, "sort_order": 11, "price": {"value": 59000, "min": null, "max": null, "unit": null, "original_text": "59.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fried Spring Rolls",        "description": null, "starred": false, "sort_order": 12, "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fried Fish Balls",          "description": null, "starred": false, "sort_order": 13, "price": {"value": 49000, "min": null, "max": null, "unit": null, "original_text": "49.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tokbokki Cheese",           "description": null, "starred": false, "sort_order": 14, "price": {"value": 69000, "min": null, "max": null, "unit": null, "original_text": "69.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Set kimbap chiên",          "description": "Kimbap + chicken + french fries + coca", "starred": false, "sort_order": 15, "price": {"value": 169000, "min": null, "max": null, "unit": null, "original_text": "169K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Baked French Fries with Bacon", "description": "Khoai tây đức lò", "starred": false, "sort_order": 16, "price": {"value": 99000, "min": null, "max": null, "unit": null, "original_text": "99K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "SALAD",
+            "sort_order": 5,
+            "items": [
+                {"name": "Dalat Salad",               "description": "Salad, cucumber, tomato, mayonnaise, fried onion",                    "starred": false, "sort_order": 0, "price": {"value": 90000,  "min": null, "max": null, "unit": null, "original_text": "90k"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tuna Salad",                "description": "Salad, tuna, onion, cucumber, tomato, mayonnaise, fried onion",       "starred": false, "sort_order": 1, "price": {"value": 89000,  "min": null, "max": null, "unit": null, "original_text": "89k"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fruit Salad",               "description": "Salad, fruits, tomato, sesame oil sauce",                            "starred": false, "sort_order": 2, "price": {"value": 89000,  "min": null, "max": null, "unit": null, "original_text": "89k"},  "image_bbox": null, "variations": [], "options": []},
+                {"name": "Beef Salad",                "description": "Salad, cucumber, tomato, onion, tartar sauce, beef",                 "starred": false, "sort_order": 3, "price": {"value": 129000, "min": null, "max": null, "unit": null, "original_text": "129k"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Salmon Salad",              "description": "Salad, salmon, onion, cucumber, tomato, sauce",                      "starred": false, "sort_order": 4, "price": {"value": 129000, "min": null, "max": null, "unit": null, "original_text": "129k"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chicken Salad",             "description": "Salad, chicken, tomato, cucumber, sauce",                            "starred": false, "sort_order": 5, "price": {"value": 109000, "min": null, "max": null, "unit": null, "original_text": "109k"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "BEEF STEAK",
+            "sort_order": 6,
+            "items": [
+                {"name": "Beef Steak with French Fries", "description": null, "starred": false, "sort_order": 0, "price": {"value": 250000, "min": null, "max": null, "unit": "200gr", "original_text": "250k"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "COFFEE MENU",
+            "sort_order": 7,
+            "items": [
+                {"name": "Coffee phi may",            "description": "Vietnamese coffee",                                                  "starred": false, "sort_order": 0,  "price": {"value": 20000, "min": null, "max": null, "unit": null, "original_text": "20K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Bạc xỉu nóng",              "description": "Hot Vietnamese white coffee",                                        "starred": false, "sort_order": 1,  "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Bạc xỉu đá",                "description": "Ice Vietnamese white coffee",                                        "starred": false, "sort_order": 2,  "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Americano",                 "description": "Hot / Ice",                                                           "starred": false, "sort_order": 3,  "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cà phê đường kiếng",        "description": "Coffee with diet sugar",                                             "starred": false, "sort_order": 4,  "price": {"value": 20000, "min": null, "max": null, "unit": null, "original_text": "20K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cà phê kem Phomai",         "description": "Cheese coffee",                                                       "starred": false, "sort_order": 5,  "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cà phê kem muối",           "description": "Salt cream coffee",                                                   "starred": false, "sort_order": 6,  "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cookies yến mạch",          "description": "Cookies (5pcs)",                                                      "starred": false, "sort_order": 7,  "price": {"value": 20000, "min": null, "max": null, "unit": null, "original_text": "20K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Latte caramel muối",        "description": "Salted caramel coffee latte",                                        "starred": false, "sort_order": 8,  "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Coffee sữa tươi nóng",      "description": "Hot Vietnamese white coffee",                                         "starred": false, "sort_order": 9,  "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Coffee sữa tươi đá",        "description": "Ice Vietnamese white coffee",                                         "starred": false, "sort_order": 10, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Coffee sữa tươi đường bậc", "description": "Ice coffee with fresh milk and grade brown sugar",                    "starred": false, "sort_order": 11, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Latte hạt phỉ",             "description": "Hazelnut latte",                                                      "starred": false, "sort_order": 12, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cà phê đá xay",             "description": "Coffee ice blended",                                                  "starred": false, "sort_order": 13, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Flan Cafe đá bào",          "description": "Flan Coffee",                                                         "starred": false, "sort_order": 14, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Dalgona cà phê",            "description": "Dalgona coffee",                                                      "starred": false, "sort_order": 15, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cà phê flan kem mặn",       "description": "Salt cream coffee with flan",                                         "starred": false, "sort_order": 16, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "SMOOTHIE",
+            "sort_order": 8,
+            "items": [
+                {"name": "Việt quất",                 "description": "Blueberry",  "starred": false, "sort_order": 0, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Kiwi",                      "description": "Kiwi",       "starred": false, "sort_order": 1, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Việt quất 2",               "description": "Blueberry",  "starred": false, "sort_order": 2, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Dâu tằm",                   "description": "Mulberry",   "starred": false, "sort_order": 3, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chanh dây",                 "description": "Passion fruit", "starred": false, "sort_order": 4, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Mãng cầu",                  "description": "Soursop",     "starred": false, "sort_order": 5, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cacao",                     "description": "Cocoa",       "starred": false, "sort_order": 6, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Matcha",                    "description": "Matcha",      "starred": false, "sort_order": 7, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Dâu tằm 2",                 "description": "Mulberry",    "starred": false, "sort_order": 8, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "SODA",
+            "sort_order": 9,
+            "items": [
+                {"name": "Việt quất",                 "description": "Blueberry", "starred": false, "sort_order": 0, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cam nha đam",               "description": "Orange",    "starred": false, "sort_order": 1, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Bạc hà",                    "description": "Mint",      "starred": false, "sort_order": 2, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Táo xanh",                  "description": "Apple",     "starred": false, "sort_order": 3, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Dâu",                       "description": "Strawberry","starred": false, "sort_order": 4, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chanh",                     "description": "Lemon",     "starred": false, "sort_order": 5, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Kiwi",                      "description": "Kiwi",      "starred": false, "sort_order": 6, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Đào",                       "description": "Peach",     "starred": false, "sort_order": 7, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chanh dây",                 "description": "Passion fruit", "starred": false, "sort_order": 8, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "HOT DRINKS",
+            "sort_order": 10,
+            "items": [
+                {"name": "Chanh mật ong nóng",        "description": "Hot lemon with honey",          "starred": false, "sort_order": 0, "price": {"value": 25000, "min": null, "max": null, "unit": null, "original_text": "25K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chanh xí muội nóng",        "description": "Hot lemon salty",                "starred": false, "sort_order": 1, "price": {"value": 25000, "min": null, "max": null, "unit": null, "original_text": "25K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chanh gừng detox",          "description": "Hot lemon ginger detox",         "starred": false, "sort_order": 2, "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tắc mật ong nóng",          "description": "Hot honey kumquat",              "starred": false, "sort_order": 3, "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Trà thảo mộc đường nóng",   "description": "Hot herbal tea",                 "starred": false, "sort_order": 4, "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "THỨC UỐNG NÓNG",
+            "sort_order": 11,
+            "items": [
+                {"name": "Trà Atiso",                 "description": "Hot artichoke tea", "starred": false, "sort_order": 0, "price": {"value": 20000, "min": null, "max": null, "unit": null, "original_text": "20K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Trà Lipton",                "description": "Hot lipton tea",    "starred": false, "sort_order": 1, "price": {"value": 25000, "min": null, "max": null, "unit": null, "original_text": "25K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Trà đào nóng",              "description": "Hot peach tea",     "starred": false, "sort_order": 2, "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cacao nóng",                "description": "Hot cocoa",         "starred": false, "sort_order": 3, "price": {"value": 30000, "min": null, "max": null, "unit": null, "original_text": "30K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Matcha latte nóng",         "description": "Hot matcha latte",  "starred": false, "sort_order": 4, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "GIẢI KHÁT",
+            "sort_order": 12,
+            "items": [
+                {"name": "Coca Cola",                 "description": null, "starred": false, "sort_order": 0, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Coca Light",                "description": null, "starred": false, "sort_order": 1, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pepsi",                     "description": null, "starred": false, "sort_order": 2, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "7 Up",                      "description": null, "starred": false, "sort_order": 3, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Sting",                     "description": null, "starred": false, "sort_order": 4, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Fanta",                     "description": null, "starred": false, "sort_order": 5, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Sprite",                    "description": null, "starred": false, "sort_order": 6, "price": {"value": 15000, "min": null, "max": null, "unit": null, "original_text": "15K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Red Bull",                  "description": null, "starred": false, "sort_order": 7, "price": {"value": 20000, "min": null, "max": null, "unit": null, "original_text": "20K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Nước suối - Water",         "description": null, "starred": false, "sort_order": 8, "price": {"value": 10000, "min": null, "max": null, "unit": null, "original_text": "10K"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tiger Beer",                "description": null, "starred": false, "sort_order": 9, "price": {"value": 25000, "min": null, "max": null, "unit": null, "original_text": "25K"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        }
+    ]
+}

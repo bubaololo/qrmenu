@@ -1,0 +1,116 @@
+{
+    "restaurant": {
+        "name": "Amélie Pâtisserie et Café",
+        "address": null,
+        "city": null,
+        "country": "VN",
+        "phone": null,
+        "opening_hours": null,
+        "currency": "VND",
+        "primary_language": "en"
+    },
+    "menu_version": {
+        "detected_date": null,
+        "source_images_count": 1
+    },
+    "sections": [
+        {
+            "category_name": "TRADITIONAL CAFE",
+            "sort_order": 0,
+            "items": [
+                {"name": "Black coffee",        "description": "Cà phê đen",                            "starred": true,  "sort_order": 0, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Milk coffee",         "description": "Cà phê sữa",                            "starred": true,  "sort_order": 1, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "White coffee",        "description": "Bạc xỉu",                               "starred": true,  "sort_order": 2, "price": {"value": 45000, "min": null, "max": null, "unit": null, "original_text": "45.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Salted coffee",       "description": "Cà phê muối",                           "starred": true,  "sort_order": 3, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cream brulee coffee", "description": "Bạc xỉu, foam kem trứng nướng",        "starred": true,  "sort_order": 4, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cheese coffee",       "description": "Bạc xỉu, foam kem cheese",              "starred": true,  "sort_order": 5, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "ITALIAN CAFE",
+            "sort_order": 1,
+            "items": [
+                {"name": "Espresso",          "description": null, "starred": true, "sort_order": 0, "price": {"value": 35000, "min": null, "max": null, "unit": null, "original_text": "35.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Americano",         "description": null, "starred": true, "sort_order": 1, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Yuzu americano",    "description": null, "starred": true, "sort_order": 2, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Capuchino",         "description": null, "starred": true, "sort_order": 3, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Latte",             "description": null, "starred": true, "sort_order": 4, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Bailey latte",      "description": null, "starred": true, "sort_order": 5, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Caramel macchiato", "description": null, "starred": true, "sort_order": 6, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pandan latte brulee", "description": "latte sữa dừa, foam kem trứng nướng",  "starred": true, "sort_order": 7, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cloudy latte mint", "description": "latte bạc hà, milkfoam", "starred": true, "sort_order": 8, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "COLD BREW",
+            "sort_order": 2,
+            "items": [
+                {"name": "Cold brew",                "description": null, "starred": false, "sort_order": 0, "price": {"value": 40000, "min": null, "max": null, "unit": null, "original_text": "40.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Orange cold brew",         "description": null, "starred": false, "sort_order": 1, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pineapple cold brew",     "description": null, "starred": false, "sort_order": 2, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Lychee plum cold brew",   "description": null, "starred": false, "sort_order": 3, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Green apple cold brew",   "description": null, "starred": false, "sort_order": 4, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pomegranate aloe vera",   "description": null, "starred": false, "sort_order": 5, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "MATCHA",
+            "sort_order": 3,
+            "items": [
+                {"name": "Matcha latte",             "description": null, "starred": false, "sort_order": 0, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Yuzu matcha",              "description": null, "starred": false, "sort_order": 1, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Lychee yghuiri matcha",    "description": null, "starred": false, "sort_order": 2, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Bailey matcha latte",      "description": null, "starred": false, "sort_order": 3, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Strawberry matcha latte",  "description": null, "starred": false, "sort_order": 4, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cheese matcha latte",      "description": null, "starred": false, "sort_order": 5, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tiramisu matcha latte",    "description": null, "starred": false, "sort_order": 6, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "CHOCOLATE",
+            "sort_order": 4,
+            "items": [
+                {"name": "Choco latte",        "description": null, "starred": false, "sort_order": 0, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Choco latte brulee", "description": null, "starred": false, "sort_order": 1, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "FRUIT JUICE",
+            "sort_order": 5,
+            "items": [
+                {"name": "Lemon juice",      "description": null, "starred": false, "sort_order": 0, "price": {"value": 45000, "min": null, "max": null, "unit": null, "original_text": "45.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Orange juice",     "description": null, "starred": false, "sort_order": 1, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pineapple juice",  "description": null, "starred": false, "sort_order": 2, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Watermelon juice", "description": null, "starred": false, "sort_order": 3, "price": {"value": 50000, "min": null, "max": null, "unit": null, "original_text": "50.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "FRESH TEA",
+            "sort_order": 6,
+            "items": [
+                {"name": "Hot lemon ginger tea",            "description": "Trà chanh gừng nóng",      "starred": false, "sort_order": 0, "price": {"value": 45000, "min": null, "max": null, "unit": null, "original_text": "45.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Orange tea",                      "description": "Trà cam",                  "starred": false, "sort_order": 1, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Citron tea",                      "description": "Trà vải",                  "starred": false, "sort_order": 2, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Strawberry tea",                  "description": "Trà dâu",                  "starred": false, "sort_order": 3, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Green apple hibiscus tea",        "description": "Trà táo xanh atiso đỏ",   "starred": false, "sort_order": 4, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pink smoky berries tea",          "description": "Trà hoa quả hồng khói",    "starred": false, "sort_order": 5, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Dark mojito berries tea",         "description": "Trà hoa quả mojito đen",   "starred": false, "sort_order": 6, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Grapefruit lemon ginger tea",     "description": "Trà bưởi chanh gừng",      "starred": false, "sort_order": 7, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Pomegranate aloe vera hibiscus tea", "description": "Trà lựu nha đam atiso", "starred": false, "sort_order": 8, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cherry cherry lady tea",          "description": "Trà cherry Kirsch",        "starred": false, "sort_order": 9, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        },
+        {
+            "category_name": "FRAPPUCHINO - ICE BLENDED",
+            "sort_order": 7,
+            "items": [
+                {"name": "Avocado coffee blended", "description": null, "starred": false, "sort_order": 0, "price": {"value": 55000, "min": null, "max": null, "unit": null, "original_text": "55.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Chocolate blended",      "description": null, "starred": false, "sort_order": 1, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Coco coffee blended",    "description": null, "starred": false, "sort_order": 2, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Matcha blended",         "description": null, "starred": false, "sort_order": 3, "price": {"value": 60000, "min": null, "max": null, "unit": null, "original_text": "60.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Tiramisu frappuchino",   "description": null, "starred": false, "sort_order": 4, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65.000"}, "image_bbox": null, "variations": [], "options": []},
+                {"name": "Cherry frappuchino",     "description": null, "starred": false, "sort_order": 5, "price": {"value": 65000, "min": null, "max": null, "unit": null, "original_text": "65.000"}, "image_bbox": null, "variations": [], "options": []}
+            ]
+        }
+    ]
+}

@@ -7,6 +7,7 @@ use App\Llm\OpenRouterProvider;
 use App\Models\Prompt;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
+use Prism\Prism\Contracts\Message;
 use Prism\Prism\ValueObjects\Media\Image;
 use Prism\Prism\ValueObjects\Messages\SystemMessage;
 use Prism\Prism\ValueObjects\Messages\UserMessage;
@@ -27,11 +28,10 @@ class AnalyzeMenuImageAction
 
     /**
      * @param  string|string[]  $images  Local storage paths
+     * @return array{messages: Message[], prompt: Prompt}
      */
-    public function handle(string|array $images, string $disk = 'public', ?LlmProvider $provider = null): string
+    public function buildMessages(string|array $images, string $disk = 'public'): array
     {
-        $provider ??= $this->defaultProvider;
-
         $prompt = Prompt::activeForType(self::TYPE_SLUG)
             ?? throw new RuntimeException('No active prompt found for type "'.self::TYPE_SLUG.'".');
 
@@ -57,12 +57,23 @@ class AnalyzeMenuImageAction
             additionalContent: $prismImages,
         );
 
-        return $provider->execute($messages, [
-            'prompt_id' => $prompt->id,
-            'prompt_name' => $prompt->name,
-            'image_count' => count($images),
-            'paths' => $images,
+        return ['messages' => $messages, 'prompt' => $prompt];
+    }
+
+    public function handle(string|array $images, string $disk = 'public', ?LlmProvider $provider = null): string
+    {
+        $provider ??= $this->defaultProvider;
+
+        $built = $this->buildMessages($images, $disk);
+
+        $result = $provider->execute($built['messages'], [
+            'prompt_id' => $built['prompt']->id,
+            'prompt_name' => $built['prompt']->name,
+            'image_count' => count((array) $images),
+            'paths' => (array) $images,
         ]);
+
+        return $result['text'];
     }
 
     private function validateImage(string $path, string $disk): void

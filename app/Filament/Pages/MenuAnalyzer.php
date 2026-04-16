@@ -2,13 +2,11 @@
 
 namespace App\Filament\Pages;
 
-use App\Actions\AnalyzeMenuImageAction;
-use App\Actions\SaveMenuAnalysisAction;
+use App\Enums\MenuAnalysisStatus;
 use App\Enums\RestaurantUserRole;
-use App\Llm\GeminiVisionProvider;
-use App\Llm\OpenRouterProvider;
+use App\Jobs\AnalyzeMenuJob;
+use App\Models\MenuAnalysis;
 use App\Models\RestaurantUser;
-use App\Support\MenuJson;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -18,7 +16,6 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
-use Throwable;
 
 class MenuAnalyzer extends Page
 {
@@ -34,6 +31,8 @@ class MenuAnalyzer extends Page
 
     /** @var array<int, array{paths: array<int, string>, menu: array<string, mixed>|null, error: string|null}> */
     public array $results = [];
+
+    public ?int $pendingAnalysisId = null;
 
     public static function getNavigationLabel(): string
     {
@@ -141,44 +140,69 @@ class MenuAnalyzer extends Page
 
         $restaurantId = $state['restaurant_id'] ?? null;
         $this->results = [];
-        $action = app(AnalyzeMenuImageAction::class);
 
-        $provider = ($state['vision_model'] ?? 'gemini') === 'gemini'
-            ? app(GeminiVisionProvider::class)
-            : app()->makeWith(OpenRouterProvider::class, ['openRouterModel' => $state['vision_model']]);
+        $visionModel = $state['vision_model'] ?? null;
 
-        try {
-            $raw = $action->handle($files, 'public', $provider);
-            /** @var array<string, mixed> $menu */
-            $menu = MenuJson::decodeMenuFromLlmText($raw);
+        $analysis = MenuAnalysis::create([
+            'restaurant_id' => $restaurantId,
+            'user_id' => auth()->id(),
+            'image_count' => count($files),
+            'image_paths' => $files,
+            'image_disk' => 'public',
+            'vision_model' => $visionModel !== 'gemini' ? $visionModel : null,
+        ]);
 
-            $this->results[] = [
-                'paths' => $files,
-                'menu' => $menu,
-                'error' => null,
-            ];
-        } catch (Throwable $e) {
-            $this->results[] = [
-                'paths' => $files,
-                'menu' => null,
-                'error' => $e->getMessage(),
-            ];
-        }
+        AnalyzeMenuJob::dispatch($analysis);
 
-        if ($restaurantId !== null && ($this->results[0]['menu'] ?? null) !== null) {
-            try {
-                $saved = app(SaveMenuAnalysisAction::class)->handle($this->results[0]['menu'], (int) $restaurantId, count($files));
-                Notification::make()->title("Saved as Menu #{$saved->id}")->success()->send();
-            } catch (Throwable $e) {
-                Notification::make()->title('Not saved: '.$e->getMessage())->warning()->send();
-            }
-        }
-
-        $total = collect($this->results)->sum(fn ($r) => $r['menu'] !== null ? MenuJson::dishCount($r['menu']) : 0);
+        $this->pendingAnalysisId = $analysis->id;
 
         Notification::make()
-            ->title(count($files).' image(s) processed, '.$total.' items found')
-            ->success()
+            ->title(count($files).' image(s) submitted for analysis')
+            ->body('Processing in background...')
+            ->info()
             ->send();
+    }
+
+    public function checkAnalysisStatus(): void
+    {
+        if ($this->pendingAnalysisId === null) {
+            return;
+        }
+
+        $analysis = MenuAnalysis::find($this->pendingAnalysisId);
+        if ($analysis === null) {
+            $this->pendingAnalysisId = null;
+
+            return;
+        }
+
+        if ($analysis->status === MenuAnalysisStatus::Completed) {
+            $this->results = [[
+                'paths' => $analysis->image_paths,
+                'menu' => $analysis->result_menu_data,
+                'error' => null,
+            ]];
+            $this->pendingAnalysisId = null;
+
+            $total = $analysis->result_item_count ?? 0;
+
+            Notification::make()
+                ->title($analysis->image_count.' image(s) processed, '.$total.' items found')
+                ->success()
+                ->send();
+        } elseif ($analysis->status === MenuAnalysisStatus::Failed) {
+            $this->results = [[
+                'paths' => $analysis->image_paths,
+                'menu' => null,
+                'error' => $analysis->error_message,
+            ]];
+            $this->pendingAnalysisId = null;
+
+            Notification::make()
+                ->title('Analysis failed')
+                ->body($analysis->error_message)
+                ->danger()
+                ->send();
+        }
     }
 }

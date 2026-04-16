@@ -6,10 +6,13 @@ use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Filament\Pages\MenuAnalyzer;
 use App\Http\Resources\MenuAnalysisResource;
+use App\Jobs\AnalyzeMenuJob;
 use App\Llm\GeminiVisionProvider;
 use App\Llm\OpenRouterProvider;
+use App\Models\MenuAnalysis;
 use App\Models\Restaurant;
 use App\Support\MenuJson;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -17,13 +20,14 @@ use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
 {
-    public function store(Request $request, AnalyzeMenuImageAction $action): MenuAnalysisResource
+    public function store(Request $request, AnalyzeMenuImageAction $action): MenuAnalysisResource|JsonResponse
     {
         $request->validate([
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['required', 'image', 'max:10240'],
             'restaurant_id' => ['nullable', 'integer', 'exists:restaurants,id'],
             'model' => ['nullable', 'string', 'in:'.implode(',', array_keys(MenuAnalyzer::visionModels()))],
+            'sync' => ['nullable', 'boolean'],
         ]);
 
         $disk = config('image.originals_disk');
@@ -32,6 +36,39 @@ class MenuAnalysisController extends Controller
             $paths[] = $file->store('menu-analyzer-uploads', $disk);
         }
 
+        $restaurantId = $request->integer('restaurant_id') ?: null;
+
+        if ($restaurantId !== null) {
+            $restaurant = Restaurant::findOrFail($restaurantId);
+            Gate::authorize('update', $restaurant);
+        }
+
+        // Async mode (default)
+        if (! $request->boolean('sync')) {
+            $analysis = MenuAnalysis::create([
+                'restaurant_id' => $restaurantId,
+                'user_id' => auth()->id(),
+                'image_count' => count($paths),
+                'image_paths' => $paths,
+                'image_disk' => $disk,
+                'vision_model' => $request->input('model'),
+            ]);
+
+            AnalyzeMenuJob::dispatch($analysis);
+
+            return response()->json([
+                'data' => [
+                    'type' => 'menu-analyses',
+                    'id' => $analysis->uuid,
+                    'attributes' => [
+                        'status' => 'pending',
+                        'image_count' => count($paths),
+                    ],
+                ],
+            ], 202);
+        }
+
+        // Sync mode (?sync=1) — legacy inline execution for dev/testing
         $provider = $request->input('model', 'gemini') === 'gemini'
             ? app(GeminiVisionProvider::class)
             : app()->makeWith(OpenRouterProvider::class, ['openRouterModel' => $request->input('model')]);
@@ -48,12 +85,8 @@ class MenuAnalysisController extends Controller
         }
 
         $savedMenuId = null;
-        $restaurantId = $request->integer('restaurant_id') ?: null;
 
         if ($restaurantId !== null) {
-            $restaurant = Restaurant::findOrFail($restaurantId);
-            Gate::authorize('update', $restaurant);
-
             $savedMenu = app(SaveMenuAnalysisAction::class)->handle($menu, $restaurantId, count($paths));
             $savedMenuId = $savedMenu->id;
         }
@@ -68,5 +101,16 @@ class MenuAnalysisController extends Controller
             'analyzed_at' => now()->toIso8601String(),
             'saved_menu_id' => $savedMenuId,
         ]);
+    }
+
+    public function show(Request $request, string $uuid): MenuAnalysisResource
+    {
+        $analysis = MenuAnalysis::where('uuid', $uuid)->firstOrFail();
+
+        if ($analysis->user_id !== null && $analysis->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return new MenuAnalysisResource($analysis);
     }
 }

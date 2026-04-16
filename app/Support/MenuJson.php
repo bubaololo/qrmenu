@@ -26,6 +26,8 @@ final class MenuJson
         $text = trim($text);
         $text = preg_replace('/^```(?:json)?\s*/i', '', $text) ?? $text;
         $text = preg_replace('/\s*```\s*$/', '', $text) ?? $text;
+        // Strip single-line // comments that some models (e.g. GPT-4.1) inject into JSON
+        $text = preg_replace('/\/\/[^\n]*/', '', $text) ?? $text;
         $text = trim($text);
 
         $normalizeListRoot = static function (mixed $decoded): array {

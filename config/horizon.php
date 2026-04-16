@@ -210,6 +210,19 @@ return [
             'timeout' => 120,
             'nice' => 0,
         ],
+        'supervisor-llm' => [
+            'connection' => 'redis',
+            'queue' => ['llm-analysis'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 1100,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -219,11 +232,19 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-llm' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-llm' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

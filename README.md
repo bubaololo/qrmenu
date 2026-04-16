@@ -57,6 +57,15 @@ docker compose exec app php artisan test --compact tests/Feature/MenuTranslation
 docker compose exec app php artisan test --compact --filter=test_creates_sections_and_items
 ```
 
+Key LLM-pipeline tests:
+
+- `tests/Unit/MenuJsonDecodeTest.php` — LLM JSON decoder (markdown fences, prose prefix/suffix, top-level arrays).
+- `tests/Feature/SaveMenuAnalysisTest.php` — end-to-end ingestion via `tests/llm_responce.json` fixture: sections/items/options/variations/translations all get persisted.
+- `tests/Feature/MenuPageTest.php` — public menu page renders parsed fixture data.
+- `tests/Feature/ImageUploadTest.php` — upload → analysis job dispatch.
+
+See `## LLM Benchmark` below for multi-provider quality testing on real image packs.
+
 ---
 
 ## Debug: LLM Pipeline
@@ -196,6 +205,93 @@ POST /api/v1/menus/{id}/translations/{locale}
 ```
 
 Промпт передаёт полное название языка (`"Kongo (kg)"`) чтобы LLM не путал ISO 639-1 коды с кодами стран.
+
+---
+
+## Menu Analysis (Async)
+
+Menu images are analyzed asynchronously via a queue job with cascading LLM fallback.
+
+**Flow:** Upload images → `AnalyzeMenuJob` dispatched → cascade tries providers in order → results saved to `menu_analyses` table.
+
+**Model cascade tiers** (configured in `config/llm.php`):
+
+| Pack size | Tier 1 | Tier 2 | Tier 3 |
+|-----------|--------|--------|--------|
+| 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b (OpenRouter) |
+| 5+ images | gemini-2.5-flash | — | — |
+
+**API endpoints:**
+
+```bash
+# Async (default) — returns 202 with UUID for polling
+curl -X POST /api/v1/menu-analyses -F 'images[]=@menu.jpg'
+
+# Poll for result
+curl /api/v1/menu-analyses/{uuid}
+
+# Sync mode for dev/testing — returns 200 with full result inline
+curl -X POST /api/v1/menu-analyses?sync=1 -F 'images[]=@menu.jpg'
+```
+
+**Queue:** Jobs run on the `llm-analysis` queue with 10-minute timeout. In Docker, the `horizon` service manages all workers via Laravel Horizon. Two supervisors are configured: `supervisor-1` (default queue) and `supervisor-llm` (llm-analysis queue, 10-min timeout, 1 try).
+
+**Monitoring:** Laravel Horizon (`/horizon`) and Pulse (`/pulse`) are available for queue and application monitoring.
+
+- In `local` env — accessible to everyone without authentication.
+- In production — set `ADMIN_EMAILS=admin@example.com,ops@example.com` in `.env` to restrict access to those addresses.
+
+**Logging:** Every LLM API call is logged to the `llm_requests` table with provider, model, duration, tokens, status, and error details for retrospective analysis.
+
+---
+
+## Image Test Sets
+
+Handcrafted menu image packs for regression testing and LLM benchmarking live in `tests/image_test_sets/`.
+
+| Pack | Images | Restaurant | Primary language |
+|---|---:|---|---|
+| `easy/` | 1 | Amélie Pâtisserie et Café (ĐL) | en |
+| `medium/` | 5 | Bia Khô Mực Đà Lạt (ĐL) | vi |
+| `hard/` | 15 | Pizza Dalat 24h (ĐL) | vi |
+
+Each pack ships with a `ground_truth.json` hand-typed against the active `menu_analyzer` prompt schema. The Match % metric in the benchmark compares parsed `price.original_text` against these ground truths.
+
+Prompt details and hand-written decisions:
+
+- `tests/image_test_sets/PROMPT_REVIEW.md` — what was ambiguous in the original prompt and what was tightened.
+- `tests/image_test_sets/GROUND_TRUTH_NOTES.md` — coverage notes and interpretation choices per pack.
+
+---
+
+## LLM Benchmark
+
+Benchmarks all vision LLM providers (Gemini, OpenRouter Gemma/Qwen/InternVL/Reka/Arcee/Llama, OpenAI GPT-4.1/4o/4-turbo, DashScope Qwen VL) against the three image packs and writes a results table.
+
+Before running: make sure the DB has the latest prompt:
+
+```bash
+docker compose exec app php artisan db:seed --class=PromptSeeder
+```
+
+Usage:
+
+```bash
+docker compose exec app php artisan llm:benchmark --dry-run
+docker compose exec app php artisan llm:benchmark --only=easy --model=gemini-2.5-flash
+docker compose exec app php artisan llm:benchmark
+docker compose exec app php artisan llm:benchmark --skip=openrouter/reka-edge,openrouter/arcee-spotlight
+```
+
+Artifacts are written to `tests/image_test_sets/benchmarks/{YYYYMMDD_HHMMSS}/` and committed to git for historical comparison:
+
+- `{pack}__{model-slug}/raw.txt` — raw LLM response
+- `{pack}__{model-slug}/parsed.json` — `MenuJson::decodeMenuFromLlmText()` output
+- `{pack}__{model-slug}/meta.json` — per-run metrics
+- `summary.md` — combined results table
+- `summary.csv` — same data in CSV
+
+The command also prints the table directly to the console when finished.
 
 ---
 

@@ -3,11 +3,11 @@
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
 use App\Http\Controllers\Menus\MenuController;
-use App\Http\Controllers\Menus\MenuTranslationController;
 use App\Http\Controllers\Menus\MenuItemController;
 use App\Http\Controllers\Menus\MenuOptionGroupController;
 use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
 use App\Http\Controllers\Menus\MenuSectionController;
+use App\Http\Controllers\Menus\MenuTranslationController;
 use App\Http\Controllers\Restaurants\RestaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +37,7 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 */
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
+    Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
 
     // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);
