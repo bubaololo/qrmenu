@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
+use App\Enums\MenuAnalysisStatus;
 use App\Models\MenuAnalysis;
 use App\Services\LlmCascadeService;
 use App\Support\MenuJson;
@@ -85,6 +86,15 @@ class AnalyzeMenuJob implements ShouldQueue
                 );
             }
 
+            // Dispatch crop job if menu saved and originals available for bbox extraction
+            if ($savedMenu && ! empty($this->analysis->original_image_paths)) {
+                CropMenuItemImagesJob::dispatch(
+                    $savedMenu->id,
+                    $this->analysis->original_image_paths,
+                    $this->analysis->image_disk,
+                );
+            }
+
             $this->analysis->markCompleted($savedMenu, $menuData, $itemCount);
         } catch (Throwable $e) {
             $this->analysis->markFailed($e->getMessage());
@@ -97,8 +107,17 @@ class AnalyzeMenuJob implements ShouldQueue
     {
         $disk = Storage::disk($this->analysis->image_disk);
 
+        // Delete preprocessed images
         foreach ($this->analysis->image_paths as $path) {
             $disk->delete($path);
+        }
+
+        // Delete originals only if crop job was NOT dispatched (failure case)
+        // When crop job IS dispatched, it handles original cleanup after cropping
+        if ($this->analysis->status !== MenuAnalysisStatus::Completed) {
+            foreach ($this->analysis->original_image_paths ?? [] as $path) {
+                $disk->delete($path);
+            }
         }
     }
 }

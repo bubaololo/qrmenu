@@ -11,16 +11,18 @@ use App\Llm\GeminiVisionProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\MenuAnalysis;
 use App\Models\Restaurant;
+use App\Services\ImagePreprocessor;
 use App\Support\MenuJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
 {
-    public function store(Request $request, AnalyzeMenuImageAction $action): MenuAnalysisResource|JsonResponse
+    public function store(Request $request, AnalyzeMenuImageAction $action, ImagePreprocessor $preprocessor): MenuAnalysisResource|JsonResponse
     {
         $request->validate([
             'images' => ['required', 'array', 'min:1'],
@@ -31,10 +33,13 @@ class MenuAnalysisController extends Controller
         ]);
 
         $disk = config('image.originals_disk');
-        $paths = [];
+        $originalPaths = [];
         foreach ($request->file('images') as $file) {
-            $paths[] = $file->store('menu-analyzer-uploads', $disk);
+            $originalPaths[] = $file->store('menu-analyzer-uploads', $disk);
         }
+
+        // Preprocess: auto-orient, trim, deskew, contrast, resize, WebP
+        $preprocessedPaths = $this->preprocessImages($originalPaths, $disk, $preprocessor);
 
         $restaurantId = $request->integer('restaurant_id') ?: null;
 
@@ -48,8 +53,9 @@ class MenuAnalysisController extends Controller
             $analysis = MenuAnalysis::create([
                 'restaurant_id' => $restaurantId,
                 'user_id' => auth()->id(),
-                'image_count' => count($paths),
-                'image_paths' => $paths,
+                'image_count' => count($preprocessedPaths),
+                'image_paths' => $preprocessedPaths,
+                'original_image_paths' => $originalPaths,
                 'image_disk' => $disk,
                 'vision_model' => $request->input('model'),
             ]);
@@ -62,7 +68,7 @@ class MenuAnalysisController extends Controller
                     'id' => $analysis->uuid,
                     'attributes' => [
                         'status' => 'pending',
-                        'image_count' => count($paths),
+                        'image_count' => count($preprocessedPaths),
                     ],
                 ],
             ], 202);
@@ -75,25 +81,26 @@ class MenuAnalysisController extends Controller
 
         try {
             $llmStarted = microtime(true);
-            $raw = $action->handle($paths, $disk, $provider);
+            $raw = $action->handle($preprocessedPaths, $disk, $provider);
             $llmDurationMs = (int) round((microtime(true) - $llmStarted) * 1000);
 
             /** @var array<string, mixed> $menu */
             $menu = MenuJson::decodeMenuFromLlmText($raw);
         } finally {
-            Storage::disk($disk)->delete($paths);
+            Storage::disk($disk)->delete($preprocessedPaths);
+            Storage::disk($disk)->delete($originalPaths);
         }
 
         $savedMenuId = null;
 
         if ($restaurantId !== null) {
-            $savedMenu = app(SaveMenuAnalysisAction::class)->handle($menu, $restaurantId, count($paths));
+            $savedMenu = app(SaveMenuAnalysisAction::class)->handle($menu, $restaurantId, count($preprocessedPaths));
             $savedMenuId = $savedMenu->id;
         }
 
         return new MenuAnalysisResource([
             'id' => Str::uuid()->toString(),
-            'image_count' => count($paths),
+            'image_count' => count($preprocessedPaths),
             'menu' => $menu,
             'item_count' => MenuJson::dishCount($menu),
             'llm_raw_text' => $raw,
@@ -101,6 +108,46 @@ class MenuAnalysisController extends Controller
             'analyzed_at' => now()->toIso8601String(),
             'saved_menu_id' => $savedMenuId,
         ]);
+    }
+
+    /**
+     * Preprocess uploaded images: auto-orient, trim, deskew, contrast, resize, WebP.
+     *
+     * @param  string[]  $originalPaths
+     * @return string[] Paths to preprocessed files on the same disk
+     */
+    private function preprocessImages(array $originalPaths, string $disk, ImagePreprocessor $preprocessor): array
+    {
+        $storage = Storage::disk($disk);
+        $preprocessedPaths = [];
+
+        foreach ($originalPaths as $originalPath) {
+            try {
+                $fullPath = $storage->path($originalPath);
+                $result = $preprocessor->preprocess($fullPath);
+
+                $prepPath = 'menu-analyzer-uploads/prep_'.Str::random(20).'.webp';
+                $storage->put($prepPath, file_get_contents($result->path));
+
+                @unlink($result->path);
+
+                Log::channel('llm')->info('Image preprocessed', array_merge(
+                    ['original' => $originalPath, 'preprocessed' => $prepPath],
+                    $result->meta,
+                ));
+
+                $preprocessedPaths[] = $prepPath;
+            } catch (\Throwable $e) {
+                Log::channel('llm')->warning('Image preprocess failed, using original', [
+                    'path' => $originalPath,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $preprocessedPaths[] = $originalPath;
+            }
+        }
+
+        return $preprocessedPaths;
     }
 
     public function show(Request $request, string $uuid): MenuAnalysisResource

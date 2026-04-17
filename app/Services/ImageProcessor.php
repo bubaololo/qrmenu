@@ -18,6 +18,7 @@ class ImageProcessor
         $thumbWidth = config('image.thumb.width');
 
         $img = new \Imagick($sourcePath);
+        $img->autoOrient();
 
         $main = clone $img;
         if ($main->getImageWidth() > $mainWidth) {

@@ -17,6 +17,7 @@ class MenuAnalysis extends Model
         'status',
         'image_count',
         'image_paths',
+        'original_image_paths',
         'image_disk',
         'vision_model',
         'result_menu_id',
@@ -32,6 +33,7 @@ class MenuAnalysis extends Model
         return [
             'status' => MenuAnalysisStatus::class,
             'image_paths' => 'array',
+            'original_image_paths' => 'array',
             'result_menu_data' => 'array',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
