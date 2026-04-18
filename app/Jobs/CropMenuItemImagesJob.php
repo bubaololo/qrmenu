@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Imagick;
 
 class CropMenuItemImagesJob implements ShouldQueue
 {
@@ -40,7 +41,9 @@ class CropMenuItemImagesJob implements ShouldQueue
         $cropped = 0;
 
         foreach ($menu->sections as $section) {
+            $section->setRelation('menu', $menu);
             foreach ($section->items as $item) {
+                $item->setRelation('section', $section);
                 if ($this->cropItem($item, $processor)) {
                     $cropped++;
                 }
@@ -63,6 +66,10 @@ class CropMenuItemImagesJob implements ShouldQueue
             return false;
         }
 
+        if (($bbox['confidence'] ?? 1.0) < 0.5) {
+            return false;
+        }
+
         $imgIdx = $bbox['image_index'];
 
         if (! isset($this->originalImagePaths[$imgIdx])) {
@@ -79,7 +86,7 @@ class CropMenuItemImagesJob implements ShouldQueue
         try {
             [$x1, $y1, $x2, $y2] = $bbox['coords'];
 
-            $img = new \Imagick($sourcePath);
+            $img = new Imagick($sourcePath);
             $w = $img->getImageWidth();
             $h = $img->getImageHeight();
 

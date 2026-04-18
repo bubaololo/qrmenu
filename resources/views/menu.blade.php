@@ -77,6 +77,9 @@
                 @foreach($menu->sections as $section)
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <h2 class="category-title">
+                            @if($section->category_icon)
+                                <svg class="category-icon" width="24" height="24" aria-hidden="true"><use href="/icons/food-icons.svg#{{ $section->category_icon }}"></use></svg>
+                            @endif
                             {{ $section->translate('name', $lang) ?? $section->name ?? '' }}
                         </h2>
                         <div class="menu-grid">
@@ -99,7 +102,10 @@
                                 <div class="menu-card" data-item-id="{{ $item->id }}">
                                     @if($item->image)
                                     <div class="menu-card-visual">
-                                        <img src="{{ $item->thumb_url }}" alt="" class="menu-card__image">
+                                        <img src="{{ $item->thumb_url }}"
+                                             srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 800w"
+                                             sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
+                                             alt="" class="menu-card__image" loading="lazy">
                                     </div>
                                     @endif
                                     <div class="menu-card-body">

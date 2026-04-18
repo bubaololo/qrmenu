@@ -11,8 +11,11 @@ use App\Llm\GeminiVisionProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\MenuAnalysis;
 use App\Models\Restaurant;
+use App\Services\ImagePreflightApplier;
+use App\Services\ImagePreflightService;
 use App\Services\ImagePreprocessor;
 use App\Support\MenuJson;
+use App\Support\PreflightResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,8 +25,13 @@ use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
 {
-    public function store(Request $request, AnalyzeMenuImageAction $action, ImagePreprocessor $preprocessor): MenuAnalysisResource|JsonResponse
-    {
+    public function store(
+        Request $request,
+        AnalyzeMenuImageAction $action,
+        ImagePreprocessor $preprocessor,
+        ImagePreflightService $preflightService,
+        ImagePreflightApplier $preflightApplier,
+    ): MenuAnalysisResource|JsonResponse {
         $request->validate([
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['required', 'image', 'max:10240'],
@@ -33,12 +41,38 @@ class MenuAnalysisController extends Controller
         ]);
 
         $disk = config('image.originals_disk');
+        $storage = Storage::disk($disk);
         $originalPaths = [];
+        $totalSizeKb = 0;
         foreach ($request->file('images') as $file) {
             $originalPaths[] = $file->store('menu-analyzer-uploads', $disk);
+            $totalSizeKb += (int) round($file->getSize() / 1024);
         }
 
-        // Preprocess: auto-orient, trim, deskew, contrast, resize, WebP
+        Log::channel('llm')->info('Upload received', [
+            'image_count' => count($originalPaths),
+            'disk' => $disk,
+            'total_kb' => $totalSizeKb,
+        ]);
+
+        // Preflight: detect rotation + content bbox per image, apply to originals on disk
+        $fullPaths = array_map(fn ($p) => $storage->path($p), $originalPaths);
+        $preflights = $preflightService->analyzeMany($fullPaths);
+
+        foreach ($fullPaths as $fullPath) {
+            $preflightApplier->apply($fullPath, $preflights[$fullPath] ?? PreflightResult::noop());
+        }
+
+        Log::channel('llm')->info('Preflight stage complete', [
+            'image_count' => count($originalPaths),
+            'results' => array_map(fn ($r) => [
+                'rotation_cw' => $r->rotationCw,
+                'has_crop' => $r->contentBbox !== null,
+                'quality' => $r->quality,
+            ], array_values($preflights)),
+        ]);
+
+        // Preprocess: trim, deskew, contrast, resize, WebP
         $preprocessedPaths = $this->preprocessImages($originalPaths, $disk, $preprocessor);
 
         $restaurantId = $request->integer('restaurant_id') ?: null;
@@ -107,6 +141,7 @@ class MenuAnalysisController extends Controller
             'llm_duration_ms' => $llmDurationMs,
             'analyzed_at' => now()->toIso8601String(),
             'saved_menu_id' => $savedMenuId,
+            'saved_restaurant_id' => $restaurantId,
         ]);
     }
 
@@ -131,10 +166,10 @@ class MenuAnalysisController extends Controller
 
                 @unlink($result->path);
 
-                Log::channel('llm')->info('Image preprocessed', array_merge(
-                    ['original' => $originalPath, 'preprocessed' => $prepPath],
-                    $result->meta,
-                ));
+                Log::channel('llm')->info('Image stored for LLM', [
+                    'original' => $originalPath,
+                    'preprocessed' => $prepPath,
+                ]);
 
                 $preprocessedPaths[] = $prepPath;
             } catch (\Throwable $e) {

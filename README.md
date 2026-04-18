@@ -245,6 +245,25 @@ curl -X POST /api/v1/menu-analyses?sync=1 -F 'images[]=@menu.jpg'
 
 ---
 
+## Image Preflight (LLM-based rotation & cropping)
+
+Before the main analysis, each uploaded menu photo is sent to a lightweight vision LLM (Gemini 2.5 Flash Lite by default) to detect the correct rotation and the menu's bounding box within the frame. This fixes cases where phones write an incorrect EXIF orientation (e.g. Samsung Galaxy bug where raw pixels are already correct but EXIF still demands rotation) and removes irrelevant parts of the photo (table, fingers, background) that would otherwise waste tokens during the main analysis.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IMAGE_PREFLIGHT_ENABLED` | `true` | Toggle the preflight stage. Set to `false` to skip — the analysis still runs but orientation/cropping is no longer auto-corrected. |
+| `IMAGE_PREFLIGHT_MODEL` | `gemini-2.5-flash-lite` | Gemini model used for preflight. Must support vision input. Keep it cheap — preflight is a simple JSON classification task. |
+| `IMAGE_PREFLIGHT_MAX_DIM` | `384` | Longest-side in pixels for the downsampled copy sent to the LLM. 384 activates Gemini's small-image rule (both dims ≤ 384 → 1 tile, 258 tokens, ~$0.00003 per image). Keep minimal — higher resolution costs the same but sends more bytes. |
+| `IMAGE_PREFLIGHT_TIMEOUT` | `15` | HTTP timeout in seconds per preflight request. On timeout, preflight falls back to a no-op (no rotation, no crop). |
+
+**Cost**: ~$0.00003 per image with Gemini 2.5 Flash Lite. For a 10-image pack: ~$0.0003.
+
+**Latency**: preflight calls run in parallel via `Http::pool`. A 10-image pack typically completes preflight in 300–500ms.
+
+**Fallback**: if preflight fails (timeout, JSON parse error, API error), the service returns a no-op result (`rotation_cw=0`, no crop) and the main analysis continues unaffected. Failures are logged to the `llm` channel.
+
+---
+
 ## Image Test Sets
 
 Handcrafted menu image packs for regression testing and LLM benchmarking live in `tests/image_test_sets/`.
