@@ -25,6 +25,19 @@ use Illuminate\Support\Str;
 
 class MenuAnalysisController extends Controller
 {
+    /**
+     * Upload menu photos and start (or run inline) an analysis.
+     *
+     * Default is async: returns `202 Accepted` with `data.id = <uuid>` and
+     * `data.attributes.status = "pending"`. The caller then polls
+     * `GET /v1/menu-analyses/{uuid}` until the status reaches a terminal value —
+     * there is no webhook or push channel.
+     *
+     * Pass `sync=1` to run the analysis inline (useful for dev/testing) — the
+     * request blocks until the LLM cascade returns and responds `200` with the
+     * full menu inline. Can take tens of seconds to minutes; not recommended
+     * from a UI.
+     */
     public function store(
         Request $request,
         AnalyzeMenuImageAction $action,
@@ -185,6 +198,17 @@ class MenuAnalysisController extends Controller
         return $preprocessedPaths;
     }
 
+    /**
+     * Poll an async menu analysis by UUID.
+     *
+     * Call this every 2–3 seconds after a 202 response from `POST /v1/menu-analyses`
+     * until `data.attributes.status` reaches a terminal value. There is no webhook or
+     * push channel — polling is the only mechanism to learn that the menu is ready.
+     *
+     * Status lifecycle: `pending` → `processing` → `completed` | `failed`.
+     * On `completed`: `attributes.menu`, `saved_menu_id`, `saved_restaurant_id`, `item_count`.
+     * On `failed`: `attributes.error_message`.
+     */
     public function show(Request $request, string $uuid): MenuAnalysisResource
     {
         $analysis = MenuAnalysis::where('uuid', $uuid)->firstOrFail();

@@ -210,38 +210,55 @@ POST /api/v1/menus/{id}/translations/{locale}
 
 ## Menu Analysis (Async)
 
-Menu images are analyzed asynchronously via a queue job with cascading LLM fallback.
+End-to-end pipeline for turning a pack of menu photos into a structured, saved menu:
 
-**Flow:** Upload images → `AnalyzeMenuJob` dispatched → cascade tries providers in order → results saved to `menu_analyses` table.
+1. **Upload** — `POST /api/v1/menu-analyses` with `multipart/form-data`, field `images[]` (one or more JPEGs/PNGs ≤10MB each). Optional: `restaurant_id` (save result against an existing restaurant the user owns), `model` (override the cascade), `sync=1` (run inline instead of queueing).
+2. **Preflight** — a lightweight vision LLM detects per-image rotation + content bbox and rewrites the originals on disk. See the *Image Preflight* section below.
+3. **Preprocess** — trim, deskew, contrast, resize, convert to WebP.
+4. **Enqueue** — async mode returns `202 Accepted` with `{ data: { id: <uuid>, attributes: { status: "pending", image_count } } }`, and an `AnalyzeMenuJob` is dispatched to the `llm-analysis` queue.
+5. **LLM cascade** — `LlmCascadeService` tries providers in order until one returns valid JSON:
 
-**Model cascade tiers** (configured in `config/llm.php`):
+   | Pack size | Tier 1 | Tier 2 | Tier 3 |
+   |-----------|--------|--------|--------|
+   | 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b (OpenRouter) |
+   | 5+ images | gemini-2.5-flash | — | — |
 
-| Pack size | Tier 1 | Tier 2 | Tier 3 |
-|-----------|--------|--------|--------|
-| 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b (OpenRouter) |
-| 5+ images | gemini-2.5-flash | — | — |
+   Every call is logged to the `llm_requests` table with provider, model, duration, tokens, status, and error details.
+6. **Save** — if `restaurant_id` was supplied, `SaveMenuAnalysisAction` materialises the JSON into `menus` → `menu_sections` → `menu_items` with translations and per-item `image_bbox` + confidence.
+7. **Crop** — `CropMenuItemImagesJob` extracts each item's image from the originals using its saved bbox, writes main + thumb sizes.
 
-**API endpoints:**
+### How the client learns the result: polling (only)
+
+There is no webhook, websocket, or push channel. After POST returns `202`, the client keeps the `uuid` and polls `GET /v1/menu-analyses/{uuid}` until `attributes.status` reaches a terminal state.
+
+Status lifecycle: `pending` → `processing` → `completed` **or** `failed`.
 
 ```bash
-# Async (default) — returns 202 with UUID for polling
-curl -X POST /api/v1/menu-analyses -F 'images[]=@menu.jpg'
+# Start async analysis
+curl -X POST /api/v1/menu-analyses -F 'images[]=@menu.jpg' -F 'restaurant_id=42'
+# → 202, data.id = <uuid>, data.attributes.status = "pending"
 
-# Poll for result
-curl /api/v1/menu-analyses/{uuid}
+# Poll every 2–3 seconds with the JSON:API Accept header
+curl -H 'Accept: application/vnd.api+json' /api/v1/menu-analyses/{uuid}
+# Terminal states:
+#   status = "completed" → attributes.menu (JSON tree),
+#                          attributes.saved_menu_id, attributes.saved_restaurant_id,
+#                          attributes.item_count, attributes.completed_at
+#   status = "failed"    → attributes.error_message
 
-# Sync mode for dev/testing — returns 200 with full result inline
+# Sync mode for dev/testing — blocks the HTTP request until the LLM returns,
+# then responds 200 with the full menu inline. Don't use from the UI; the
+# cascade can take tens of seconds to minutes.
 curl -X POST /api/v1/menu-analyses?sync=1 -F 'images[]=@menu.jpg'
 ```
 
-**Queue:** Jobs run on the `llm-analysis` queue with 10-minute timeout. In Docker, the `horizon` service manages all workers via Laravel Horizon. Two supervisors are configured: `supervisor-1` (default queue) and `supervisor-llm` (llm-analysis queue, 10-min timeout, 1 try).
+Typical total time end-to-end (upload → `completed`): ~30–90 s for 1–4 images on the fast-path model, longer if the cascade falls through tiers or the crop job is slow. The `pending → processing` transition happens within ~1 s once the Horizon worker picks the job up; clients can treat either value the same way and just keep polling.
 
-**Monitoring:** Laravel Horizon (`/horizon`) and Pulse (`/pulse`) are available for queue and application monitoring.
+Once `status = completed`, the saved menu tree is also reachable directly at `GET /api/v1/menus/{saved_menu_id}` (append `?confidence=1` within 7 days of analysis to also get per-item text/bbox confidence from Redis). `restaurant_id` in the upload is required to get a `saved_menu_id` — analyses run without one return the parsed menu in `attributes.menu` but never persist.
 
-- In `local` env — accessible to everyone without authentication.
-- In production — set `ADMIN_EMAILS=admin@example.com,ops@example.com` in `.env` to restrict access to those addresses.
+**Full OpenAPI spec:** `api.json` (regenerate with `php artisan scramble:export --path=api.json`).
 
-**Logging:** Every LLM API call is logged to the `llm_requests` table with provider, model, duration, tokens, status, and error details for retrospective analysis.
+**Queue & monitoring:** Horizon runs two supervisors — `supervisor-1` (default queue) and `supervisor-llm` (`llm-analysis`, 10-min timeout, 1 try). Dashboards: `/horizon`, `/pulse`, plus the Filament admin panel at `/panel`. In `local` they're open to everyone; in any other environment access is gated by a single `ADMIN_EMAILS` env var (comma-separated list), which guards all three. Empty in non-local → all three are locked down.
 
 ---
 
