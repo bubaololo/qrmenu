@@ -22,6 +22,7 @@ class MenuSection extends Model
     protected $fillable = [
         'menu_id',
         'sort_order',
+        'category_icon',
     ];
 
     /** Pending translation value to be written after save */

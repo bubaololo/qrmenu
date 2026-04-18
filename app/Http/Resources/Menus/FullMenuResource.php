@@ -11,6 +11,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class FullMenuResource extends JsonResource
 {
+    /** @param  array<int|string, array{text?: float, bbox?: float}>  $confidenceMap */
+    public function __construct(mixed $resource, private array $confidenceMap = [])
+    {
+        parent::__construct($resource);
+    }
+
     public function toArray(Request $request): array
     {
         $locale = $request->attributes->get('locale_from_header') ?? ($this->source_locale ?? 'und');
@@ -26,6 +32,7 @@ class FullMenuResource extends JsonResource
             'sections' => $this->sections->map(fn ($section) => [
                 'id' => $section->id,
                 'name' => $section->translate('name', $locale),
+                'category_icon' => $section->category_icon,
                 'sort_order' => $section->sort_order,
                 'items' => $section->items->map(fn ($item) => [
                     'id' => $item->id,
@@ -41,6 +48,7 @@ class FullMenuResource extends JsonResource
                     'image_url' => $item->image_url,
                     'thumb_url' => $item->thumb_url,
                     'sort_order' => $item->sort_order,
+                    'confidence' => $this->confidenceMap[$item->id] ?? null,
                     'option_groups' => $item->optionGroups->map(fn ($group) => [
                         'id' => $group->id,
                         'name' => $group->translate('name', $locale),

@@ -8,12 +8,13 @@ use App\Http\Requests\Menus\StoreMenuRequest;
 use App\Http\Requests\Menus\UpdateMenuRequest;
 use App\Http\Resources\Menus\FullMenuResource;
 use App\Http\Resources\Menus\MenuResource;
-
 use App\Models\Menu;
 use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Redis;
 
 class MenuController extends Controller
 {
@@ -32,7 +33,7 @@ class MenuController extends Controller
     /**
      * Return a full menu tree: sections → items → option groups → options (with translations).
      */
-    public function full(Menu $menu): FullMenuResource
+    public function full(Request $request, Menu $menu): FullMenuResource
     {
         Gate::authorize('view', $menu);
 
@@ -44,7 +45,15 @@ class MenuController extends Controller
             'sections.items.optionGroups.options.translations',
         ]);
 
-        return new FullMenuResource($menu);
+        $confidenceMap = [];
+        if ($request->boolean('confidence')) {
+            $raw = Redis::getdel('menu:confidence:'.$menu->id);
+            if ($raw) {
+                $confidenceMap = json_decode($raw, true) ?? [];
+            }
+        }
+
+        return new FullMenuResource($menu, $confidenceMap);
     }
 
     /**

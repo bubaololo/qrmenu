@@ -971,7 +971,8 @@
         if (attrs.saved_menu_id) {
             const note = document.createElement('p');
             note.style.cssText = 'color:#16a34a; font-size:.875rem; margin-bottom:.75rem;';
-            note.innerHTML = `✓ Saved as Menu #${attrs.saved_menu_id} — <a href="/${attrs.saved_menu_id}" target="_blank" style="color:#16a34a; font-weight:600;">View public page →</a>`;
+            const linkId = attrs.saved_restaurant_id ?? attrs.saved_menu_id;
+            note.innerHTML = `✓ Saved as Menu #${attrs.saved_menu_id} — <a href="/${linkId}" target="_blank" style="color:#16a34a; font-weight:600;">View public page →</a>`;
             document.querySelector('.results-header').appendChild(note);
         }
         document.getElementById('upload-section').style.display = 'none';

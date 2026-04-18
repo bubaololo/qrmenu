@@ -44,6 +44,7 @@ class MenuAnalysisResource extends JsonApiResource
             'item_count' => $analysis->result_item_count ?? MenuJson::dishCount($menu),
             'menu' => $menu,
             'saved_menu_id' => $analysis->result_menu_id,
+            'saved_restaurant_id' => $analysis->restaurant_id,
             'error_message' => $analysis->error_message,
             'started_at' => $analysis->started_at?->toIso8601String(),
             'completed_at' => $analysis->completed_at?->toIso8601String(),
@@ -67,6 +68,7 @@ class MenuAnalysisResource extends JsonApiResource
             'llm_duration_ms' => (int) ($this->resource['llm_duration_ms'] ?? 0),
             'analyzed_at' => (string) ($this->resource['analyzed_at'] ?? now()->toIso8601String()),
             'saved_menu_id' => $this->resource['saved_menu_id'] ?? null,
+            'saved_restaurant_id' => $this->resource['saved_restaurant_id'] ?? null,
         ];
     }
 }

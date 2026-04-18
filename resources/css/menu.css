@@ -105,7 +105,12 @@ button,input{font:inherit;color:inherit}
 .no-results .ui-icon{opacity:.4}
 
 /* category title */
-.category-title{font-size:1.125rem;font-weight:700;margin-bottom:.75rem;padding-left:.25rem}
+.category-title{font-size:1.125rem;font-weight:700;margin-bottom:.75rem;padding-left:.25rem;display:flex;align-items:center;gap:.5rem}
+.category-icon{width:1.5em;height:1.5em;flex-shrink:0;color:var(--text-muted)}
+
+/* sheet-visual without image — collapse to minimal header area */
+.sheet-visual--empty{min-height:auto;padding:.75rem;background:transparent}
+.sheet-visual--empty .bottom-sheet-close{position:static;margin-left:auto}
 
 .card{background:var(--bg);border-radius:var(--radius-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow var(--transition)}
 .card:hover{box-shadow:var(--shadow)}
