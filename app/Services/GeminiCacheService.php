@@ -39,7 +39,7 @@ class GeminiCacheService
 
         try {
             /** @var Gemini $gemini */
-            $gemini = Prism::resolve(Provider::Gemini);
+            $gemini = Prism::provider(Provider::Gemini);
             $cachedObject = $gemini->cache($model, [], $systemMessages, self::CACHE_TTL_SECONDS);
 
             $name = $cachedObject->name;

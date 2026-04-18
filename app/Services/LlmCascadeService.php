@@ -25,16 +25,16 @@ class LlmCascadeService
     public function resolveProviders(int $imageCount, ?string $modelOverride = null): array
     {
         if ($modelOverride !== null) {
-            return [$this->instantiateProvider($modelOverride)];
+            return [$this->instantiateProvider(['model' => $modelOverride])];
         }
 
         $tierKey = $imageCount <= config('llm.thresholds.small_max_images', 4) ? 'small' : 'large';
 
-        /** @var list<array{provider: string, model: string}> $tierConfig */
+        /** @var list<array<string, mixed>> $tierConfig */
         $tierConfig = config("llm.tiers.{$tierKey}", []);
 
         return array_map(
-            fn (array $entry) => $this->instantiateProvider($entry['model'], $entry['provider']),
+            fn (array $entry) => $this->instantiateProvider($entry),
             $tierConfig
         );
     }
@@ -118,15 +118,20 @@ class LlmCascadeService
         throw $lastException ?? new LlmRequestFailedException('No providers configured.', []);
     }
 
-    private function instantiateProvider(string $model, ?string $providerType = null): LlmProvider
+    /**
+     * @param  array<string, mixed>  $entry  Tier config entry: `model`, optional `provider`, optional `provider_routing`.
+     */
+    private function instantiateProvider(array $entry): LlmProvider
     {
-        if ($providerType === null) {
-            $providerType = $this->guessProviderType($model);
-        }
+        $model = (string) $entry['model'];
+        $providerType = $entry['provider'] ?? $this->guessProviderType($model);
 
         return match ($providerType) {
             'gemini' => app(GeminiVisionProvider::class),
-            'openrouter' => app()->makeWith(OpenRouterProvider::class, ['openRouterModel' => $model]),
+            'openrouter' => app()->makeWith(OpenRouterProvider::class, [
+                'openRouterModel' => $model,
+                'providerRouting' => $entry['provider_routing'] ?? [],
+            ]),
             'qwen-direct' => app()->makeWith(QwenDirectProvider::class, ['qwenModel' => $model]),
             default => throw new \InvalidArgumentException("Unknown provider type: {$providerType}"),
         };

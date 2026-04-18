@@ -220,8 +220,8 @@ End-to-end pipeline for turning a pack of menu photos into a structured, saved m
 
    | Pack size | Tier 1 | Tier 2 | Tier 3 |
    |-----------|--------|--------|--------|
-   | 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b (OpenRouter) |
-   | 5+ images | gemini-2.5-flash | — | — |
+   | 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b free (OpenRouter) |
+   | 5+ images | qwen3-vl-plus (DashScope) | gemma-4-31b-it @ DeepInfra fp8 (OpenRouter) | gemini-2.5-flash |
 
    Every call is logged to the `llm_requests` table with provider, model, duration, tokens, status, and error details.
 6. **Save** — if `restaurant_id` was supplied, `SaveMenuAnalysisAction` materialises the JSON into `menus` → `menu_sections` → `menu_items` with translations and per-item `image_bbox` + confidence.

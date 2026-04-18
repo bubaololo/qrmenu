@@ -25,8 +25,13 @@ return [
             ['provider' => 'openrouter', 'model' => 'google/gemma-4-26b-a4b-it:free'],
         ],
         'large' => [
+            ['provider' => 'qwen-direct', 'model' => 'qwen3-vl-plus-2025-12-19'],
+            [
+                'provider' => 'openrouter',
+                'model' => 'google/gemma-4-31b-it',
+                'provider_routing' => ['only' => ['deepinfra/fp8']],
+            ],
             ['provider' => 'gemini', 'model' => 'gemini-2.5-flash'],
-            ['provider' => 'openrouter', 'model' => 'google/gemma-4-26b-a4b-it:free'],
         ],
     ],
 
@@ -55,6 +60,7 @@ return [
         'qwen3-vl-plus-2025-12-19' => ['input' => 20, 'output' => 160],
         'google/gemma-4-26b-a4b-it' => ['input' => 7, 'output' => 40],
         'google/gemma-4-26b-a4b-it:free' => ['input' => 0, 'output' => 0],
+        'google/gemma-4-31b-it' => ['input' => 13, 'output' => 38],
     ],
 
 ];
