@@ -28,3 +28,4 @@ Thumbs.db
 .env.testing
 *.png
 /tests/image_test_sets/benchmarks/
+/tests/image_test_sets/crop_test/*.jpg
