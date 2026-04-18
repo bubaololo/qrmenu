@@ -40,6 +40,32 @@ return [
 
     'thresholds' => [
         'small_max_images' => 4,
+        'chunk_size' => 4,                // N images per chunk when chunking is triggered
+        'chunk_when_images_gt' => 5,      // chunk if image_count > this
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Per-Chunk Job Timeout
+    |--------------------------------------------------------------------------
+    */
+
+    'chunk_job_timeout' => (int) env('LLM_CHUNK_JOB_TIMEOUT', 600),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Translation Chunking
+    |--------------------------------------------------------------------------
+    | Large menus overflow DeepSeek's 8K output cap in a single call. We chunk
+    | the TSV payload into batches and run one DeepSeek request per batch.
+    */
+
+    'translation' => [
+        'chunk_lines' => (int) env('LLM_TRANSLATION_CHUNK_LINES', 80),
+    ],
+
+    'deepseek' => [
+        'max_tokens' => (int) env('LLM_DEEPSEEK_MAX_TOKENS', 8000),
     ],
 
     /*

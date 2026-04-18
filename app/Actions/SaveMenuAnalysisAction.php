@@ -24,6 +24,19 @@ class SaveMenuAnalysisAction
             throw new \RuntimeException('Cannot save an empty menu: no items were parsed from the LLM response.');
         }
 
+        return $this->createMenu($menuData, $restaurantId, $sourceImagesCount);
+    }
+
+    /**
+     * Create a Menu from parsed chunk/analysis data without the non-empty check
+     * that `handle()` enforces. Used by the chunked flow where the first chunk
+     * may legitimately contain only restaurant metadata (cover page) and later
+     * chunks add the items via `appendChunk`.
+     *
+     * @param  array<string, mixed>  $menuData
+     */
+    public function createMenu(array $menuData, int $restaurantId, int $sourceImagesCount): Menu
+    {
         return DB::transaction(function () use ($menuData, $restaurantId, $sourceImagesCount): Menu {
             $restaurant = Restaurant::findOrFail($restaurantId);
             $this->fillRestaurantFromLlm($restaurant, $menuData);
@@ -41,12 +54,75 @@ class SaveMenuAnalysisAction
 
             $menu->activate();
 
-            foreach (MenuJson::sections($menuData) as $sectionIndex => $sectionData) {
-                $this->createSection($menu, $sectionData, $sectionIndex, $sourceLocale);
-            }
+            $this->createSectionsForMenu(
+                $menu,
+                MenuJson::sections($menuData),
+                sortOrderStart: 0,
+                imageOffset: 0,
+                sourceLocale: $sourceLocale,
+            );
 
             return $menu;
         });
+    }
+
+    /**
+     * Append one chunk's parsed menu data to an existing Menu (used by chunked analysis flow).
+     *
+     * Enriches restaurant / menu metadata only where values are currently missing, then
+     * appends new sections with continued sort_order and remapped image_bbox.image_index.
+     *
+     * @param  array<string, mixed>  $chunkData
+     */
+    public function appendChunk(Menu $menu, array $chunkData, int $imageOffset): void
+    {
+        DB::transaction(function () use ($menu, $chunkData, $imageOffset): void {
+            $menu->loadMissing('restaurant');
+            $this->enrichRestaurantIfEmpty($menu->restaurant, $chunkData);
+
+            $sourceLocale = $menu->source_locale
+                ?? (is_string($chunkData['restaurant']['primary_language'] ?? null) && $chunkData['restaurant']['primary_language'] !== ''
+                    ? (string) $chunkData['restaurant']['primary_language']
+                    : null);
+
+            if ($menu->source_locale === null && $sourceLocale !== null) {
+                $menu->update(['source_locale' => $sourceLocale]);
+            }
+
+            $startSort = ((int) ($menu->sections()->max('sort_order') ?? -1)) + 1;
+
+            $this->createSectionsForMenu(
+                $menu,
+                MenuJson::sections($chunkData),
+                sortOrderStart: $startSort,
+                imageOffset: $imageOffset,
+                sourceLocale: $sourceLocale,
+            );
+        });
+    }
+
+    /**
+     * Iterate a list of section payloads and persist each as a MenuSection on the given menu.
+     * Extracted so both initial save (handle) and chunk append share the same section/item creation logic.
+     *
+     * @param  list<array<string, mixed>>  $sectionsData
+     */
+    private function createSectionsForMenu(
+        Menu $menu,
+        array $sectionsData,
+        int $sortOrderStart,
+        int $imageOffset,
+        ?string $sourceLocale,
+    ): void {
+        foreach ($sectionsData as $i => $sectionData) {
+            $this->createSection(
+                $menu,
+                $sectionData,
+                sortOrder: $sortOrderStart + $i,
+                imageOffset: $imageOffset,
+                sourceLocale: $sourceLocale,
+            );
+        }
     }
 
     /** @param  array<string, mixed>  $menuData */
@@ -88,12 +164,54 @@ class SaveMenuAnalysisAction
     }
 
     /**
+     * Fill restaurant fields that are currently empty from chunk data.
+     * Does not overwrite existing values — subsequent chunks cannot clobber earlier ones.
+     *
+     * @param  array<string, mixed>  $chunkData
+     */
+    private function enrichRestaurantIfEmpty(Restaurant $restaurant, array $chunkData): void
+    {
+        $r = $chunkData['restaurant'] ?? null;
+        if (! is_array($r)) {
+            return;
+        }
+
+        $updates = [];
+        foreach (['city', 'country', 'phone', 'currency', 'primary_language'] as $field) {
+            $value = isset($r[$field]) ? (string) $r[$field] : '';
+            if ($value !== '' && empty($restaurant->{$field})) {
+                $updates[$field] = $value;
+            }
+        }
+        if (isset($r['opening_hours']) && is_array($r['opening_hours']) && $restaurant->opening_hours === null) {
+            $updates['opening_hours'] = $r['opening_hours'];
+        }
+        if (! empty($updates)) {
+            $restaurant->update($updates);
+        }
+
+        $locale = is_string($r['primary_language'] ?? null) && $r['primary_language'] !== ''
+            ? (string) $r['primary_language']
+            : ($restaurant->primary_language ?? 'und');
+
+        $name = MenuJson::extractText($r['name'] ?? null);
+        if ($name !== null && $restaurant->initialText('name') === null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        $address = MenuJson::extractText($r['address'] ?? null);
+        if ($address !== null && $restaurant->initialText('address') === null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $sectionData
      */
-    private function createSection(Menu $menu, array $sectionData, int $index, ?string $sourceLocale): void
+    private function createSection(Menu $menu, array $sectionData, int $sortOrder, int $imageOffset, ?string $sourceLocale): void
     {
         $section = $menu->sections()->create([
-            'sort_order' => $sectionData['sort_order'] ?? $index,
+            'sort_order' => $sortOrder,
             'category_icon' => $this->validateIcon($sectionData['category_icon'] ?? null),
         ]);
 
@@ -108,7 +226,7 @@ class SaveMenuAnalysisAction
         $itemEntries = [];
 
         foreach ($sectionData['items'] ?? [] as $itemIndex => $itemData) {
-            $item = $this->createItem($section, $itemData, $itemIndex, $locale);
+            $item = $this->createItem($section, $itemData, $itemIndex, $locale, $imageOffset);
             $itemEntries[] = [
                 'item' => $item,
                 'variations' => $itemData['variations'] ?? [],
@@ -122,7 +240,7 @@ class SaveMenuAnalysisAction
     /**
      * @param  array<string, mixed>  $itemData
      */
-    private function createItem(MenuSection $section, array $itemData, int $index, string $locale): MenuItem
+    private function createItem(MenuSection $section, array $itemData, int $index, string $locale, int $imageOffset): MenuItem
     {
         $price = is_array($itemData['price'] ?? null) ? $itemData['price'] : [];
 
@@ -141,7 +259,7 @@ class SaveMenuAnalysisAction
             'price_max' => $price['max'] ?? null,
             'price_unit' => isset($price['unit']) && $price['unit'] !== '' ? (string) $price['unit'] : null,
             'price_original_text' => (string) ($price['original_text'] ?? ''),
-            'image_bbox' => $this->cleanBbox($itemData['image_bbox'] ?? null),
+            'image_bbox' => $this->cleanBbox($itemData['image_bbox'] ?? null, $imageOffset),
             'sort_order' => $index,
         ]);
 
@@ -238,15 +356,20 @@ class SaveMenuAnalysisAction
         return in_array($raw, config('food_icons.allowed', []), true) ? $raw : null;
     }
 
-    private function cleanBbox(mixed $raw): ?array
+    private function cleanBbox(mixed $raw, int $imageOffset = 0): ?array
     {
         if (! is_array($raw)) {
             return null;
         }
 
         $allowed = ['image_index', 'coords', 'confidence'];
+        $clean = array_intersect_key($raw, array_flip($allowed));
 
-        return array_intersect_key($raw, array_flip($allowed));
+        if ($imageOffset !== 0 && isset($clean['image_index']) && is_int($clean['image_index'])) {
+            $clean['image_index'] += $imageOffset;
+        }
+
+        return $clean;
     }
 
     /**
