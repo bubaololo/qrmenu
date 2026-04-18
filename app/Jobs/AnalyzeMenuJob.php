@@ -14,6 +14,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
@@ -43,9 +44,17 @@ class AnalyzeMenuJob implements ShouldQueue
     ): void {
         ini_set('memory_limit', '512M');
 
+        $imageCount = $this->analysis->image_count;
+        $chunkWhenGt = (int) config('llm.thresholds.chunk_when_images_gt', 5);
+
+        if ($imageCount > $chunkWhenGt) {
+            $this->dispatchChunkChain();
+
+            return;
+        }
+
         $this->analysis->markProcessing();
 
-        $imageCount = $this->analysis->image_count;
         $providers = $cascade->resolveProviders($imageCount, $this->analysis->vision_model);
 
         Log::channel('llm')->info('Job started', [
@@ -107,6 +116,43 @@ class AnalyzeMenuJob implements ShouldQueue
         } finally {
             $this->cleanupImages();
         }
+    }
+
+    /**
+     * Split the pack into chunks and dispatch a Bus::chain of AnalyzeChunkJob + FinalizeAnalysisJob.
+     * Each chunk persists its own sections to DB; no in-memory merge.
+     * Per-chunk retries are handled by AnalyzeChunkJob::$tries; chain breaks on exhaustion.
+     */
+    private function dispatchChunkChain(): void
+    {
+        $chunkSize = (int) config('llm.thresholds.chunk_size', 4);
+        $pathChunks = array_chunk($this->analysis->image_paths, $chunkSize);
+        $total = count($pathChunks);
+
+        $offset = 0;
+        $jobs = [];
+        foreach ($pathChunks as $i => $paths) {
+            $jobs[] = new AnalyzeChunkJob(
+                $this->analysis,
+                $paths,
+                $i,
+                $total,
+                $offset,
+            );
+            $offset += count($paths);
+        }
+        $jobs[] = new FinalizeAnalysisJob($this->analysis);
+
+        Log::channel('llm')->info('Dispatching chunk chain', [
+            'analysis_uuid' => $this->analysis->uuid,
+            'total_images' => count($this->analysis->image_paths),
+            'chunk_count' => $total,
+            'chunk_size' => $chunkSize,
+        ]);
+
+        Bus::chain($jobs)
+            ->onQueue(config('llm.queue', 'llm-analysis'))
+            ->dispatch();
     }
 
     private function storeConfidenceInRedis(Menu $menu, array $menuData): void

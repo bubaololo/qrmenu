@@ -40,7 +40,17 @@ return [
 
     'thresholds' => [
         'small_max_images' => 4,
+        'chunk_size' => 4,                // N images per chunk when chunking is triggered
+        'chunk_when_images_gt' => 5,      // chunk if image_count > this
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Per-Chunk Job Timeout
+    |--------------------------------------------------------------------------
+    */
+
+    'chunk_job_timeout' => (int) env('LLM_CHUNK_JOB_TIMEOUT', 600),
 
     /*
     |--------------------------------------------------------------------------

@@ -223,6 +223,8 @@ End-to-end pipeline for turning a pack of menu photos into a structured, saved m
    | 1-4 images | qwen3-vl-plus (DashScope) | gemini-2.5-flash | gemma-4-26b free (OpenRouter) |
    | 5+ images | qwen3-vl-plus (DashScope) | gemma-4-31b-it @ DeepInfra fp8 (OpenRouter) | gemini-2.5-flash |
 
+   **Chunking for 6+ images**: packs above the `chunk_when_images_gt` threshold (default 5) are split into chunks of `chunk_size` images (default 4) and processed through a `Bus::chain` of `AnalyzeChunkJob`s ending in a `FinalizeAnalysisJob`. Each chunk runs its own cascade on the small tier, retries up to 3 times on failure with exponential backoff, and writes its sections/items straight to the DB — no in-memory merge. The first chunk creates the `Menu`; later chunks call `SaveMenuAnalysisAction::appendChunk`, which continues `sort_order`, remaps `image_bbox.image_index` by the cumulative image offset, and backfills restaurant metadata (name, phone, opening_hours, etc.) only for fields that are still empty. If any chunk exhausts retries the analysis is marked `failed` and originals/preprocessed images are cleaned up; otherwise the finalizer dispatches `CropMenuItemImagesJob`.
+
    Every call is logged to the `llm_requests` table with provider, model, duration, tokens, status, and error details.
 6. **Save** — if `restaurant_id` was supplied, `SaveMenuAnalysisAction` materialises the JSON into `menus` → `menu_sections` → `menu_items` with translations and per-item `image_bbox` + confidence.
 7. **Crop** — `CropMenuItemImagesJob` extracts each item's image from the originals using its saved bbox, writes main + thumb sizes.
