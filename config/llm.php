@@ -29,7 +29,10 @@ return [
             [
                 'provider' => 'openrouter',
                 'model' => 'google/gemma-4-31b-it',
-                'provider_routing' => ['only' => ['deepinfra/fp8']],
+                // DeepInfra's gemma-4-31b endpoint is text-only and 404s on image inputs;
+                // AkashML caps context at 131K. Let OR auto-route across Novita / Parasail /
+                // Together (all bf16, 262K).
+                'provider_routing' => ['ignore' => ['DeepInfra', 'AkashML']],
             ],
             ['provider' => 'gemini', 'model' => 'gemini-2.5-flash'],
         ],
