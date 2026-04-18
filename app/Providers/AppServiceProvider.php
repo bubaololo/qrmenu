@@ -17,9 +17,9 @@ class AppServiceProvider extends ServiceProvider
 
         Restaurant::observe(RestaurantObserver::class);
 
-        $adminEmails = array_filter(explode(',', env('ADMIN_EMAILS', '')));
+        $isAllowed = fn (?User $user) => app()->isLocal() || ($user?->isAdmin() ?? false);
 
-        Gate::define('viewHorizon', fn (User $user) => app()->isLocal() || in_array($user->email, $adminEmails));
-        Gate::define('viewPulse', fn (?User $user) => app()->isLocal() || ($user && in_array($user->email, $adminEmails)));
+        Gate::define('viewHorizon', $isAllowed);
+        Gate::define('viewPulse', $isAllowed);
     }
 }
