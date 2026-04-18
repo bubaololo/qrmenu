@@ -17,6 +17,11 @@ abstract class BaseLlmProvider implements LlmProvider
         return (int) config('services.openai_compatible.http_timeout_seconds', 3600);
     }
 
+    protected function maxTokens(): ?int
+    {
+        return null;
+    }
+
     /** @return array<string, mixed> */
     protected function providerOptions(): array
     {
@@ -49,6 +54,10 @@ abstract class BaseLlmProvider implements LlmProvider
                 ->withClientOptions(['timeout' => $this->timeoutSeconds()])
                 ->withSystemPrompts($systemMessages)
                 ->withMessages($userMessages);
+
+            if (($maxTokens = $this->maxTokens()) !== null) {
+                $builder = $builder->withMaxTokens($maxTokens);
+            }
 
             if ($options = $this->providerOptions()) {
                 $builder = $builder->withProviderOptions($options);

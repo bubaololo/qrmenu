@@ -54,6 +54,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Translation Chunking
+    |--------------------------------------------------------------------------
+    | Large menus overflow DeepSeek's 8K output cap in a single call. We chunk
+    | the TSV payload into batches and run one DeepSeek request per batch.
+    */
+
+    'translation' => [
+        'chunk_lines' => (int) env('LLM_TRANSLATION_CHUNK_LINES', 80),
+    ],
+
+    'deepseek' => [
+        'max_tokens' => (int) env('LLM_DEEPSEEK_MAX_TOKENS', 8000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Configuration
     |--------------------------------------------------------------------------
     */
