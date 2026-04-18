@@ -153,6 +153,40 @@ class SaveMenuAnalysisTest extends TestCase
     }
 
     #[Test]
+    public function test_preserves_image_bbox_with_confidence(): void
+    {
+        $data = [
+            'restaurant' => ['currency' => 'USD', 'primary_language' => 'en'],
+            'sections' => [
+                [
+                    'category_name' => 'Mains',
+                    'items' => [
+                        [
+                            'name' => 'Dish A',
+                            'price' => ['original_text' => '10'],
+                            'image_bbox' => [
+                                'image_index' => 0,
+                                'coords' => [0.1, 0.2, 0.4, 0.5],
+                                'confidence' => 0.87,
+                                'extra_unknown_field' => 'drop me',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        (new SaveMenuAnalysisAction)->handle($data, $this->restaurant->id, 1);
+
+        $item = MenuItem::first();
+        $this->assertSame([
+            'image_index' => 0,
+            'coords' => [0.1, 0.2, 0.4, 0.5],
+            'confidence' => 0.87,
+        ], $item->image_bbox);
+    }
+
+    #[Test]
     public function test_throws_when_menu_has_no_items(): void
     {
         $this->expectException(\RuntimeException::class);

@@ -94,6 +94,7 @@ class SaveMenuAnalysisAction
     {
         $section = $menu->sections()->create([
             'sort_order' => $sectionData['sort_order'] ?? $index,
+            'category_icon' => $this->validateIcon($sectionData['category_icon'] ?? null),
         ]);
 
         $locale = $sourceLocale ?? 'und';
@@ -140,7 +141,7 @@ class SaveMenuAnalysisAction
             'price_max' => $price['max'] ?? null,
             'price_unit' => isset($price['unit']) && $price['unit'] !== '' ? (string) $price['unit'] : null,
             'price_original_text' => (string) ($price['original_text'] ?? ''),
-            'image_bbox' => is_array($itemData['image_bbox'] ?? null) ? $itemData['image_bbox'] : null,
+            'image_bbox' => $this->cleanBbox($itemData['image_bbox'] ?? null),
             'sort_order' => $index,
         ]);
 
@@ -226,6 +227,26 @@ class SaveMenuAnalysisAction
 
             $group->items()->attach(array_unique($entry['itemIds']));
         }
+    }
+
+    private function validateIcon(mixed $raw): ?string
+    {
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        return in_array($raw, config('food_icons.allowed', []), true) ? $raw : null;
+    }
+
+    private function cleanBbox(mixed $raw): ?array
+    {
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $allowed = ['image_index', 'coords', 'confidence'];
+
+        return array_intersect_key($raw, array_flip($allowed));
     }
 
     /**
