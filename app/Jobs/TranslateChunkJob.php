@@ -3,8 +3,11 @@
 namespace App\Jobs;
 
 use App\Llm\DeepSeekTextProvider;
+use App\Llm\OpenRouterProvider;
 use App\Models\Menu;
 use App\Models\Prompt;
+use App\Services\LlmCascadeService;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Queue\Queueable;
@@ -15,7 +18,7 @@ use Prism\Prism\ValueObjects\Messages\UserMessage;
 
 class TranslateChunkJob implements ShouldQueue
 {
-    use Queueable;
+    use Batchable, Queueable;
 
     public int $tries = 3;
 
@@ -38,7 +41,7 @@ class TranslateChunkJob implements ShouldQueue
         return [30, 60, 120];
     }
 
-    public function handle(DeepSeekTextProvider $provider): void
+    public function handle(LlmCascadeService $cascade): void
     {
         $prompt = Prompt::activeForType(self::PROMPT_TYPE);
         if (! $prompt) {
@@ -76,21 +79,29 @@ class TranslateChunkJob implements ShouldQueue
         $chunkTsv = implode("\n", $this->chunkLines);
         $fullUserMessage = $userPrompt."\n\n".$chunkTsv;
 
-        $result = $provider->execute(
-            [
-                new SystemMessage($prompt->system_prompt),
-                new UserMessage($fullUserMessage),
-            ],
-            [
-                'menu_id' => $this->menu->id,
-                'target_locale' => $this->targetLocale,
-                'source_locale' => $sourceLocale,
-                'chunk_index' => $this->chunkIndex + 1,
-                'chunk_total' => $this->chunkTotal,
-                'chunk_lines' => count($this->chunkLines),
-                'payload_size' => strlen($chunkTsv),
-            ]
-        );
+        $messages = [
+            new SystemMessage($prompt->system_prompt),
+            new UserMessage($fullUserMessage),
+        ];
+
+        $providers = [
+            app(DeepSeekTextProvider::class),
+            app()->makeWith(OpenRouterProvider::class, [
+                'openRouterModel' => (string) config('llm.translation.openrouter_fallback_model', 'openai/gpt-4.1-mini'),
+            ]),
+        ];
+
+        $logContext = [
+            'menu_id' => $this->menu->id,
+            'target_locale' => $this->targetLocale,
+            'source_locale' => $sourceLocale,
+            'chunk_index' => $this->chunkIndex + 1,
+            'chunk_total' => $this->chunkTotal,
+            'chunk_lines' => count($this->chunkLines),
+            'payload_size' => strlen($chunkTsv),
+        ];
+
+        $result = $cascade->executeWithFallback($messages, $providers, null, $logContext);
 
         $count = $this->parseTsvAndSave($result['text'], $idMap);
 
@@ -100,6 +111,8 @@ class TranslateChunkJob implements ShouldQueue
             'chunk_index' => $this->chunkIndex + 1,
             'chunk_total' => $this->chunkTotal,
             'fields_written' => $count,
+            'provider' => $result['provider'].':'.$result['model'],
+            'tier' => $result['tier'],
         ]);
     }
 

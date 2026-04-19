@@ -8,18 +8,18 @@ use App\Models\Menu;
 use App\Models\MenuAnalysis;
 use App\Services\LlmCascadeService;
 use App\Support\MenuJson;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class AnalyzeChunkJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
 
@@ -52,8 +52,13 @@ class AnalyzeChunkJob implements ShouldQueue
     ): void {
         ini_set('memory_limit', '512M');
 
-        if ($this->chunkIndex === 0) {
-            $this->analysis->markProcessing();
+        // Bus::batch cancels remaining jobs once any sibling has failed — skip quietly.
+        if ($this->batch() && $this->batch()->cancelled()) {
+            return;
+        }
+
+        if ($this->analysis->result_menu_id === null) {
+            throw new \RuntimeException('Chunked analysis requires result_menu_id set by orchestrator; refusing to run.');
         }
 
         $providers = $cascade->resolveProviders(count($this->chunkPaths), $this->analysis->vision_model);
@@ -72,24 +77,8 @@ class AnalyzeChunkJob implements ShouldQueue
 
         $chunkData = MenuJson::decodeMenuFromLlmText($result['text']);
 
-        if ($this->chunkIndex === 0) {
-            if ($this->analysis->restaurant_id === null) {
-                throw new \RuntimeException('Chunked analysis requires restaurant_id to persist; refusing to discard chunk 0.');
-            }
-
-            // Chunk 0 may contain only cover/header data without items (e.g. restaurant
-            // name on a dedicated title page). createMenu() skips the empty-items guard
-            // so subsequent chunks can still populate this menu.
-            $menu = $saveAction->createMenu(
-                $chunkData,
-                $this->analysis->restaurant_id,
-                $this->analysis->image_count,
-            );
-            $this->analysis->update(['result_menu_id' => $menu->id]);
-        } else {
-            $menu = Menu::findOrFail($this->analysis->result_menu_id);
-            $saveAction->appendChunk($menu, $chunkData, $this->imageOffset);
-        }
+        $menu = Menu::findOrFail($this->analysis->result_menu_id);
+        $saveAction->appendChunk($menu, $chunkData, $this->imageOffset);
 
         Log::channel('llm')->info('Chunk complete', [
             'analysis_uuid' => $this->analysis->uuid,
@@ -103,23 +92,8 @@ class AnalyzeChunkJob implements ShouldQueue
 
     public function failed(Throwable $e): void
     {
-        $this->analysis->markFailed(sprintf(
-            'Chunk %d/%d failed after %d attempts: %s',
-            $this->chunkIndex + 1,
-            $this->chunkTotal,
-            $this->tries,
-            $e->getMessage(),
-        ));
-
-        // Chain breaks on failure; FinalizeAnalysisJob won't run, so clean up images here.
-        $disk = Storage::disk($this->analysis->image_disk);
-        foreach ($this->analysis->image_paths as $path) {
-            $disk->delete($path);
-        }
-        foreach ($this->analysis->original_image_paths ?? [] as $path) {
-            $disk->delete($path);
-        }
-
+        // Analysis-level status + image cleanup happen in the Bus::batch catch() hook
+        // so they're not duplicated if multiple chunks fail concurrently.
         Log::channel('llm')->error('Chunk exhausted retries', [
             'analysis_uuid' => $this->analysis->uuid,
             'chunk_index' => $this->chunkIndex + 1,

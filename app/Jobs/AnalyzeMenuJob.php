@@ -119,15 +119,27 @@ class AnalyzeMenuJob implements ShouldQueue
     }
 
     /**
-     * Split the pack into chunks and dispatch a Bus::chain of AnalyzeChunkJob + FinalizeAnalysisJob.
-     * Each chunk persists its own sections to DB; no in-memory merge.
-     * Per-chunk retries are handled by AnalyzeChunkJob::$tries; chain breaks on exhaustion.
+     * Create an empty Menu shell up-front, then fan out chunks in parallel via Bus::batch.
+     * Every chunk uses `SaveMenuAnalysisAction::appendChunk()`, no special chunk-0 path.
+     * On success the batch's then() hook runs FinalizeAnalysisJob; on any chunk's retry
+     * exhaustion the catch() hook marks the analysis failed and cleans up images.
      */
     private function dispatchChunkChain(): void
     {
         $chunkSize = (int) config('llm.thresholds.chunk_size', 4);
         $pathChunks = array_chunk($this->analysis->image_paths, $chunkSize);
         $total = count($pathChunks);
+
+        $this->analysis->markProcessing();
+
+        $menu = Menu::create([
+            'restaurant_id' => $this->analysis->restaurant_id,
+            'source_locale' => null,
+            'source_images_count' => count($this->analysis->image_paths),
+            'is_active' => false,
+            'detected_date' => now()->toDateString(),
+        ]);
+        $this->analysis->update(['result_menu_id' => $menu->id]);
 
         $offset = 0;
         $jobs = [];
@@ -141,17 +153,38 @@ class AnalyzeMenuJob implements ShouldQueue
             );
             $offset += count($paths);
         }
-        $jobs[] = new FinalizeAnalysisJob($this->analysis);
 
-        Log::channel('llm')->info('Dispatching chunk chain', [
+        Log::channel('llm')->info('Dispatching chunk batch', [
             'analysis_uuid' => $this->analysis->uuid,
             'total_images' => count($this->analysis->image_paths),
             'chunk_count' => $total,
             'chunk_size' => $chunkSize,
+            'menu_id' => $menu->id,
         ]);
 
-        Bus::chain($jobs)
+        $analysisId = $this->analysis->id;
+
+        Bus::batch($jobs)
+            ->name("menu-analysis-{$this->analysis->uuid}")
             ->onQueue(config('llm.queue', 'llm-analysis'))
+            ->then(function () use ($analysisId): void {
+                FinalizeAnalysisJob::dispatch(MenuAnalysis::findOrFail($analysisId));
+            })
+            ->catch(function ($batch, Throwable $e) use ($analysisId): void {
+                $analysis = MenuAnalysis::find($analysisId);
+                if (! $analysis) {
+                    return;
+                }
+                $analysis->markFailed("Batch failed: {$e->getMessage()}");
+
+                $disk = Storage::disk($analysis->image_disk);
+                foreach ($analysis->image_paths as $path) {
+                    $disk->delete($path);
+                }
+                foreach ($analysis->original_image_paths ?? [] as $path) {
+                    $disk->delete($path);
+                }
+            })
             ->dispatch();
     }
 

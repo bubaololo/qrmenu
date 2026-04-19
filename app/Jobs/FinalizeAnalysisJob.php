@@ -29,6 +29,10 @@ class FinalizeAnalysisJob implements ShouldQueue
             ? Menu::with('sections.items')->find($this->analysis->result_menu_id)
             : null;
 
+        if ($menu) {
+            $menu->activate();
+        }
+
         $itemCount = $menu
             ? $menu->sections->sum(fn ($s) => $s->items->count())
             : 0;

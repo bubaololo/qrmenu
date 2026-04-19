@@ -71,7 +71,22 @@ class TranslateMenuJob implements ShouldQueue
             );
         }
 
-        Bus::chain($jobs)->dispatch();
+        $menuId = $this->menu->id;
+        $locale = $this->targetLocale;
+
+        Bus::batch($jobs)
+            ->name("menu-translation-{$menuId}-{$locale}")
+            ->onQueue(config('llm.queue', 'llm-analysis'))
+            ->finally(function ($batch) use ($menuId, $locale) {
+                Log::channel('llm')->info('Translation batch complete', [
+                    'menu_id' => $menuId,
+                    'target_locale' => $locale,
+                    'chunks_total' => $batch->totalJobs,
+                    'chunks_failed' => $batch->failedJobs,
+                    'chunks_ok' => $batch->totalJobs - $batch->failedJobs,
+                ]);
+            })
+            ->dispatch();
     }
 
     /**

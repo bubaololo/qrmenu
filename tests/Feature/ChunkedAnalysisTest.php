@@ -66,7 +66,7 @@ class ChunkedAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_large_pack_dispatches_chunk_chain(): void
+    public function test_large_pack_dispatches_chunk_batch(): void
     {
         Bus::fake();
 
@@ -78,14 +78,30 @@ class ChunkedAnalysisTest extends TestCase
             app(SaveMenuAnalysisAction::class),
         );
 
-        // 11 images @ chunk_size=4 → 3 chunks (4+4+3) + finalize.
-        Bus::assertChained([AnalyzeChunkJob::class, AnalyzeChunkJob::class, AnalyzeChunkJob::class, FinalizeAnalysisJob::class]);
+        // 11 images @ chunk_size=4 → 3 chunks (4+4+3) dispatched as a single batch.
+        // Finalize is attached via the batch's then() hook — not dispatched upfront.
+        Bus::assertBatched(function ($batch) {
+            return $batch->jobs->count() === 3 && $batch->jobs->every(fn ($j) => $j instanceof AnalyzeChunkJob);
+        });
+
+        // Orchestrator must have created the Menu shell before dispatching.
+        $this->analysis->refresh();
+        $this->assertNotNull($this->analysis->result_menu_id);
     }
 
     #[Test]
-    public function test_chunk_zero_creates_menu_and_subsequent_chunks_append(): void
+    public function test_chunks_append_sections_to_pre_created_menu(): void
     {
         $this->analysis = $this->makeAnalysis(imageCount: 8);
+
+        $menu = Menu::create([
+            'restaurant_id' => $this->restaurant->id,
+            'source_locale' => null,
+            'source_images_count' => 8,
+            'is_active' => false,
+            'detected_date' => now()->toDateString(),
+        ]);
+        $this->analysis->update(['result_menu_id' => $menu->id]);
 
         $cascade = Mockery::mock(LlmCascadeService::class);
         $cascade->shouldReceive('resolveProviders')->andReturn([]);
@@ -97,7 +113,6 @@ class ChunkedAnalysisTest extends TestCase
 
         $paths = $this->analysis->image_paths;
 
-        // Run chunks synchronously.
         (new AnalyzeChunkJob(
             $this->analysis->refresh(), array_slice($paths, 0, 4), 0, 2, 0,
         ))->handle(
@@ -106,13 +121,8 @@ class ChunkedAnalysisTest extends TestCase
             app(SaveMenuAnalysisAction::class),
         );
 
-        $this->analysis->refresh();
-        $this->assertNotNull($this->analysis->result_menu_id, 'first chunk must create a menu');
-        $menu = Menu::find($this->analysis->result_menu_id);
-        $this->assertSame(1, $menu->sections()->count());
-
         (new AnalyzeChunkJob(
-            $this->analysis, array_slice($paths, 4, 4), 1, 2, 4,
+            $this->analysis->refresh(), array_slice($paths, 4, 4), 1, 2, 4,
         ))->handle(
             app(AnalyzeMenuImageAction::class),
             $cascade,
@@ -120,9 +130,8 @@ class ChunkedAnalysisTest extends TestCase
         );
 
         $menu->refresh();
-        $this->assertSame(2, $menu->sections()->count(), 'second chunk appends section');
-
         $sections = $menu->sections()->orderBy('sort_order')->get();
+        $this->assertSame(2, $sections->count(), 'both chunks append sections to the orchestrator-created menu');
         $this->assertSame(0, $sections[0]->sort_order);
         $this->assertSame(1, $sections[1]->sort_order);
 
@@ -138,6 +147,16 @@ class ChunkedAnalysisTest extends TestCase
         $this->restaurant->update(['phone' => null]);
 
         $this->analysis = $this->makeAnalysis(imageCount: 12);
+
+        $menu = Menu::create([
+            'restaurant_id' => $this->restaurant->id,
+            'source_locale' => null,
+            'source_images_count' => 12,
+            'is_active' => false,
+            'detected_date' => now()->toDateString(),
+        ]);
+        $this->analysis->update(['result_menu_id' => $menu->id]);
+
         $cascade = Mockery::mock(LlmCascadeService::class);
         $cascade->shouldReceive('resolveProviders')->andReturn([]);
         // Chunk 0: no restaurant info (empty name, no currency).
@@ -169,10 +188,19 @@ class ChunkedAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_first_chunk_without_items_still_creates_menu(): void
+    public function test_chunk_with_empty_sections_does_not_crash(): void
     {
-        // Cover/title page scenario — chunk 0 parses restaurant info but no items.
+        // Cover/title page scenario — a chunk returns restaurant info but no sections.
         $this->analysis = $this->makeAnalysis(imageCount: 8);
+
+        $menu = Menu::create([
+            'restaurant_id' => $this->restaurant->id,
+            'source_locale' => null,
+            'source_images_count' => 8,
+            'is_active' => false,
+            'detected_date' => now()->toDateString(),
+        ]);
+        $this->analysis->update(['result_menu_id' => $menu->id]);
 
         $cascade = Mockery::mock(LlmCascadeService::class);
         $cascade->shouldReceive('resolveProviders')->andReturn([]);
@@ -195,17 +223,15 @@ class ChunkedAnalysisTest extends TestCase
             app(AnalyzeMenuImageAction::class), $cascade, app(SaveMenuAnalysisAction::class),
         );
 
-        $this->analysis->refresh();
-        $this->assertNotNull($this->analysis->result_menu_id, 'empty chunk 0 must still create menu');
-        $menu = Menu::find($this->analysis->result_menu_id);
-        $this->assertSame(0, $menu->sections()->count());
+        $menu->refresh();
+        $this->assertSame(0, $menu->sections()->count(), 'empty-sections chunk adds nothing');
 
         (new AnalyzeChunkJob($this->analysis, array_slice($paths, 4, 4), 1, 2, 4))->handle(
             app(AnalyzeMenuImageAction::class), $cascade, app(SaveMenuAnalysisAction::class),
         );
 
         $menu->refresh();
-        $this->assertSame(1, $menu->sections()->count(), 'second chunk appends section to previously-empty menu');
+        $this->assertSame(1, $menu->sections()->count(), 'sibling chunk with sections appends');
     }
 
     #[Test]
@@ -227,16 +253,16 @@ class ChunkedAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_chunk_failed_hook_marks_analysis_failed(): void
+    public function test_chunk_failed_hook_logs_without_throwing(): void
     {
+        // In the batch model the analysis-level markFailed is handled by the batch's
+        // catch() hook, not per-chunk. failed() just logs — make sure it doesn't blow up.
         $this->analysis = $this->makeAnalysis(imageCount: 8);
 
         $job = new AnalyzeChunkJob($this->analysis, ['a.webp', 'b.webp', 'c.webp', 'd.webp'], 0, 2, 0);
         $job->failed(new \RuntimeException('simulated llm outage'));
 
-        $this->analysis->refresh();
-        $this->assertSame(MenuAnalysisStatus::Failed, $this->analysis->status);
-        $this->assertStringContainsString('Chunk 1/2 failed', $this->analysis->error_message);
+        $this->assertTrue(true);
     }
 
     private function makeAnalysis(int $imageCount): MenuAnalysis

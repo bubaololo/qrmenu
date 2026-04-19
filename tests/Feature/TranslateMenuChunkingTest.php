@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Exceptions\LlmRequestFailedException;
 use App\Jobs\TranslateChunkJob;
 use App\Jobs\TranslateMenuJob;
-use App\Llm\DeepSeekTextProvider;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
+use App\Services\LlmCascadeService;
 use Database\Seeders\PromptSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -28,7 +28,7 @@ class TranslateMenuChunkingTest extends TestCase
     }
 
     #[Test]
-    public function test_orchestrator_dispatches_bus_chain_of_chunk_jobs(): void
+    public function test_orchestrator_dispatches_batch_of_chunk_jobs(): void
     {
         config(['llm.translation.chunk_lines' => 5]);
         Bus::fake();
@@ -38,13 +38,9 @@ class TranslateMenuChunkingTest extends TestCase
         (new TranslateMenuJob($menu, 'ru'))->handle();
 
         // 20 items + 1 section + R|name = 22 lines → ceil(22/5) = 5 chunks.
-        Bus::assertChained([
-            TranslateChunkJob::class,
-            TranslateChunkJob::class,
-            TranslateChunkJob::class,
-            TranslateChunkJob::class,
-            TranslateChunkJob::class,
-        ]);
+        Bus::assertBatched(function ($batch) {
+            return $batch->jobs->count() === 5 && $batch->jobs->every(fn ($j) => $j instanceof TranslateChunkJob);
+        });
     }
 
     #[Test]
@@ -57,11 +53,13 @@ class TranslateMenuChunkingTest extends TestCase
 
         (new TranslateMenuJob($menu, 'ru'))->handle();
 
-        Bus::assertChained([TranslateChunkJob::class]);
+        Bus::assertBatched(function ($batch) {
+            return $batch->jobs->count() === 1;
+        });
     }
 
     #[Test]
-    public function test_chunk_job_calls_provider_and_writes_translations(): void
+    public function test_chunk_job_calls_cascade_and_writes_translations(): void
     {
         $menu = $this->makeMenuWithItems(itemCount: 2);
         $menu->load(['sections.items']);
@@ -69,7 +67,6 @@ class TranslateMenuChunkingTest extends TestCase
         $itemB = $menu->sections->first()->items->last();
         $section = $menu->sections->first();
 
-        // TSV lines that reference real IDs.
         $chunkLines = [
             "S|{$section->id}|Mains",
             "I|{$itemA->id}|Dish 0|",
@@ -82,17 +79,44 @@ class TranslateMenuChunkingTest extends TestCase
             "I|{$itemB->id}|Блюдо 1|",
         ]);
 
-        $provider = Mockery::mock(DeepSeekTextProvider::class);
-        $provider->shouldReceive('execute')->once()->andReturn([
+        $cascade = Mockery::mock(LlmCascadeService::class);
+        $cascade->shouldReceive('executeWithFallback')->once()->andReturn([
             'text' => $responseTsv,
-            'usage' => ['input_tokens' => 1, 'output_tokens' => 1],
+            'provider' => 'deepseek',
+            'model' => 'deepseek-chat',
+            'tier' => 0,
         ]);
 
-        (new TranslateChunkJob($menu, 'ru', $chunkLines, 0, 1))->handle($provider);
+        (new TranslateChunkJob($menu, 'ru', $chunkLines, 0, 1))->handle($cascade);
 
         $this->assertSame('Основное', $section->translate('name', 'ru'));
         $this->assertSame('Блюдо 0', $itemA->translate('name', 'ru'));
         $this->assertSame('Блюдо 1', $itemB->translate('name', 'ru'));
+    }
+
+    #[Test]
+    public function test_chunk_job_falls_back_to_openrouter_when_deepseek_fails(): void
+    {
+        $menu = $this->makeMenuWithItems(itemCount: 1);
+        $menu->load(['sections.items']);
+        $item = $menu->sections->first()->items->first();
+        $section = $menu->sections->first();
+
+        $chunkLines = ["S|{$section->id}|Mains", "I|{$item->id}|Dish 0|"];
+        $responseTsv = "S|{$section->id}|Основное\nI|{$item->id}|Блюдо 0|";
+
+        // Cascade tries DeepSeek first, it fails, OR succeeds — we observe the final result.
+        $cascade = Mockery::mock(LlmCascadeService::class);
+        $cascade->shouldReceive('executeWithFallback')->once()->andReturn([
+            'text' => $responseTsv,
+            'provider' => 'openrouter',
+            'model' => 'openai/gpt-4.1-mini',
+            'tier' => 1,
+        ]);
+
+        (new TranslateChunkJob($menu, 'ru', $chunkLines, 0, 1))->handle($cascade);
+
+        $this->assertSame('Блюдо 0', $item->translate('name', 'ru'));
     }
 
     #[Test]
