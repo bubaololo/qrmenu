@@ -3,43 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>{{ $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu' }} — Menu</title>
-    <meta name="theme-color" content="#f8fafc">
+    @php
+        $restaurantName = $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu';
+        $sectionCount = $menu ? $menu->sections->count() : 0;
+        $itemCount = $menu ? $menu->sections->sum(fn($s) => $s->items->count()) : 0;
+        $usedIcons = $menu
+            ? $menu->sections->pluck('category_icon')->filter()->unique()->values()->all()
+            : [];
+        $iconSprite = \App\Support\FoodIcons::sprite($usedIcons);
+    @endphp
+    <title>{{ $restaurantName }} — Menu</title>
+    <meta name="theme-color" content="#f4e6d0">
     <link rel="icon" href="data:,">
-    <style>body{background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0}</style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&display=swap">
+    <style>html,body{background:oklch(0.965 0.012 85);margin:0}</style>
     @vite(['resources/css/menu.css'])
 </head>
 <body>
 
+    {{-- Inline icon sprite — only symbols referenced on this page --}}
+    {!! $iconSprite !!}
+
+    {{-- Grain overlay --}}
+    <div class="grain" aria-hidden="true"></div>
+
     {{-- Navbar --}}
+    @php
+        $localeMenu = [
+            ['code' => 'vi', 'label' => 'Tiếng Việt', 'flag' => "\u{1F1FB}\u{1F1F3}"],
+            ['code' => 'en', 'label' => 'English',    'flag' => "\u{1F1EC}\u{1F1E7}"],
+            ['code' => 'ru', 'label' => 'Русский',    'flag' => "\u{1F1F7}\u{1F1FA}"],
+            ['code' => 'zh', 'label' => '中文',        'flag' => "\u{1F1E8}\u{1F1F3}"],
+            ['code' => 'ko', 'label' => '한국어',      'flag' => "\u{1F1F0}\u{1F1F7}"],
+            ['code' => 'fr', 'label' => 'Français',   'flag' => "\u{1F1EB}\u{1F1F7}"],
+            ['code' => 'es', 'label' => 'Español',    'flag' => "\u{1F1EA}\u{1F1F8}"],
+            ['code' => 'de', 'label' => 'Deutsch',    'flag' => "\u{1F1E9}\u{1F1EA}"],
+        ];
+        $currentLocale = collect($localeMenu)->firstWhere('code', $lang)
+            ?? collect($localeMenu)->firstWhere('code', $primaryLang)
+            ?? $localeMenu[1];
+        $menuIdentifier = $restaurant->uniqid ?? $restaurant->id;
+    @endphp
     <nav class="navbar" aria-label="Main navigation">
-        <div class="container flex-between">
-            <div class="flex gap-sm">
-                <div>
-                    <h1 class="restaurant-name">
-                        {{ $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu' }}
-                    </h1>
-                </div>
+        <div class="container nav-row">
+            <div class="brand-group">
+                <span class="brand-name-compact font-display">{{ $restaurantName }}</span>
             </div>
-            <div class="flex gap-xs">
-                @if(count($languages) > 1)
-                    <div class="lang-switcher lang-dropdown" id="lang-switcher">
-                        @php $currentLang = collect($languages)->firstWhere('code', $lang) ?? $languages[0]; @endphp
-                        <button class="lang-current" id="lang-toggle">
-                            <span class="lang-flag">{{ $currentLang['flag'] }}</span>
-                            <span class="lang-arrow">▼</span>
-                        </button>
-                        <div class="lang-menu">
-                            @foreach($languages as $language)
-                                <a href="{{ request()->fullUrlWithQuery(['lang' => $language['code']]) }}"
-                                   class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}">
-                                    <span class="lang-flag">{{ $language['flag'] }}</span>
-                                    <span>{{ $language['label'] }}</span>
-                                </a>
-                            @endforeach
-                        </div>
+            <div class="nav-ctrls">
+                <div class="lang-switcher lang-dropdown" id="lang-switcher">
+                    <button class="lang-current" id="lang-toggle" aria-label="Language" aria-haspopup="listbox">
+                        <span class="lang-flag">{{ $currentLocale['flag'] }}</span>
+                        <span class="lang-code">{{ strtoupper($currentLocale['code']) }}</span>
+                        <svg class="lang-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
+                    </button>
+                    <div class="lang-menu" role="listbox">
+                        @foreach($localeMenu as $language)
+                            <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $language['code']]) }}"
+                               class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}"
+                               role="option"
+                               aria-selected="{{ $language['code'] === $lang ? 'true' : 'false' }}">
+                                <span class="lang-flag">{{ $language['flag'] }}</span>
+                                <span class="lang-name">{{ $language['label'] }}</span>
+                                <span class="lang-code-tag">{{ strtoupper($language['code']) }}</span>
+                            </a>
+                        @endforeach
                     </div>
-                @endif
+                </div>
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
                     <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </button>
@@ -47,9 +78,38 @@
         </div>
     </nav>
 
+    {{-- Hero --}}
+    <header id="top" class="hero container">
+        <article class="hero-card">
+            <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
+            <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
+            <div class="hero-inner">
+                <span class="eyebrow">
+                    <span class="eyebrow-dot"></span>
+                    <span>Menu</span>
+                    @if($restaurant->city)
+                        <span class="eyebrow-sep">·</span>
+                        <span>{{ $restaurant->city }}</span>
+                    @endif
+                    <span class="eyebrow-sep">·</span>
+                    <span>{{ strtoupper($restaurant->currency ?? 'USD') }}</span>
+                </span>
+                <h1 class="hero-title font-display">{{ $restaurantName }}</h1>
+                @if($sectionCount > 0)
+                <div class="hero-meta">
+                    <span class="hero-stat"><strong class="tabular">{{ $sectionCount }}</strong> {{ $sectionCount === 1 ? 'section' : 'sections' }}</span>
+                    <span class="hero-sep" aria-hidden="true">·</span>
+                    <span class="hero-stat"><strong class="tabular">{{ $itemCount }}</strong> {{ $itemCount === 1 ? 'dish' : 'dishes' }}</span>
+                </div>
+                @endif
+            </div>
+        </article>
+    </header>
+
     {{-- Search --}}
-    <div class="container" style="padding-top:.75rem;padding-bottom:.5rem">
-        <div id="search">
+    <div class="container search-wrap">
+        <div id="search" class="search-field">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="search-input" class="search-input" placeholder="{{ $uiStrings['search'] }}">
         </div>
     </div>
@@ -58,7 +118,7 @@
     @if($menu && $menu->sections->isNotEmpty())
         <div class="tabs-wrapper tabs-sticky">
             <div class="container">
-                <div id="tabs" class="tabs">
+                <div id="tabs" class="tabs" role="tablist">
                     <button class="tab tab-active" data-cat="all">{{ $uiStrings['all'] }}</button>
                     @foreach($menu->sections as $section)
                         <button class="tab" data-cat="{{ $section->id }}">
@@ -71,21 +131,27 @@
     @endif
 
     {{-- Menu Content --}}
-    <main class="container" style="padding-top:1rem;padding-bottom:1rem">
+    <main class="container menu-main">
         <div id="menu">
             @if($menu)
                 @foreach($menu->sections as $section)
+                    @php
+                        $sectionName = $section->translate('name', $lang) ?? $section->name ?? '';
+                    @endphp
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
-                        <h2 class="category-title">
-                            @if($section->category_icon)
-                                <svg class="category-icon" width="24" height="24" aria-hidden="true"><use href="/icons/food-icons.svg#{{ $section->category_icon }}"></use></svg>
-                            @endif
-                            {{ $section->translate('name', $lang) ?? $section->name ?? '' }}
-                        </h2>
+                        <header class="category-header">
+                            <h2 class="category-title font-display">
+                                @if($section->category_icon)
+                                    <svg class="category-icon" width="28" height="28" aria-hidden="true"><use href="#{{ $section->category_icon }}"></use></svg>
+                                @endif
+                                <span>{{ $sectionName }}</span>
+                            </h2>
+                        </header>
                         <div class="menu-grid">
                             @foreach($section->items as $item)
                                 @php
                                     $itemName = $item->translate('name', $lang) ?? $item->name ?? '';
+                                    $itemDesc = $item->translate('description', $lang);
 
                                     if ($item->variations->isNotEmpty()) {
                                         $firstOpt = $item->variations->first()->options->first();
@@ -99,20 +165,38 @@
                                     $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
                                     $hasOptions = $item->optionGroups->isNotEmpty();
                                 @endphp
-                                <div class="menu-card" data-item-id="{{ $item->id }}">
+                                <article class="menu-card{{ $item->image ? ' menu-card--image' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}">
                                     @if($item->image)
-                                    <div class="menu-card-visual">
-                                        <img src="{{ $item->thumb_url }}"
-                                             srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 800w"
-                                             sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
-                                             alt="" class="menu-card__image" loading="lazy">
-                                    </div>
+                                        <div class="menu-card-visual">
+                                            <img src="{{ $item->thumb_url }}"
+                                                 srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 800w"
+                                                 sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
+                                                 alt="" class="menu-card__image" loading="lazy">
+                                        </div>
+                                    @else
+                                        <div class="menu-card-visual menu-card-visual--empty" aria-hidden="true">
+                                            @if($section->category_icon)
+                                                <svg class="menu-card-icon-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ $section->category_icon }}"></use></svg>
+                                            @else
+                                                <span class="menu-card-monogram font-display">{{ mb_substr($itemName, 0, 1) }}</span>
+                                            @endif
+                                        </div>
                                     @endif
                                     <div class="menu-card-body">
                                         <h3 class="menu-card-name">{{ $itemName }}</h3>
-                                        <span class="menu-card-price">{{ number_format($displayPrice, 0, '', '.') }}{{ $currencySymbol }}</span>
+                                        @if($itemDesc)
+                                            <p class="menu-card-desc">{{ \Illuminate\Support\Str::limit($itemDesc, 90, '…') }}</p>
+                                        @endif
+                                        <div class="menu-card-foot">
+                                            <span class="menu-card-price tabular">{{ number_format($displayPrice, 0, '', ' ') }}<span class="menu-card-currency">{{ $currencySymbol }}</span></span>
+                                            @if($hasVariants || $hasOptions)
+                                                <span class="menu-card-hint" aria-hidden="true">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
+                                </article>
                             @endforeach
                         </div>
                     </section>
@@ -125,8 +209,9 @@
         </div>
     </main>
 
-    <footer id="footer" class="container text-center text-muted text-sm" style="padding:2rem 1rem">
-        <p>{{ $uiStrings['powered'] }}</p>
+    <footer id="footer" class="container menu-footer">
+        <div class="footer-ornament" aria-hidden="true"></div>
+        <p class="text-muted">{{ $uiStrings['powered'] }}</p>
     </footer>
 
     {{-- Overlay --}}
@@ -159,7 +244,16 @@
         window.__UI__ = @json($uiStrings);
         window.__CONFIG__ = @json($config);
     </script>
-    <script src="/icons/vanilla.js" data-src="/icons/food-icons.svg"></script>
     <script src="/js/menu.js"></script>
+    <script>
+        (function () {
+            var hero = document.querySelector('.hero');
+            if (!hero || !('IntersectionObserver' in window)) return;
+            var io = new IntersectionObserver(function (entries) {
+                document.body.classList.toggle('scrolled', !entries[0].isIntersecting);
+            }, { rootMargin: '-24px 0px 0px 0px', threshold: 0 });
+            io.observe(hero);
+        })();
+    </script>
 </body>
 </html>
