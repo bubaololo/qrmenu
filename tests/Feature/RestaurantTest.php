@@ -114,6 +114,56 @@ class RestaurantTest extends TestCase
     }
 
     #[Test]
+    public function test_update_saves_google_maps_url_and_coordinates(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/restaurants/{$restaurant->id}", [
+                'google_maps_url' => 'https://maps.google.com/?q=test',
+                'coordinates' => ['lat' => 51.5074, 'lng' => -0.1278],
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.attributes.google_maps_url', 'https://maps.google.com/?q=test')
+            ->assertJsonPath('data.attributes.coordinates.lat', 51.5074)
+            ->assertJsonPath('data.attributes.coordinates.lng', -0.1278);
+
+        $restaurant->refresh();
+        $this->assertSame('https://maps.google.com/?q=test', $restaurant->google_maps_url);
+        $this->assertEqualsWithDelta(51.5074, $restaurant->coordinates['lat'], 0.0001);
+        $this->assertEqualsWithDelta(-0.1278, $restaurant->coordinates['lng'], 0.0001);
+    }
+
+    #[Test]
+    public function test_restaurant_resource_includes_new_attributes(): void
+    {
+        $restaurant = Restaurant::factory()->create([
+            'google_maps_url' => 'https://maps.google.com/?q=test',
+        ]);
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->getJson("/api/v1/restaurants/{$restaurant->id}")
+            ->assertStatus(200)
+            ->assertJsonStructure(['data' => ['attributes' => [
+                'logo_url', 'logo_thumb_url', 'google_maps_url', 'coordinates',
+            ]]]);
+    }
+
+    #[Test]
+    public function test_coordinates_can_be_nulled(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/restaurants/{$restaurant->id}", ['coordinates' => null])
+            ->assertStatus(200)
+            ->assertJsonPath('data.attributes.coordinates', null);
+    }
+
+    #[Test]
     public function test_active_menus_omits_restaurants_without_active_menu(): void
     {
         $restaurant = Restaurant::factory()->create();

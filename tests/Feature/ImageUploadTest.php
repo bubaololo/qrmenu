@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessImageJob;
+use App\Models\Hall;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
@@ -85,6 +86,94 @@ class ImageUploadTest extends TestCase
         $this->assertNull($restaurant->fresh()->image);
         Storage::disk('public')->assertMissing('restaurants/test.webp');
         Storage::disk('public')->assertMissing('restaurants/test_thumb.webp');
+    }
+
+    #[Test]
+    public function test_restaurant_logo_upload_dispatches_job(): void
+    {
+        Queue::fake();
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->post("/api/v1/restaurants/{$restaurant->id}/logo", [
+                'image' => UploadedFile::fake()->create('logo.png', 50, 'image/png'),
+            ], ['Accept-Language' => ''])
+            ->assertStatus(202)
+            ->assertJsonStructure(['data' => ['image_url', 'thumb_url']]);
+
+        Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === Restaurant::class
+            && $job->modelId === $restaurant->id
+            && $job->fieldName === 'logo');
+    }
+
+    #[Test]
+    public function test_restaurant_logo_delete_removes_files_and_clears_field(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create([
+            'created_by_user_id' => $user->id,
+            'logo' => 'logos/test.webp',
+        ]);
+
+        Storage::disk('public')->put('logos/test.webp', 'fake');
+        Storage::disk('public')->put('logos/test_thumb.webp', 'fake');
+
+        $this->actingAs($user)
+            ->delete("/api/v1/restaurants/{$restaurant->id}/logo", [], ['Accept-Language' => ''])
+            ->assertStatus(204);
+
+        $this->assertNull($restaurant->fresh()->logo);
+        Storage::disk('public')->assertMissing('logos/test.webp');
+        Storage::disk('public')->assertMissing('logos/test_thumb.webp');
+    }
+
+    #[Test]
+    public function test_hall_image_upload_dispatches_job(): void
+    {
+        Queue::fake();
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $this->actingAs($user)
+            ->post("/api/v1/halls/{$hall->id}/image", [
+                'image' => UploadedFile::fake()->create('hall.jpg', 100, 'image/jpeg'),
+            ], ['Accept-Language' => ''])
+            ->assertStatus(202)
+            ->assertJsonStructure(['data' => ['image_url', 'thumb_url']]);
+
+        Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === Hall::class
+            && $job->modelId === $hall->id);
+    }
+
+    #[Test]
+    public function test_hall_image_delete_removes_files_and_clears_field(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id, 'image' => 'halls/test.webp']);
+
+        Storage::disk('public')->put('halls/test.webp', 'fake');
+        Storage::disk('public')->put('halls/test_thumb.webp', 'fake');
+
+        $this->actingAs($user)
+            ->delete("/api/v1/halls/{$hall->id}/image", [], ['Accept-Language' => ''])
+            ->assertStatus(204);
+
+        $this->assertNull($hall->fresh()->image);
+        Storage::disk('public')->assertMissing('halls/test.webp');
+        Storage::disk('public')->assertMissing('halls/test_thumb.webp');
     }
 
     #[Test]

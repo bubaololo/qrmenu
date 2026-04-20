@@ -7,6 +7,7 @@ use App\Enums\PriceType;
 use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
 use App\Models\Restaurant;
+use App\Models\TranslationField;
 use App\Support\MenuJson;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -55,13 +56,13 @@ class SaveMenuAnalysisTest extends TestCase
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
         $this->assertDatabaseHas('translations', [
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Black coffee',
             'is_initial' => true,
         ]);
 
         $this->assertDatabaseHas('translations', [
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Matcha latte',
             'is_initial' => true,
         ]);
@@ -73,7 +74,7 @@ class SaveMenuAnalysisTest extends TestCase
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
         $this->assertDatabaseHas('translations', [
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'TRADITIONAL CAFE',
             'is_initial' => true,
         ]);
@@ -146,7 +147,7 @@ class SaveMenuAnalysisTest extends TestCase
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
         $this->assertDatabaseHas('translations', [
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Amélie Pâtisserie et Café',
             'is_initial' => true,
         ]);

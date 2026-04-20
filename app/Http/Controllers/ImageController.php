@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessImageJob;
+use App\Models\Hall;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Services\ImageProcessor;
@@ -41,6 +42,61 @@ class ImageController extends Controller
         return response()->json(null, 204);
     }
 
+    public function updateRestaurantLogo(Request $request, int $restaurantId): JsonResponse
+    {
+        $request->validate(['image' => ['required', 'image', 'max:10240']]);
+
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        Gate::authorize('update', $restaurant);
+
+        return $this->storeAndDispatch(
+            $request,
+            Restaurant::class,
+            $restaurant->id,
+            config('image.paths.logos'),
+            $restaurant->logo,
+            'logo',
+        );
+    }
+
+    public function deleteRestaurantLogo(Request $request, int $restaurantId): JsonResponse
+    {
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        Gate::authorize('update', $restaurant);
+
+        $this->deleteImageFiles($restaurant->logo);
+        $restaurant->update(['logo' => null]);
+
+        return response()->json(null, 204);
+    }
+
+    public function updateHall(Request $request, int $hallId): JsonResponse
+    {
+        $request->validate(['image' => ['required', 'image', 'max:10240']]);
+
+        $hall = Hall::with('restaurant')->findOrFail($hallId);
+        Gate::authorize('update', $hall->restaurant);
+
+        return $this->storeAndDispatch(
+            $request,
+            Hall::class,
+            $hall->id,
+            config('image.paths.halls'),
+            $hall->image,
+        );
+    }
+
+    public function deleteHall(Request $request, int $hallId): JsonResponse
+    {
+        $hall = Hall::with('restaurant')->findOrFail($hallId);
+        Gate::authorize('update', $hall->restaurant);
+
+        $this->deleteImageFiles($hall->image);
+        $hall->update(['image' => null]);
+
+        return response()->json(null, 204);
+    }
+
     public function updateMenuItem(Request $request, int $itemId): JsonResponse
     {
         $request->validate(['image' => ['required', 'image', 'max:10240']]);
@@ -74,6 +130,7 @@ class ImageController extends Controller
         int $modelId,
         string $targetDir,
         ?string $oldImagePath,
+        string $fieldName = 'image',
     ): JsonResponse {
         $originalsDisk = config('image.originals_disk');
         $disk = config('image.disk');
@@ -85,7 +142,7 @@ class ImageController extends Controller
             $originalsDisk,
         );
 
-        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath);
+        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath, $fieldName);
 
         return response()->json(['data' => [
             'image_url' => Storage::disk($disk)->url("{$targetDir}/{$baseName}.{$format}"),

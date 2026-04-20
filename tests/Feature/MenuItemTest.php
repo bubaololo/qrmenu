@@ -8,6 +8,7 @@ use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
+use App\Models\TranslationField;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -49,7 +50,7 @@ class MenuItemTest extends TestCase
         $this->assertDatabaseHas('translations', [
             'translatable_type' => MenuItem::class,
             'translatable_id' => $itemId,
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Pho Bo',
             'is_initial' => true,
         ]);

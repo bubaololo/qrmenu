@@ -10,6 +10,7 @@ use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
+use App\Models\TranslationField;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,8 +37,9 @@ class MenuTranslationTest extends TestCase
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
 
-        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'vi', 'field' => 'name', 'value' => 'Phở', 'is_initial' => true]);
-        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'en', 'field' => 'name', 'value' => 'Pho', 'is_initial' => false]);
+        $nameFieldId = TranslationField::firstOrCreate(['name' => 'name'])->id;
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'vi', 'field_id' => $nameFieldId, 'value' => 'Phở', 'is_initial' => true]);
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'en', 'field_id' => $nameFieldId, 'value' => 'Pho', 'is_initial' => false]);
 
         $response = $this->actingAs($user)
             ->getJson("/api/v1/menus/{$menu->id}/locales")
@@ -253,7 +255,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuSection::class,
             'translatable_id' => $section->id,
             'locale' => 'en',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Starters',
             'is_initial' => false,
         ]);
@@ -280,7 +282,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
             'locale' => 'en',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Beef Pho',
         ]);
     }
@@ -302,7 +304,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuOptionGroup::class,
             'translatable_id' => $group->id,
             'locale' => 'en',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Toppings',
         ]);
     }
@@ -329,7 +331,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuOptionGroupOption::class,
             'translatable_id' => $option->id,
             'locale' => 'en',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Extra Spicy',
         ]);
     }
@@ -351,7 +353,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
             'locale' => 'vi',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Phở bò',
             'is_initial' => true,
         ]);
@@ -374,7 +376,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
             'locale' => 'vi',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Phở bò',
             'is_initial' => true,
         ]);
@@ -397,7 +399,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
             'locale' => 'en',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Beef Pho',
             'is_initial' => false,
         ]);
@@ -425,7 +427,7 @@ class MenuTranslationTest extends TestCase
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
             'locale' => 'vi',
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Phở bò',
             'is_initial' => true,
         ]);

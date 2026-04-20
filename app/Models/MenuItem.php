@@ -33,6 +33,7 @@ class MenuItem extends Model
         'image_bbox',
         'image',
         'sort_order',
+        'is_active',
     ];
 
     /** Pending translation value to be written after save */
@@ -63,6 +64,7 @@ class MenuItem extends Model
     {
         return [
             'starred' => 'boolean',
+            'is_active' => 'boolean',
             'price_type' => PriceType::class,
             'price_value' => 'decimal:2',
             'price_min' => 'decimal:2',

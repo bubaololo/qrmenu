@@ -19,6 +19,10 @@ class RestaurantResource extends JsonApiResource
         'opening_hours',
         'image_url',
         'thumb_url',
+        'logo_url',
+        'logo_thumb_url',
+        'google_maps_url',
+        'coordinates',
     ];
 
     /** @var array<int, string> */

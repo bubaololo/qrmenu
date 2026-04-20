@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Gate;
 class MenuSectionController extends Controller
 {
     use ResolvesLocale;
+
     /**
      * Create a section in a menu.
      */
@@ -29,6 +30,8 @@ class MenuSectionController extends Controller
         $section = MenuSection::create([
             'menu_id' => $menu->id,
             'sort_order' => $validated['sort_order'] ?? 0,
+            'icon_id' => $validated['icon_id'] ?? null,
+            'is_active' => $validated['is_active'] ?? true,
         ]);
 
         $locale = $menu->source_locale ?? 'und';

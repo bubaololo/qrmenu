@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\DiningTables\DiningTableController;
+use App\Http\Controllers\Halls\HallController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
 use App\Http\Controllers\Menus\MenuController;
@@ -48,6 +50,20 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
     Route::get('/restaurants/{restaurant}/qr', [RestaurantController::class, 'qr']);
 
+    // Halls
+    Route::get('/restaurants/{restaurant}/halls', [HallController::class, 'index']);
+    Route::post('/restaurants/{restaurant}/halls', [HallController::class, 'store']);
+    Route::get('/halls/{hall}', [HallController::class, 'show']);
+    Route::put('/halls/{hall}', [HallController::class, 'update']);
+    Route::delete('/halls/{hall}', [HallController::class, 'destroy']);
+
+    // Dining Tables
+    Route::get('/halls/{hall}/tables', [DiningTableController::class, 'index']);
+    Route::post('/halls/{hall}/tables', [DiningTableController::class, 'store']);
+    Route::get('/dining-tables/{diningTable}', [DiningTableController::class, 'show']);
+    Route::put('/dining-tables/{diningTable}', [DiningTableController::class, 'update']);
+    Route::delete('/dining-tables/{diningTable}', [DiningTableController::class, 'destroy']);
+
     // Menus
     Route::get('/restaurants/{restaurant}/menus', [MenuController::class, 'index']);
     Route::post('/restaurants/{restaurant}/menus', [MenuController::class, 'store']);
@@ -86,6 +102,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     // Images
     Route::post('/restaurants/{restaurantId}/image', [ImageController::class, 'updateRestaurant']);
     Route::delete('/restaurants/{restaurantId}/image', [ImageController::class, 'deleteRestaurant']);
+    Route::post('/restaurants/{restaurantId}/logo', [ImageController::class, 'updateRestaurantLogo']);
+    Route::delete('/restaurants/{restaurantId}/logo', [ImageController::class, 'deleteRestaurantLogo']);
+    Route::post('/halls/{hallId}/image', [ImageController::class, 'updateHall']);
+    Route::delete('/halls/{hallId}/image', [ImageController::class, 'deleteHall']);
     Route::post('/menu-items/{itemId}/image', [ImageController::class, 'updateMenuItem']);
     Route::delete('/menu-items/{itemId}/image', [ImageController::class, 'deleteMenuItem']);
 });

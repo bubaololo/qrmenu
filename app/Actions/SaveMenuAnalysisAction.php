@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\PriceType;
+use App\Models\Icon;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
@@ -210,9 +211,10 @@ class SaveMenuAnalysisAction
      */
     private function createSection(Menu $menu, array $sectionData, int $sortOrder, int $imageOffset, ?string $sourceLocale): void
     {
+        $iconName = $this->validateIconName($sectionData['category_icon'] ?? null);
         $section = $menu->sections()->create([
             'sort_order' => $sortOrder,
-            'category_icon' => $this->validateIcon($sectionData['category_icon'] ?? null),
+            'icon_id' => $iconName !== null ? Icon::firstOrCreate(['name' => $iconName])->id : null,
         ]);
 
         $locale = $sourceLocale ?? 'und';
@@ -347,7 +349,7 @@ class SaveMenuAnalysisAction
         }
     }
 
-    private function validateIcon(mixed $raw): ?string
+    private function validateIconName(mixed $raw): ?string
     {
         if (! is_string($raw) || $raw === '') {
             return null;

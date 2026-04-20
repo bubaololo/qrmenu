@@ -27,6 +27,7 @@ class StoreMenuItemRequest extends FormRequest
             'price_unit' => ['nullable', 'string', 'max:50'],
             'price_original_text' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -39,6 +39,7 @@ class MenuController extends Controller
 
         $menu->load([
             'restaurant',
+            'sections.icon',
             'sections.translations',
             'sections.items.translations',
             'sections.items.optionGroups.translations',

@@ -32,13 +32,17 @@ class FullMenuResource extends JsonResource
             'sections' => $this->sections->map(fn ($section) => [
                 'id' => $section->id,
                 'name' => $section->translate('name', $locale),
-                'category_icon' => $section->category_icon,
+                'icon' => $section->icon
+                    ? ['id' => $section->icon->id, 'name' => $section->icon->name, 'svg' => $section->icon->svg]
+                    : null,
+                'is_active' => $section->is_active,
                 'sort_order' => $section->sort_order,
                 'items' => $section->items->map(fn ($item) => [
                     'id' => $item->id,
                     'name' => $item->translate('name', $locale),
                     'description' => $item->translate('description', $locale),
                     'starred' => $item->starred,
+                    'is_active' => $item->is_active,
                     'price_type' => $item->price_type?->value,
                     'price_value' => $item->price_value,
                     'price_min' => $item->price_min,

@@ -8,6 +8,7 @@ use App\Models\MenuOptionGroup;
 use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
+use App\Models\TranslationField;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -48,7 +49,7 @@ class MenuOptionGroupOptionTest extends TestCase
         $this->assertDatabaseHas('translations', [
             'translatable_type' => MenuOptionGroupOption::class,
             'translatable_id' => $optionId,
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Extra Spicy',
         ]);
     }

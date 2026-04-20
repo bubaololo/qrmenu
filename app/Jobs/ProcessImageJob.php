@@ -25,6 +25,7 @@ class ProcessImageJob implements ShouldQueue
         public string $targetDir,
         public string $baseName,
         public ?string $oldImagePath = null,
+        public string $fieldName = 'image',
     ) {}
 
     public function handle(ImageProcessor $processor): void
@@ -49,7 +50,7 @@ class ProcessImageJob implements ShouldQueue
             );
 
             $model = $this->modelClass::findOrFail($this->modelId);
-            $model->update(['image' => $mainPath]);
+            $model->update([$this->fieldName => $mainPath]);
 
             Storage::disk($originalsDisk)->delete($this->tempPath);
 

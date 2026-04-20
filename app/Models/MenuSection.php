@@ -22,7 +22,8 @@ class MenuSection extends Model
     protected $fillable = [
         'menu_id',
         'sort_order',
-        'category_icon',
+        'icon_id',
+        'is_active',
     ];
 
     /** Pending translation value to be written after save */
@@ -43,6 +44,7 @@ class MenuSection extends Model
     {
         return [
             'sort_order' => 'integer',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -59,6 +61,11 @@ class MenuSection extends Model
     public function menu(): BelongsTo
     {
         return $this->belongsTo(Menu::class);
+    }
+
+    public function icon(): BelongsTo
+    {
+        return $this->belongsTo(Icon::class);
     }
 
     public function items(): HasMany

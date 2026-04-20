@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Restaurants;
 use App\Filament\Resources\Restaurants\Pages\CreateRestaurant;
 use App\Filament\Resources\Restaurants\Pages\EditRestaurant;
 use App\Filament\Resources\Restaurants\Pages\ListRestaurants;
+use App\Filament\Resources\Restaurants\RelationManagers\HallsRelationManager;
 use App\Filament\Resources\Restaurants\RelationManagers\MenusRelationManager;
 use App\Filament\Resources\Restaurants\RelationManagers\StaffRelationManager;
 use App\Filament\Resources\Restaurants\Schemas\RestaurantForm;
@@ -39,6 +40,7 @@ class RestaurantResource extends Resource
         return [
             MenusRelationManager::class,
             StaffRelationManager::class,
+            HallsRelationManager::class,
         ];
     }
 

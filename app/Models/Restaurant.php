@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PointCast;
 use App\Enums\RestaurantUserRole;
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\RestaurantFactory;
@@ -33,7 +34,7 @@ class Restaurant extends Model
     }
 
     /** @var array<int, string> */
-    protected $appends = ['name', 'address', 'image_url', 'thumb_url'];
+    protected $appends = ['name', 'address', 'image_url', 'thumb_url', 'logo_url', 'logo_thumb_url'];
 
     protected $fillable = [
         'created_by_user_id',
@@ -44,6 +45,9 @@ class Restaurant extends Model
         'primary_language',
         'opening_hours',
         'image',
+        'logo',
+        'google_maps_url',
+        'coordinates',
     ];
 
     public function getNameAttribute(): ?string
@@ -75,10 +79,30 @@ class Restaurant extends Model
         return Storage::disk(config('image.disk'))->url($thumb);
     }
 
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo
+            ? Storage::disk(config('image.disk'))->url($this->logo)
+            : null;
+    }
+
+    public function getLogoThumbUrlAttribute(): ?string
+    {
+        if (! $this->logo) {
+            return null;
+        }
+
+        $ext = pathinfo($this->logo, PATHINFO_EXTENSION);
+        $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->logo);
+
+        return Storage::disk(config('image.disk'))->url($thumb);
+    }
+
     protected function casts(): array
     {
         return [
             'opening_hours' => 'array',
+            'coordinates' => PointCast::class,
         ];
     }
 
@@ -113,5 +137,10 @@ class Restaurant extends Model
     public function owners(): BelongsToMany
     {
         return $this->users()->wherePivot('role', RestaurantUserRole::Owner->value);
+    }
+
+    public function halls(): HasMany
+    {
+        return $this->hasMany(Hall::class)->orderBy('sort_order');
     }
 }

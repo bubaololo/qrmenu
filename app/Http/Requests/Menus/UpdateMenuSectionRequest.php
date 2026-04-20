@@ -17,6 +17,8 @@ class UpdateMenuSectionRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'icon_id' => ['sometimes', 'nullable', 'integer', 'exists:icons,id'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

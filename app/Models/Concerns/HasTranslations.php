@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Models\Translation;
+use App\Models\TranslationField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -33,11 +34,11 @@ trait HasTranslations
     public function initialText(string $field): ?string
     {
         if ($this->relationLoaded('initialTranslations')) {
-            return $this->initialTranslations->first(fn (Translation $t) => $t->field === $field)?->value;
+            return $this->initialTranslations->first(fn (Translation $t) => $t->field_id === static::resolveFieldId($field))?->value;
         }
 
         return $this->translations()
-            ->where('field', $field)
+            ->where('field_id', static::resolveFieldId($field))
             ->where('is_initial', true)
             ->value('value');
     }
@@ -53,19 +54,19 @@ trait HasTranslations
         $loaded = $this->relationLoaded('translations') ? $this->translations : collect();
 
         if ($loaded->isNotEmpty()) {
-            $match = $loaded->first(fn (Translation $t) => $t->locale === $locale && $t->field === $field);
+            $match = $loaded->first(fn (Translation $t) => $t->locale === $locale && $t->field_id === static::resolveFieldId($field));
             if ($match) {
                 return $match->value;
             }
 
             // Fallback: return any initial translation for this field
-            return $loaded->first(fn (Translation $t) => $t->field === $field && $t->is_initial)?->value;
+            return $loaded->first(fn (Translation $t) => $t->field_id === static::resolveFieldId($field) && $t->is_initial)?->value;
         }
 
         // Not eager-loaded: query the DB directly
         $match = $this->translations()
             ->where('locale', $locale)
-            ->where('field', $field)
+            ->where('field_id', static::resolveFieldId($field))
             ->value('value');
 
         if ($match !== null) {
@@ -74,7 +75,7 @@ trait HasTranslations
 
         // Fallback to any initial
         return $this->translations()
-            ->where('field', $field)
+            ->where('field_id', static::resolveFieldId($field))
             ->where('is_initial', true)
             ->value('value');
     }
@@ -102,14 +103,14 @@ trait HasTranslations
         // Only one initial allowed per (type, id, field) — remove old if replacing
         if ($isInitial) {
             $this->translations()
-                ->where('field', $field)
+                ->where('field_id', static::resolveFieldId($field))
                 ->where('is_initial', true)
                 ->where('locale', '!=', $locale)
                 ->delete();
         }
 
         $this->translations()->updateOrCreate(
-            ['locale' => $locale, 'field' => $field],
+            ['locale' => $locale, 'field_id' => static::resolveFieldId($field)],
             ['value' => $value, 'is_initial' => $isInitial],
         );
     }
@@ -122,10 +123,15 @@ trait HasTranslations
     public function allTranslations(): array
     {
         $result = [];
-        foreach ($this->translations()->get() as $t) {
-            $result[$t->field][$t->locale] = $t->value;
+        foreach ($this->translations()->with('translationField')->get() as $t) {
+            $result[$t->translationField->name][$t->locale] = $t->value;
         }
 
         return $result;
+    }
+
+    private static function resolveFieldId(string $name): int
+    {
+        return TranslationField::firstOrCreate(['name' => $name])->id;
     }
 }

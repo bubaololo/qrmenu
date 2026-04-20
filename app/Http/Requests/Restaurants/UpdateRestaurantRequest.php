@@ -29,6 +29,10 @@ class UpdateRestaurantRequest extends FormRequest
             'opening_hours.periods.*.days' => ['required_with:opening_hours.periods', 'array'],
             'opening_hours.periods.*.open' => ['required_with:opening_hours.periods', 'string', 'date_format:H:i'],
             'opening_hours.periods.*.close' => ['required_with:opening_hours.periods', 'string', 'date_format:H:i'],
+            'google_maps_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'coordinates' => ['sometimes', 'nullable', 'array'],
+            'coordinates.lat' => ['required_with:coordinates', 'numeric', 'between:-90,90'],
+            'coordinates.lng' => ['required_with:coordinates', 'numeric', 'between:-180,180'],
         ];
     }
 }

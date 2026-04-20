@@ -6,6 +6,7 @@ use App\Enums\RestaurantUserRole;
 use App\Models\Menu;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
+use App\Models\TranslationField;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -43,7 +44,7 @@ class MenuSectionTest extends TestCase
         $this->assertDatabaseHas('translations', [
             'translatable_type' => MenuSection::class,
             'translatable_id' => $sectionId,
-            'field' => 'name',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
             'value' => 'Starters',
             'is_initial' => true,
         ]);

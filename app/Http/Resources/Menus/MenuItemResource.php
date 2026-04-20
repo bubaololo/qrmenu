@@ -15,6 +15,7 @@ class MenuItemResource extends JsonApiResource
         'name',
         'description',
         'starred',
+        'is_active',
         'price_type',
         'price_value',
         'price_min',
