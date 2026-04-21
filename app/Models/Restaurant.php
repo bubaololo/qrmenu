@@ -139,8 +139,8 @@ class Restaurant extends Model
         return $this->users()->wherePivot('role', RestaurantUserRole::Owner->value);
     }
 
-    public function halls(): HasMany
+    public function zones(): HasMany
     {
-        return $this->hasMany(Hall::class)->orderBy('sort_order');
+        return $this->hasMany(Zone::class)->orderBy('sort_order');
     }
 }

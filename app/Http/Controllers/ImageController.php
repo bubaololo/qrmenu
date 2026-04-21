@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessImageJob;
-use App\Models\Hall;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
+use App\Models\Zone;
 use App\Services\ImageProcessor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,29 +70,29 @@ class ImageController extends Controller
         return response()->json(null, 204);
     }
 
-    public function updateHall(Request $request, int $hallId): JsonResponse
+    public function updateZone(Request $request, int $zoneId): JsonResponse
     {
         $request->validate(['image' => ['required', 'image', 'max:10240']]);
 
-        $hall = Hall::with('restaurant')->findOrFail($hallId);
-        Gate::authorize('update', $hall->restaurant);
+        $zone = Zone::with('restaurant')->findOrFail($zoneId);
+        Gate::authorize('update', $zone->restaurant);
 
         return $this->storeAndDispatch(
             $request,
-            Hall::class,
-            $hall->id,
-            config('image.paths.halls'),
-            $hall->image,
+            Zone::class,
+            $zone->id,
+            config('image.paths.zones'),
+            $zone->image,
         );
     }
 
-    public function deleteHall(Request $request, int $hallId): JsonResponse
+    public function deleteZone(Request $request, int $zoneId): JsonResponse
     {
-        $hall = Hall::with('restaurant')->findOrFail($hallId);
-        Gate::authorize('update', $hall->restaurant);
+        $zone = Zone::with('restaurant')->findOrFail($zoneId);
+        Gate::authorize('update', $zone->restaurant);
 
-        $this->deleteImageFiles($hall->image);
-        $hall->update(['image' => null]);
+        $this->deleteImageFiles($zone->image);
+        $zone->update(['image' => null]);
 
         return response()->json(null, 204);
     }

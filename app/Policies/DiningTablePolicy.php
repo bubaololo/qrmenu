@@ -3,24 +3,24 @@
 namespace App\Policies;
 
 use App\Models\DiningTable;
-use App\Models\Hall;
 use App\Models\User;
+use App\Models\Zone;
 
 class DiningTablePolicy
 {
-    public function create(User $user, Hall $hall): bool
+    public function create(User $user, Zone $zone): bool
     {
-        return $hall->restaurant->owners()->where('user_id', $user->id)->exists();
+        return $zone->restaurant->owners()->where('user_id', $user->id)->exists();
     }
 
     public function view(User $user, DiningTable $diningTable): bool
     {
-        return $diningTable->hall->restaurant->users()->where('user_id', $user->id)->exists();
+        return $diningTable->zone->restaurant->users()->where('user_id', $user->id)->exists();
     }
 
     public function update(User $user, DiningTable $diningTable): bool
     {
-        return $diningTable->hall->restaurant->owners()->where('user_id', $user->id)->exists();
+        return $diningTable->zone->restaurant->owners()->where('user_id', $user->id)->exists();
     }
 
     public function delete(User $user, DiningTable $diningTable): bool

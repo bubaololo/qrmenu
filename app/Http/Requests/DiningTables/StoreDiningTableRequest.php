@@ -18,7 +18,7 @@ class StoreDiningTableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'number' => ['required', 'integer', 'min:1'],
+            'number' => ['required', 'integer', 'min:1', Rule::unique('dining_tables')->where('zone_id', $this->route('zone')?->id)],
             'capacity' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'shape' => ['sometimes', Rule::enum(DiningTableShape::class)],
             'x' => ['sometimes', 'nullable', 'numeric'],

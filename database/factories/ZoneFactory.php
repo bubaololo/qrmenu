@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\Hall;
 use App\Models\Restaurant;
+use App\Models\Zone;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Hall>
+ * @extends Factory<Zone>
  */
-class HallFactory extends Factory
+class ZoneFactory extends Factory
 {
     public function definition(): array
     {

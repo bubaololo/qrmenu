@@ -9,7 +9,9 @@ use App\Http\Requests\Menus\UpdateMenuRequest;
 use App\Http\Resources\Menus\FullMenuResource;
 use App\Http\Resources\Menus\MenuResource;
 use App\Models\Menu;
+use App\Models\MenuItem;
 use App\Models\Restaurant;
+use App\Models\Translation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -108,6 +110,41 @@ class MenuController extends Controller
         $menu->activate();
 
         return new MenuResource($menu->fresh());
+    }
+
+    /**
+     * Search menu items across all translations.
+     */
+    public function search(Request $request, Menu $menu): JsonResponse
+    {
+        Gate::authorize('view', $menu);
+
+        $q = trim($request->string('q'));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $matchedIds = Translation::query()
+            ->where('translatable_type', MenuItem::class)
+            ->where('value', 'ilike', "%{$q}%")
+            ->distinct()
+            ->pluck('translatable_id');
+
+        $items = MenuItem::whereIn('id', $matchedIds)
+            ->whereHas('section', fn ($query) => $query->where('menu_id', $menu->id))
+            ->with(['initialTranslations', 'section.initialTranslations'])
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'data' => $items->map(fn (MenuItem $item) => [
+                'id' => $item->id,
+                'name' => $item->name,
+                'section_id' => $item->section_id,
+                'section_name' => $item->section->name,
+                'price' => $item->price_original_text,
+            ]),
+        ]);
     }
 
     /**

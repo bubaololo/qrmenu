@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Halls;
+namespace App\Http\Requests\Zones;
 
-use App\Data\HallData;
+use App\Data\ZoneData;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreHallRequest extends FormRequest
+class UpdateZoneRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -23,15 +23,15 @@ class StoreHallRequest extends FormRequest
         ];
     }
 
-    public function toData(): HallData
+    public function toData(): ZoneData
     {
         $validated = $this->validated();
 
-        return new HallData(
+        return new ZoneData(
             name: $validated['name'],
-            color: $validated['color'] ?? '#6B7280',
-            sort_order: $validated['sort_order'] ?? 0,
-            is_active: $validated['is_active'] ?? true,
+            color: $validated['color'] ?? $this->route('zone')->color,
+            sort_order: $validated['sort_order'] ?? $this->route('zone')->sort_order,
+            is_active: $validated['is_active'] ?? $this->route('zone')->is_active,
         );
     }
 }

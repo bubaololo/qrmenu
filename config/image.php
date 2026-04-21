@@ -9,7 +9,7 @@ return [
     'paths' => [
         'restaurants' => 'restaurants',
         'logos' => 'logos',
-        'halls' => 'halls',
+        'zones' => 'zones',
         'menu_items' => 'menu-items',
         'qrcodes' => 'qrcodes',
         'originals' => 'originals',

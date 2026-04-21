@@ -18,7 +18,7 @@ class UpdateDiningTableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'number' => ['sometimes', 'integer', 'min:1'],
+            'number' => ['sometimes', 'integer', 'min:1', Rule::unique('dining_tables')->where('zone_id', $this->route('diningTable')?->zone_id)->ignore($this->route('diningTable'))],
             'capacity' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'shape' => ['sometimes', Rule::enum(DiningTableShape::class)],
             'x' => ['sometimes', 'nullable', 'numeric'],
@@ -39,7 +39,7 @@ class UpdateDiningTableRequest extends FormRequest
         return new DiningTableData(
             number: $validated['number'] ?? $table->number,
             capacity: $validated['capacity'] ?? $table->capacity,
-            shape: DiningTableShape::from($validated['shape'] ?? $table->shape->value),
+            shape: DiningTableShape::from($validated['shape'] ?? $table->shape),
             x: array_key_exists('x', $validated) ? $validated['x'] : $table->x,
             y: array_key_exists('y', $validated) ? $validated['y'] : $table->y,
             width: array_key_exists('width', $validated) ? $validated['width'] : $table->width,

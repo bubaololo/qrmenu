@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessImageJob;
-use App\Models\Hall;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -134,7 +134,7 @@ class ImageUploadTest extends TestCase
     }
 
     #[Test]
-    public function test_hall_image_upload_dispatches_job(): void
+    public function test_zone_image_upload_dispatches_job(): void
     {
         Queue::fake();
         Storage::fake('public');
@@ -142,38 +142,38 @@ class ImageUploadTest extends TestCase
 
         $user = User::factory()->create();
         $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id]);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id]);
 
         $this->actingAs($user)
-            ->post("/api/v1/halls/{$hall->id}/image", [
-                'image' => UploadedFile::fake()->create('hall.jpg', 100, 'image/jpeg'),
+            ->post("/api/v1/zones/{$zone->id}/image", [
+                'image' => UploadedFile::fake()->create('zone.jpg', 100, 'image/jpeg'),
             ], ['Accept-Language' => ''])
             ->assertStatus(202)
             ->assertJsonStructure(['data' => ['image_url', 'thumb_url']]);
 
-        Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === Hall::class
-            && $job->modelId === $hall->id);
+        Queue::assertPushed(ProcessImageJob::class, fn ($job) => $job->modelClass === Zone::class
+            && $job->modelId === $zone->id);
     }
 
     #[Test]
-    public function test_hall_image_delete_removes_files_and_clears_field(): void
+    public function test_zone_image_delete_removes_files_and_clears_field(): void
     {
         Storage::fake('public');
 
         $user = User::factory()->create();
         $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id, 'image' => 'halls/test.webp']);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id, 'image' => 'zones/test.webp']);
 
-        Storage::disk('public')->put('halls/test.webp', 'fake');
-        Storage::disk('public')->put('halls/test_thumb.webp', 'fake');
+        Storage::disk('public')->put('zones/test.webp', 'fake');
+        Storage::disk('public')->put('zones/test_thumb.webp', 'fake');
 
         $this->actingAs($user)
-            ->delete("/api/v1/halls/{$hall->id}/image", [], ['Accept-Language' => ''])
+            ->delete("/api/v1/zones/{$zone->id}/image", [], ['Accept-Language' => ''])
             ->assertStatus(204);
 
-        $this->assertNull($hall->fresh()->image);
-        Storage::disk('public')->assertMissing('halls/test.webp');
-        Storage::disk('public')->assertMissing('halls/test_thumb.webp');
+        $this->assertNull($zone->fresh()->image);
+        Storage::disk('public')->assertMissing('zones/test.webp');
+        Storage::disk('public')->assertMissing('zones/test_thumb.webp');
     }
 
     #[Test]

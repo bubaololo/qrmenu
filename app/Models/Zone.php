@@ -3,16 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
-use Database\Factories\HallFactory;
+use Database\Factories\ZoneFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
-class Hall extends Model
+class Zone extends Model
 {
-    /** @use HasFactory<HallFactory> */
+    /** @use HasFactory<ZoneFactory> */
     use HasFactory;
 
     use HasTranslations;
@@ -28,15 +28,14 @@ class Hall extends Model
         'image',
     ];
 
-    /** Pending translation value to be written after save */
     protected ?string $pendingName = null;
 
     protected static function booted(): void
     {
-        static::saved(function (Hall $hall) {
-            if ($hall->pendingName !== null) {
-                $hall->setTranslation('name', 'und', $hall->pendingName, true);
-                $hall->pendingName = null;
+        static::saved(function (Zone $zone) {
+            if ($zone->pendingName !== null) {
+                $zone->setTranslation('name', 'und', $zone->pendingName, true);
+                $zone->pendingName = null;
             }
         });
     }

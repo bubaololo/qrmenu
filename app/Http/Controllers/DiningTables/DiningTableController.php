@@ -9,27 +9,27 @@ use App\Http\Requests\DiningTables\StoreDiningTableRequest;
 use App\Http\Requests\DiningTables\UpdateDiningTableRequest;
 use App\Http\Resources\DiningTables\DiningTableResource;
 use App\Models\DiningTable;
-use App\Models\Hall;
+use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class DiningTableController extends Controller
 {
-    public function index(Hall $hall): AnonymousResourceCollection
+    public function index(Zone $zone): AnonymousResourceCollection
     {
-        Gate::authorize('view', $hall);
+        Gate::authorize('view', $zone);
 
         return DiningTableResource::collection(
-            $hall->tables()->get()
+            $zone->tables()->with('tableShape')->get()
         );
     }
 
-    public function store(StoreDiningTableRequest $request, Hall $hall): JsonResponse
+    public function store(StoreDiningTableRequest $request, Zone $zone): JsonResponse
     {
-        Gate::authorize('create', [DiningTable::class, $hall]);
+        Gate::authorize('create', [DiningTable::class, $zone]);
 
-        $table = app(StoreDiningTableAction::class)($hall, $request->toData());
+        $table = app(StoreDiningTableAction::class)($zone, $request->toData());
 
         return (new DiningTableResource($table))->response()->setStatusCode(201);
     }
@@ -38,7 +38,7 @@ class DiningTableController extends Controller
     {
         Gate::authorize('view', $diningTable);
 
-        return new DiningTableResource($diningTable);
+        return new DiningTableResource($diningTable->load('tableShape'));
     }
 
     public function update(UpdateDiningTableRequest $request, DiningTable $diningTable): DiningTableResource

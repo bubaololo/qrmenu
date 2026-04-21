@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Halls;
+namespace App\Http\Resources\Zones;
 
+use App\Http\Resources\DiningTables\DiningTableResource;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
-class HallResource extends JsonApiResource
+class ZoneResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
@@ -16,8 +17,8 @@ class HallResource extends JsonApiResource
         'thumb_url',
     ];
 
-    /** @var array<int, string> */
+    /** @var array<string, class-string> */
     public $relationships = [
-        'tables',
+        'tables' => DiningTableResource::class,
     ];
 }

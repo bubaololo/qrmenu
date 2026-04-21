@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\DiningTableShape;
 use Database\Factories\DiningTableFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,10 +13,10 @@ class DiningTable extends Model
     use HasFactory;
 
     protected $fillable = [
-        'hall_id',
+        'zone_id',
+        'table_shape_id',
         'number',
         'capacity',
-        'shape',
         'x',
         'y',
         'width',
@@ -30,7 +29,6 @@ class DiningTable extends Model
     protected function casts(): array
     {
         return [
-            'shape' => DiningTableShape::class,
             'x' => 'float',
             'y' => 'float',
             'width' => 'float',
@@ -41,8 +39,18 @@ class DiningTable extends Model
         ];
     }
 
-    public function hall(): BelongsTo
+    public function getShapeAttribute(): string
     {
-        return $this->belongsTo(Hall::class);
+        return $this->tableShape->name;
+    }
+
+    public function zone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class);
+    }
+
+    public function tableShape(): BelongsTo
+    {
+        return $this->belongsTo(TableShape::class);
     }
 }

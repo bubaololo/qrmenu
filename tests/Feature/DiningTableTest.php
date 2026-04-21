@@ -5,9 +5,10 @@ namespace Tests\Feature;
 use App\Enums\DiningTableShape;
 use App\Enums\RestaurantUserRole;
 use App\Models\DiningTable;
-use App\Models\Hall;
 use App\Models\Restaurant;
+use App\Models\TableShape;
 use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -24,16 +25,16 @@ class DiningTableTest extends TestCase
         return $user;
     }
 
-    private function hallForRestaurant(Restaurant $restaurant): Hall
+    private function zoneForRestaurant(Restaurant $restaurant): Zone
     {
-        return Hall::factory()->create(['restaurant_id' => $restaurant->id]);
+        return Zone::factory()->create(['restaurant_id' => $restaurant->id]);
     }
 
     #[Test]
     public function unauthenticated_cannot_list_tables(): void
     {
-        $hall = Hall::factory()->create();
-        $this->getJson("/api/v1/halls/{$hall->id}/tables")->assertStatus(401);
+        $zone = Zone::factory()->create();
+        $this->getJson("/api/v1/zones/{$zone->id}/tables")->assertStatus(401);
     }
 
     #[Test]
@@ -41,11 +42,11 @@ class DiningTableTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = $this->hallForRestaurant($restaurant);
-        DiningTable::factory()->count(4)->create(['hall_id' => $hall->id]);
+        $zone = $this->zoneForRestaurant($restaurant);
+        DiningTable::factory()->count(4)->create(['zone_id' => $zone->id]);
 
         $this->actingAs($user)
-            ->getJson("/api/v1/halls/{$hall->id}/tables")
+            ->getJson("/api/v1/zones/{$zone->id}/tables")
             ->assertStatus(200)
             ->assertJsonCount(4, 'data');
     }
@@ -55,10 +56,10 @@ class DiningTableTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = $this->hallForRestaurant($restaurant);
+        $zone = $this->zoneForRestaurant($restaurant);
 
         $this->actingAs($user)
-            ->postJson("/api/v1/halls/{$hall->id}/tables", [
+            ->postJson("/api/v1/zones/{$zone->id}/tables", [
                 'number' => 5,
                 'capacity' => 4,
                 'shape' => DiningTableShape::Round->value,
@@ -69,10 +70,10 @@ class DiningTableTest extends TestCase
             ->assertJsonPath('data.attributes.shape', 'round');
 
         $this->assertDatabaseHas('dining_tables', [
-            'hall_id' => $hall->id,
+            'zone_id' => $zone->id,
             'number' => 5,
             'capacity' => 4,
-            'shape' => 'round',
+            'table_shape_id' => TableShape::where('name', 'round')->value('id'),
         ]);
     }
 
@@ -81,8 +82,8 @@ class DiningTableTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = $this->hallForRestaurant($restaurant);
-        $table = DiningTable::factory()->create(['hall_id' => $hall->id]);
+        $zone = $this->zoneForRestaurant($restaurant);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
 
         $this->actingAs($user)
             ->putJson("/api/v1/dining-tables/{$table->id}", [
@@ -103,8 +104,8 @@ class DiningTableTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = $this->hallForRestaurant($restaurant);
-        $table = DiningTable::factory()->create(['hall_id' => $hall->id]);
+        $zone = $this->zoneForRestaurant($restaurant);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
 
         $this->actingAs($user)
             ->deleteJson("/api/v1/dining-tables/{$table->id}")
@@ -119,8 +120,8 @@ class DiningTableTest extends TestCase
         $restaurant1 = Restaurant::factory()->create();
         $restaurant2 = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant1);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant2->id]);
-        $table = DiningTable::factory()->create(['hall_id' => $hall->id]);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant2->id]);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
 
         $this->actingAs($user)
             ->getJson("/api/v1/dining-tables/{$table->id}")

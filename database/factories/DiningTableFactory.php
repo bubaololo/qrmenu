@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Enums\DiningTableShape;
 use App\Models\DiningTable;
-use App\Models\Hall;
+use App\Models\TableShape;
+use App\Models\Zone;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,10 +15,10 @@ class DiningTableFactory extends Factory
     public function definition(): array
     {
         return [
-            'hall_id' => Hall::factory(),
-            'number' => fake()->numberBetween(1, 50),
+            'zone_id' => Zone::factory(),
+            'table_shape_id' => fn () => TableShape::inRandomOrder()->value('id'),
+            'number' => fake()->unique()->numberBetween(1, 9999),
             'capacity' => fake()->randomElement([2, 4, 6, 8]),
-            'shape' => fake()->randomElement(DiningTableShape::cases())->value,
             'x' => null,
             'y' => null,
             'width' => null,

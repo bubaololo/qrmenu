@@ -3,14 +3,14 @@
 namespace Tests\Feature;
 
 use App\Enums\RestaurantUserRole;
-use App\Models\Hall;
 use App\Models\Restaurant;
 use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class HallTest extends TestCase
+class ZoneTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -31,67 +31,67 @@ class HallTest extends TestCase
     }
 
     #[Test]
-    public function unauthenticated_cannot_list_halls(): void
+    public function unauthenticated_cannot_list_zones(): void
     {
         $restaurant = Restaurant::factory()->create();
-        $this->getJson("/api/v1/restaurants/{$restaurant->id}/halls")->assertStatus(401);
+        $this->getJson("/api/v1/restaurants/{$restaurant->id}/zones")->assertStatus(401);
     }
 
     #[Test]
-    public function owner_can_list_halls(): void
+    public function owner_can_list_zones(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        Hall::factory()->count(3)->create(['restaurant_id' => $restaurant->id]);
+        Zone::factory()->count(3)->create(['restaurant_id' => $restaurant->id]);
 
         $this->actingAs($user)
-            ->getJson("/api/v1/restaurants/{$restaurant->id}/halls")
+            ->getJson("/api/v1/restaurants/{$restaurant->id}/zones")
             ->assertStatus(200)
             ->assertJsonCount(3, 'data');
     }
 
     #[Test]
-    public function owner_can_create_hall(): void
+    public function owner_can_create_zone(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
 
         $this->actingAs($user)
-            ->postJson("/api/v1/restaurants/{$restaurant->id}/halls", [
-                'name' => 'Main Hall',
+            ->postJson("/api/v1/restaurants/{$restaurant->id}/zones", [
+                'name' => 'Main Zone',
                 'color' => '#FF5733',
             ])
             ->assertStatus(201)
-            ->assertJsonPath('data.type', 'halls')
+            ->assertJsonPath('data.type', 'zones')
             ->assertJsonPath('data.attributes.color', '#FF5733');
 
-        $this->assertDatabaseHas('halls', [
+        $this->assertDatabaseHas('zones', [
             'restaurant_id' => $restaurant->id,
             'color' => '#FF5733',
         ]);
     }
 
     #[Test]
-    public function waiter_cannot_create_hall(): void
+    public function waiter_cannot_create_zone(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asWaiterOf($restaurant);
 
         $this->actingAs($user)
-            ->postJson("/api/v1/restaurants/{$restaurant->id}/halls", ['name' => 'Test'])
+            ->postJson("/api/v1/restaurants/{$restaurant->id}/zones", ['name' => 'Test'])
             ->assertStatus(403);
     }
 
     #[Test]
-    public function owner_can_update_hall(): void
+    public function owner_can_update_zone(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id]);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/halls/{$hall->id}", [
-                'name' => 'Updated Hall',
+            ->putJson("/api/v1/zones/{$zone->id}", [
+                'name' => 'Updated Zone',
                 'color' => '#123456',
             ])
             ->assertStatus(200)
@@ -99,29 +99,29 @@ class HallTest extends TestCase
     }
 
     #[Test]
-    public function owner_can_delete_hall(): void
+    public function owner_can_delete_zone(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant->id]);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id]);
 
         $this->actingAs($user)
-            ->deleteJson("/api/v1/halls/{$hall->id}")
+            ->deleteJson("/api/v1/zones/{$zone->id}")
             ->assertStatus(204);
 
-        $this->assertModelMissing($hall);
+        $this->assertModelMissing($zone);
     }
 
     #[Test]
-    public function cannot_access_other_restaurant_hall(): void
+    public function cannot_access_other_restaurant_zone(): void
     {
         $restaurant1 = Restaurant::factory()->create();
         $restaurant2 = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant1);
-        $hall = Hall::factory()->create(['restaurant_id' => $restaurant2->id]);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant2->id]);
 
         $this->actingAs($user)
-            ->getJson("/api/v1/halls/{$hall->id}")
+            ->getJson("/api/v1/zones/{$zone->id}")
             ->assertStatus(403);
     }
 }

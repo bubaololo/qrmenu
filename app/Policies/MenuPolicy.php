@@ -13,6 +13,8 @@ class MenuPolicy
      */
     public function view(User $user, Menu $menu): bool
     {
+        $menu->loadMissing('restaurant');
+
         return $menu->restaurant->users()->where('user_id', $user->id)->exists();
     }
 
@@ -33,6 +35,8 @@ class MenuPolicy
      */
     public function update(User $user, Menu $menu): bool
     {
+        $menu->loadMissing('restaurant');
+
         return $menu->restaurant->owners()->where('user_id', $user->id)->exists();
     }
 

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DiningTables\DiningTableController;
-use App\Http\Controllers\Halls\HallController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
 use App\Http\Controllers\Menus\MenuController;
@@ -11,6 +10,7 @@ use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
 use App\Http\Controllers\Menus\MenuSectionController;
 use App\Http\Controllers\Menus\MenuTranslationController;
 use App\Http\Controllers\Restaurants\RestaurantController;
+use App\Http\Controllers\Zones\ZoneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -50,16 +50,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
     Route::get('/restaurants/{restaurant}/qr', [RestaurantController::class, 'qr']);
 
-    // Halls
-    Route::get('/restaurants/{restaurant}/halls', [HallController::class, 'index']);
-    Route::post('/restaurants/{restaurant}/halls', [HallController::class, 'store']);
-    Route::get('/halls/{hall}', [HallController::class, 'show']);
-    Route::put('/halls/{hall}', [HallController::class, 'update']);
-    Route::delete('/halls/{hall}', [HallController::class, 'destroy']);
+    // Zones
+    Route::get('/restaurants/{restaurant}/zones', [ZoneController::class, 'index']);
+    Route::post('/restaurants/{restaurant}/zones', [ZoneController::class, 'store']);
+    Route::get('/zones/{zone}', [ZoneController::class, 'show']);
+    Route::put('/zones/{zone}', [ZoneController::class, 'update']);
+    Route::delete('/zones/{zone}', [ZoneController::class, 'destroy']);
 
     // Dining Tables
-    Route::get('/halls/{hall}/tables', [DiningTableController::class, 'index']);
-    Route::post('/halls/{hall}/tables', [DiningTableController::class, 'store']);
+    Route::get('/zones/{zone}/tables', [DiningTableController::class, 'index']);
+    Route::post('/zones/{zone}/tables', [DiningTableController::class, 'store']);
     Route::get('/dining-tables/{diningTable}', [DiningTableController::class, 'show']);
     Route::put('/dining-tables/{diningTable}', [DiningTableController::class, 'update']);
     Route::delete('/dining-tables/{diningTable}', [DiningTableController::class, 'destroy']);
@@ -72,6 +72,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/menus/{menu}', [MenuController::class, 'destroy']);
     Route::post('/menus/{menu}/activate', [MenuController::class, 'activate']);
     Route::post('/menus/{menu}/clone', [MenuController::class, 'clone']);
+    Route::get('/menus/{menu}/search', [MenuController::class, 'search']);
     Route::get('/menus/{menu}/locales', [MenuTranslationController::class, 'locales']);
     Route::post('/menus/{menu}/translations/{locale}', [MenuTranslationController::class, 'store']);
 
@@ -104,8 +105,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/restaurants/{restaurantId}/image', [ImageController::class, 'deleteRestaurant']);
     Route::post('/restaurants/{restaurantId}/logo', [ImageController::class, 'updateRestaurantLogo']);
     Route::delete('/restaurants/{restaurantId}/logo', [ImageController::class, 'deleteRestaurantLogo']);
-    Route::post('/halls/{hallId}/image', [ImageController::class, 'updateHall']);
-    Route::delete('/halls/{hallId}/image', [ImageController::class, 'deleteHall']);
+    Route::post('/zones/{zoneId}/image', [ImageController::class, 'updateZone']);
+    Route::delete('/zones/{zoneId}/image', [ImageController::class, 'deleteZone']);
     Route::post('/menu-items/{itemId}/image', [ImageController::class, 'updateMenuItem']);
     Route::delete('/menu-items/{itemId}/image', [ImageController::class, 'deleteMenuItem']);
 });

@@ -2,7 +2,7 @@
 
 namespace App\Data;
 
-readonly class HallData
+readonly class ZoneData
 {
     public function __construct(
         public string $name,
