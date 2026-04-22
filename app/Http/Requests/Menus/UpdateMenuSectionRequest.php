@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Menus;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateMenuSectionRequest extends FormRequest
 {
@@ -18,6 +19,7 @@ class UpdateMenuSectionRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
             'icon_id' => ['sometimes', 'nullable', 'integer', 'exists:icons,id'],
+            'icon_name' => ['sometimes', 'nullable', 'string', 'max:100', Rule::in(config('food_icons.allowed', []))],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

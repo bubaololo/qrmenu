@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RestaurantUserRole;
+use App\Models\Icon;
 use App\Models\Menu;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
@@ -112,5 +113,109 @@ class MenuSectionTest extends TestCase
         $this->actingAs($stranger)
             ->postJson("/api/v1/menus/{$menu->id}/sections", ['name' => 'Test'])
             ->assertStatus(403);
+    }
+
+    #[Test]
+    public function test_store_resolves_icon_name_to_icon_id(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/sections", [
+                'name' => 'Hot dishes',
+                'icon_name' => 'noodles',
+            ])
+            ->assertStatus(201);
+
+        $sectionId = $response->json('data.id');
+        $icon = Icon::where('name', 'noodles')->firstOrFail();
+
+        $this->assertDatabaseHas('menu_sections', [
+            'id' => $sectionId,
+            'icon_id' => $icon->id,
+        ]);
+    }
+
+    #[Test]
+    public function test_store_reuses_existing_icon_by_name(): void
+    {
+        $existing = Icon::firstOrCreate(['name' => 'coffee-01']);
+
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/sections", [
+                'name' => 'Coffee',
+                'icon_name' => 'coffee-01',
+            ])
+            ->assertStatus(201);
+
+        $this->assertSame(1, Icon::where('name', 'coffee-01')->count());
+        $this->assertDatabaseHas('menu_sections', ['icon_id' => $existing->id]);
+    }
+
+    #[Test]
+    public function test_store_rejects_unknown_icon_name(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/sections", [
+                'name' => 'Bad',
+                'icon_name' => 'not-a-real-icon',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('icon_name');
+    }
+
+    #[Test]
+    public function test_update_replaces_icon_via_icon_name(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/menu-sections/{$section->id}", [
+                'icon_name' => 'pizza-01',
+            ])
+            ->assertStatus(200);
+
+        $icon = Icon::where('name', 'pizza-01')->firstOrFail();
+        $this->assertDatabaseHas('menu_sections', [
+            'id' => $section->id,
+            'icon_id' => $icon->id,
+        ]);
+    }
+
+    #[Test]
+    public function test_update_clears_icon_with_null_icon_name(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $icon = Icon::firstOrCreate(['name' => 'dish-01']);
+        $section = MenuSection::factory()->create([
+            'menu_id' => $menu->id,
+            'icon_id' => $icon->id,
+        ]);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/menu-sections/{$section->id}", [
+                'icon_name' => null,
+            ])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('menu_sections', [
+            'id' => $section->id,
+            'icon_id' => null,
+        ]);
     }
 }

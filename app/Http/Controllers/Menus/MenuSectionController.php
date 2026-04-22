@@ -8,6 +8,7 @@ use App\Http\Requests\Menus\ReorderRequest;
 use App\Http\Requests\Menus\StoreMenuSectionRequest;
 use App\Http\Requests\Menus\UpdateMenuSectionRequest;
 use App\Http\Resources\Menus\MenuSectionResource;
+use App\Models\Icon;
 use App\Models\Menu;
 use App\Models\MenuSection;
 use Illuminate\Http\JsonResponse;
@@ -26,11 +27,12 @@ class MenuSectionController extends Controller
         Gate::authorize('update', $menu);
 
         $validated = $request->validated();
+        $iconId = $this->resolveIconId($validated);
 
         $section = MenuSection::create([
             'menu_id' => $menu->id,
             'sort_order' => $validated['sort_order'] ?? 0,
-            'icon_id' => $validated['icon_id'] ?? null,
+            'icon_id' => $iconId,
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
@@ -51,6 +53,11 @@ class MenuSectionController extends Controller
 
         $validated = $request->validated();
 
+        if (array_key_exists('icon_name', $validated)) {
+            $validated['icon_id'] = $this->resolveIconId($validated);
+        }
+        unset($validated['icon_name']);
+
         if (isset($validated['name'])) {
             $sourceLocale = $menuSection->menu->source_locale ?? 'und';
             [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
@@ -58,7 +65,7 @@ class MenuSectionController extends Controller
             unset($validated['name']);
         }
 
-        if (! empty($validated)) {
+        if (! empty($validated) || array_key_exists('icon_id', $validated)) {
             $menuSection->update($validated);
         }
 
@@ -93,5 +100,32 @@ class MenuSectionController extends Controller
         }
 
         return MenuSectionResource::collection($menu->sections()->orderBy('sort_order')->get());
+    }
+
+    /**
+     * Resolve the icon id from validated input.
+     *
+     * Callers may pass `icon_id` (FK) directly, or `icon_name` to be looked up
+     * via firstOrCreate — matching the pattern in SaveMenuAnalysisAction.
+     * Explicit null on either key clears the icon.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function resolveIconId(array $validated): ?int
+    {
+        if (array_key_exists('icon_id', $validated)) {
+            return $validated['icon_id'] !== null ? (int) $validated['icon_id'] : null;
+        }
+
+        if (array_key_exists('icon_name', $validated)) {
+            $name = $validated['icon_name'];
+            if ($name === null || $name === '') {
+                return null;
+            }
+
+            return Icon::firstOrCreate(['name' => $name])->id;
+        }
+
+        return null;
     }
 }
