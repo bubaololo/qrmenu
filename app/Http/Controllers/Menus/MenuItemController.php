@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Gate;
 class MenuItemController extends Controller
 {
     use ResolvesLocale;
+
     /**
      * Create an item in a section.
      */
@@ -29,7 +30,7 @@ class MenuItemController extends Controller
         $item = MenuItem::create([
             'section_id' => $menuSection->id,
             'starred' => $validated['starred'] ?? false,
-            'price_type' => $validated['price_type'] ?? null,
+            'price_type' => $validated['price_type'] ?? 'fixed',
             'price_value' => $validated['price_value'] ?? null,
             'price_min' => $validated['price_min'] ?? null,
             'price_max' => $validated['price_max'] ?? null,

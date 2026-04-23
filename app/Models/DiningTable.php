@@ -12,7 +12,19 @@ class DiningTable extends Model
     /** @use HasFactory<DiningTableFactory> */
     use HasFactory;
 
+    public static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $table): void {
+            if (empty($table->uniqid)) {
+                $table->uniqid = str_replace('.', '', uniqid('', true));
+            }
+        });
+    }
+
     protected $fillable = [
+        'uniqid',
         'zone_id',
         'table_shape_id',
         'number',

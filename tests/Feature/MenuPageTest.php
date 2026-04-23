@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Actions\SaveMenuAnalysisAction;
+use App\Models\DiningTable;
 use App\Models\Restaurant;
+use App\Models\Zone;
 use App\Support\MenuJson;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -47,6 +49,35 @@ class MenuPageTest extends TestCase
     public function test_returns_404_for_nonexistent_id(): void
     {
         $this->get('/99999')->assertStatus(404);
+    }
+
+    #[Test]
+    public function test_table_url_resolves_to_menu_for_valid_pair(): void
+    {
+        $zone = Zone::factory()->create(['restaurant_id' => $this->restaurant->id]);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $this->get("/{$this->restaurant->uniqid}/t/{$table->uniqid}")
+            ->assertStatus(200)
+            ->assertSee('Black coffee');
+    }
+
+    #[Test]
+    public function test_table_url_returns_404_when_table_belongs_to_other_restaurant(): void
+    {
+        $other = Restaurant::factory()->create();
+        $zone = Zone::factory()->create(['restaurant_id' => $other->id]);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $this->get("/{$this->restaurant->uniqid}/t/{$table->uniqid}")
+            ->assertStatus(404);
+    }
+
+    #[Test]
+    public function test_table_url_returns_404_for_nonexistent_table_uniqid(): void
+    {
+        $this->get("/{$this->restaurant->uniqid}/t/doesnotexist123")
+            ->assertStatus(404);
     }
 
     #[Test]

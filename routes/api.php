@@ -63,6 +63,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::get('/dining-tables/{diningTable}', [DiningTableController::class, 'show']);
     Route::put('/dining-tables/{diningTable}', [DiningTableController::class, 'update']);
     Route::delete('/dining-tables/{diningTable}', [DiningTableController::class, 'destroy']);
+    Route::get('/dining-tables/{diningTable}/qr', [DiningTableController::class, 'qr']);
 
     // Menus
     Route::get('/restaurants/{restaurant}/menus', [MenuController::class, 'index']);

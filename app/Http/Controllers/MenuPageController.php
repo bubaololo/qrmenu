@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\TranslateMenuJob;
+use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\Translation;
@@ -12,6 +13,19 @@ use Matriphe\ISO639\ISO639;
 
 class MenuPageController extends Controller
 {
+    public function showTable(string $restaurant, string $table, ?string $lang = null): View
+    {
+        $tableModel = DiningTable::where('uniqid', $table)->firstOrFail();
+
+        $restaurantModel = is_numeric($restaurant)
+            ? Restaurant::findOrFail((int) $restaurant)
+            : Restaurant::where('uniqid', $restaurant)->firstOrFail();
+
+        abort_unless($tableModel->zone->restaurant_id === $restaurantModel->id, 404);
+
+        return $this->show($restaurantModel->uniqid, $lang);
+    }
+
     public function show(string $identifier, ?string $lang = null): View
     {
         $restaurant = is_numeric($identifier)

@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\RestaurantUserRole;
+use App\Models\DiningTable;
 use App\Models\Restaurant;
-use App\Models\RestaurantUser;
 use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -14,58 +15,30 @@ class QrCodeTest extends TestCase
 {
     use RefreshDatabase;
 
-    #[Test]
-    public function test_qr_endpoint_returns_url(): void
+    private function asOwnerOf(Restaurant $restaurant): User
     {
-        Storage::fake('public');
-
         $user = User::factory()->create();
-        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+        $restaurant->users()->attach($user, ['role' => RestaurantUserRole::Owner->value]);
+
+        return $user;
+    }
+
+    #[Test]
+    public function restaurant_qr_returns_png_binary(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
 
         $response = $this->actingAs($user)
-            ->get("/api/v1/restaurants/{$restaurant->id}/qr", ['Accept-Language' => ''])
+            ->get("/api/v1/restaurants/{$restaurant->id}/qr")
             ->assertStatus(200)
-            ->assertJsonStructure(['data' => ['qr_url']]);
+            ->assertHeader('Content-Type', 'image/png');
 
-        $qrUrl = $response->json('data.qr_url');
-        $this->assertNotEmpty($qrUrl);
+        $this->assertTrue(str_starts_with($response->getContent(), "\x89PNG\r\n\x1a\n"));
     }
 
     #[Test]
-    public function test_qr_file_is_created_on_disk(): void
-    {
-        Storage::fake('public');
-
-        $user = User::factory()->create();
-        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
-
-        $this->actingAs($user)
-            ->get("/api/v1/restaurants/{$restaurant->id}/qr", ['Accept-Language' => '']);
-
-        Storage::disk('public')->assertExists("qrcodes/{$restaurant->id}.svg");
-    }
-
-    #[Test]
-    public function test_qr_file_is_reused_on_second_call(): void
-    {
-        Storage::fake('public');
-
-        $user = User::factory()->create();
-        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
-
-        $url1 = $this->actingAs($user)
-            ->get("/api/v1/restaurants/{$restaurant->id}/qr", ['Accept-Language' => ''])
-            ->json('data.qr_url');
-
-        $url2 = $this->actingAs($user)
-            ->get("/api/v1/restaurants/{$restaurant->id}/qr", ['Accept-Language' => ''])
-            ->json('data.qr_url');
-
-        $this->assertEquals($url1, $url2);
-    }
-
-    #[Test]
-    public function test_unauthenticated_returns_401(): void
+    public function restaurant_qr_requires_authentication(): void
     {
         $restaurant = Restaurant::factory()->create();
 
@@ -74,16 +47,65 @@ class QrCodeTest extends TestCase
     }
 
     #[Test]
-    public function test_non_member_cannot_get_qr(): void
+    public function unauthenticated_html_request_returns_401_json_not_redirect(): void
     {
-        Storage::fake('public');
+        $restaurant = Restaurant::factory()->create();
 
+        $this->get("/api/v1/restaurants/{$restaurant->id}/qr", [
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        ])
+            ->assertStatus(401)
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertJson(['message' => 'Unauthenticated.']);
+    }
+
+    #[Test]
+    public function non_member_cannot_get_restaurant_qr(): void
+    {
         $owner = User::factory()->create();
         $other = User::factory()->create();
         $restaurant = Restaurant::factory()->create(['created_by_user_id' => $owner->id]);
 
         $this->actingAs($other)
-            ->get("/api/v1/restaurants/{$restaurant->id}/qr", ['Accept-Language' => ''])
+            ->get("/api/v1/restaurants/{$restaurant->id}/qr")
+            ->assertStatus(403);
+    }
+
+    #[Test]
+    public function table_qr_returns_png_binary(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id]);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $response = $this->actingAs($user)
+            ->get("/api/v1/dining-tables/{$table->id}/qr")
+            ->assertStatus(200)
+            ->assertHeader('Content-Type', 'image/png');
+
+        $this->assertTrue(str_starts_with($response->getContent(), "\x89PNG\r\n\x1a\n"));
+    }
+
+    #[Test]
+    public function table_qr_requires_authentication(): void
+    {
+        $table = DiningTable::factory()->create();
+
+        $this->get("/api/v1/dining-tables/{$table->id}/qr", ['Accept' => 'application/json'])
+            ->assertStatus(401);
+    }
+
+    #[Test]
+    public function non_member_cannot_get_table_qr(): void
+    {
+        $other = User::factory()->create();
+        $restaurant = Restaurant::factory()->create();
+        $zone = Zone::factory()->create(['restaurant_id' => $restaurant->id]);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $this->actingAs($other)
+            ->get("/api/v1/dining-tables/{$table->id}/qr")
             ->assertStatus(403);
     }
 }

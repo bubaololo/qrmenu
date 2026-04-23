@@ -165,6 +165,301 @@
                 }
             }
         },
+        "/v1/zones/{zone}/tables": {
+            "get": {
+                "operationId": "diningTable.index",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "zone",
+                        "in": "path",
+                        "required": true,
+                        "description": "The zone ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `DiningTableResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DiningTableResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "diningTable.store",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "zone",
+                        "in": "path",
+                        "required": true,
+                        "description": "The zone ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreDiningTableRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`DiningTableResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DiningTableResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/dining-tables/{diningTable}": {
+            "get": {
+                "operationId": "diningTable.show",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "diningTable",
+                        "in": "path",
+                        "required": true,
+                        "description": "The dining table ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`DiningTableResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DiningTableResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "diningTable.update",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "diningTable",
+                        "in": "path",
+                        "required": true,
+                        "description": "The dining table ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateDiningTableRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`DiningTableResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DiningTableResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "diningTable.destroy",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "diningTable",
+                        "in": "path",
+                        "required": true,
+                        "description": "The dining table ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/dining-tables/{diningTable}/qr": {
+            "get": {
+                "operationId": "diningTable.qr",
+                "description": "The encoded URL is `{app_url}/{restaurant.uniqid}/t/{table.uniqid}`.",
+                "summary": "Return a PNG QR code that links to the restaurant's public menu scoped to this table",
+                "tags": [
+                    "DiningTable"
+                ],
+                "parameters": [
+                    {
+                        "name": "diningTable",
+                        "in": "path",
+                        "required": true,
+                        "description": "The dining table ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "image/png": {
+                                "schema": {}
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "public, max-age=86400"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/restaurants/{restaurantId}/image": {
             "post": {
                 "operationId": "image.updateRestaurant",
@@ -265,6 +560,226 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/restaurants/{restaurantId}/logo": {
+            "post": {
+                "operationId": "image.updateRestaurantLogo",
+                "tags": [
+                    "Image"
+                ],
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "contentMediaType": "application/octet-stream",
+                                        "maxLength": 10240
+                                    }
+                                },
+                                "required": [
+                                    "image"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "image_url": {
+                                                    "type": "string"
+                                                },
+                                                "thumb_url": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "image_url",
+                                                "thumb_url"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "image.deleteRestaurantLogo",
+                "tags": [
+                    "Image"
+                ],
+                "parameters": [
+                    {
+                        "name": "restaurantId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/zones/{zoneId}/image": {
+            "post": {
+                "operationId": "image.updateZone",
+                "tags": [
+                    "Image"
+                ],
+                "parameters": [
+                    {
+                        "name": "zoneId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "contentMediaType": "application/octet-stream",
+                                        "maxLength": 10240
+                                    }
+                                },
+                                "required": [
+                                    "image"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "image_url": {
+                                                    "type": "string"
+                                                },
+                                                "thumb_url": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "image_url",
+                                                "thumb_url"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "image.deleteZone",
+                "tags": [
+                    "Image"
+                ],
+                "parameters": [
+                    {
+                        "name": "zoneId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -500,7 +1015,7 @@
         "/v1/menus/{menu}": {
             "get": {
                 "operationId": "menu.full",
-                "summary": "Return a full menu tree: sections → items → option groups → options (with translations)",
+                "summary": "Return a full menu tree: sections \u2192 items \u2192 option groups \u2192 options (with translations)",
                 "tags": [
                     "Menu"
                 ],
@@ -735,10 +1250,114 @@
                 }
             }
         },
+        "/v1/menus/{menu}/search": {
+            "get": {
+                "operationId": "menu.search",
+                "summary": "Search menu items across all translations",
+                "tags": [
+                    "Menu"
+                ],
+                "parameters": [
+                    {
+                        "name": "menu",
+                        "in": "path",
+                        "required": true,
+                        "description": "The menu ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "section_id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "section_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "price": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "section_id",
+                                                            "section_name",
+                                                            "price"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "minItems": 0,
+                                                    "maxItems": 0,
+                                                    "additionalItems": false
+                                                }
+                                            },
+                                            "required": [
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/menu-analyses": {
             "post": {
                 "operationId": "menuAnalysis.store",
-                "description": "Default is async: returns `202 Accepted` with `data.id = <uuid>` and\n`data.attributes.status = \"pending\"`. The caller then polls\n`GET /v1/menu-analyses/{uuid}` until the status reaches a terminal value —\nthere is no webhook or push channel.\n\nPass `sync=1` to run the analysis inline (useful for dev/testing) — the\nrequest blocks until the LLM cascade returns and responds `200` with the\nfull menu inline. Can take tens of seconds to minutes; not recommended\nfrom a UI.",
+                "description": "Default is async: returns `202 Accepted` with `data.id = <uuid>` and\n`data.attributes.status = \"pending\"`. The caller then polls\n`GET /v1/menu-analyses/{uuid}` until the status reaches a terminal value \u2014\nthere is no webhook or push channel.\n\nPass `sync=1` to run the analysis inline (useful for dev/testing) \u2014 the\nrequest blocks until the LLM cascade returns and responds `200` with the\nfull menu inline. Can take tens of seconds to minutes; not recommended\nfrom a UI.",
                 "summary": "Upload menu photos and start (or run inline) an analysis",
                 "tags": [
                     "MenuAnalysis"
@@ -880,7 +1499,7 @@
         "/v1/menu-analyses/{uuid}": {
             "get": {
                 "operationId": "menuAnalysis.show",
-                "description": "Call this every 2–3 seconds after a 202 response from `POST /v1/menu-analyses`\nuntil `data.attributes.status` reaches a terminal value. There is no webhook or\npush channel — polling is the only mechanism to learn that the menu is ready.\n\nStatus lifecycle: `pending` → `processing` → `completed` | `failed`.\nOn `completed`: `attributes.menu`, `saved_menu_id`, `saved_restaurant_id`, `item_count`.\nOn `failed`: `attributes.error_message`.",
+                "description": "Call this every 2\u20133 seconds after a 202 response from `POST /v1/menu-analyses`\nuntil `data.attributes.status` reaches a terminal value. There is no webhook or\npush channel \u2014 polling is the only mechanism to learn that the menu is ready.\n\nStatus lifecycle: `pending` \u2192 `processing` \u2192 `completed` | `failed`.\nOn `completed`: `attributes.menu`, `saved_menu_id`, `saved_restaurant_id`, `item_count`.\nOn `failed`: `attributes.error_message`.",
                 "summary": "Poll an async menu analysis by UUID",
                 "tags": [
                     "MenuAnalysis"
@@ -2404,6 +3023,8 @@
         "/v1/restaurants/{restaurant}/qr": {
             "get": {
                 "operationId": "restaurant.qr",
+                "description": "The encoded URL is `{app_url}/{restaurant.id}`. A restaurant always has\nat most one active menu, so the QR targets the restaurant, not a specific menu.",
+                "summary": "Return a PNG QR code that links to the restaurant's public menu page",
                 "tags": [
                     "Restaurant"
                 ],
@@ -2422,25 +3043,15 @@
                     "200": {
                         "description": "",
                         "content": {
-                            "application/json": {
+                            "image/png": {
+                                "schema": {}
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "qr_url": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "qr_url"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
+                                    "type": "string",
+                                    "const": "public, max-age=86400"
                                 }
                             }
                         }
@@ -2457,18 +3068,18 @@
                 }
             }
         },
-        "/v1/restaurants/{restaurant}/halls": {
+        "/v1/restaurants/{restaurant}/zones": {
             "get": {
-                "operationId": "hall.index",
-                "summary": "List halls for a restaurant",
+                "operationId": "zone.index",
                 "tags": [
-                    "Hall"
+                    "Zone"
                 ],
                 "parameters": [
                     {
                         "name": "restaurant",
                         "in": "path",
                         "required": true,
+                        "description": "The restaurant ID",
                         "schema": {
                             "type": "integer"
                         }
@@ -2476,7 +3087,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Array of `HallResource`",
+                        "description": "Array of `ZoneResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2485,7 +3096,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/HallResource"
+                                                "$ref": "#/components/schemas/ZoneResource"
                                             }
                                         }
                                     },
@@ -2496,28 +3107,28 @@
                             }
                         }
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             },
             "post": {
-                "operationId": "hall.store",
-                "summary": "Create a hall for a restaurant",
+                "operationId": "zone.store",
                 "tags": [
-                    "Hall"
+                    "Zone"
                 ],
                 "parameters": [
                     {
                         "name": "restaurant",
                         "in": "path",
                         "required": true,
+                        "description": "The restaurant ID",
                         "schema": {
                             "type": "integer"
                         }
@@ -2528,21 +3139,21 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/StoreHallRequest"
+                                "$ref": "#/components/schemas/StoreZoneRequest"
                             }
                         }
                     }
                 },
                 "responses": {
                     "201": {
-                        "description": "`HallResource`",
+                        "description": "`ZoneResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/HallResource"
+                                            "$ref": "#/components/schemas/ZoneResource"
                                         }
                                     },
                                     "required": [
@@ -2552,33 +3163,33 @@
                             }
                         }
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
         },
-        "/v1/halls/{hall}": {
+        "/v1/zones/{zone}": {
             "get": {
-                "operationId": "hall.show",
-                "summary": "Show a hall with its tables",
+                "operationId": "zone.show",
                 "tags": [
-                    "Hall"
+                    "Zone"
                 ],
                 "parameters": [
                     {
-                        "name": "hall",
+                        "name": "zone",
                         "in": "path",
                         "required": true,
+                        "description": "The zone ID",
                         "schema": {
                             "type": "integer"
                         }
@@ -2586,14 +3197,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "`HallResource`",
+                        "description": "`ZoneResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/HallResource"
+                                            "$ref": "#/components/schemas/ZoneResource"
                                         }
                                     },
                                     "required": [
@@ -2603,28 +3214,28 @@
                             }
                         }
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             },
             "put": {
-                "operationId": "hall.update",
-                "summary": "Update a hall",
+                "operationId": "zone.update",
                 "tags": [
-                    "Hall"
+                    "Zone"
                 ],
                 "parameters": [
                     {
-                        "name": "hall",
+                        "name": "zone",
                         "in": "path",
                         "required": true,
+                        "description": "The zone ID",
                         "schema": {
                             "type": "integer"
                         }
@@ -2635,21 +3246,21 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpdateHallRequest"
+                                "$ref": "#/components/schemas/UpdateZoneRequest"
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "`HallResource`",
+                        "description": "`ZoneResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/HallResource"
+                                            "$ref": "#/components/schemas/ZoneResource"
                                         }
                                     },
                                     "required": [
@@ -2659,31 +3270,31 @@
                             }
                         }
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             },
             "delete": {
-                "operationId": "hall.destroy",
-                "summary": "Delete a hall",
+                "operationId": "zone.destroy",
                 "tags": [
-                    "Hall"
+                    "Zone"
                 ],
                 "parameters": [
                     {
-                        "name": "hall",
+                        "name": "zone",
                         "in": "path",
                         "required": true,
+                        "description": "The zone ID",
                         "schema": {
                             "type": "integer"
                         }
@@ -2693,262 +3304,14 @@
                     "204": {
                         "description": "No content"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/halls/{hall}/tables": {
-            "get": {
-                "operationId": "dining-table.index",
-                "summary": "List tables in a hall",
-                "tags": [
-                    "DiningTable"
-                ],
-                "parameters": [
-                    {
-                        "name": "hall",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Array of `DiningTableResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/DiningTableResource"
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            },
-            "post": {
-                "operationId": "dining-table.store",
-                "summary": "Create a table in a hall",
-                "tags": [
-                    "DiningTable"
-                ],
-                "parameters": [
-                    {
-                        "name": "hall",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StoreDiningTableRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "`DiningTableResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/DiningTableResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/dining-tables/{diningTable}": {
-            "get": {
-                "operationId": "dining-table.show",
-                "summary": "Show a dining table",
-                "tags": [
-                    "DiningTable"
-                ],
-                "parameters": [
-                    {
-                        "name": "diningTable",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`DiningTableResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/DiningTableResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            },
-            "put": {
-                "operationId": "dining-table.update",
-                "summary": "Update a dining table",
-                "tags": [
-                    "DiningTable"
-                ],
-                "parameters": [
-                    {
-                        "name": "diningTable",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateDiningTableRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`DiningTableResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/DiningTableResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "dining-table.destroy",
-                "summary": "Delete a dining table",
-                "tags": [
-                    "DiningTable"
-                ],
-                "parameters": [
-                    {
-                        "name": "diningTable",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No content"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
                     }
                 }
             }
@@ -3007,6 +3370,104 @@
                     "item_ids"
                 ],
                 "title": "AttachDetachItemsRequest"
+            },
+            "DiningTableResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "zone_id": {
+                        "type": "integer"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "capacity": {
+                        "type": "integer"
+                    },
+                    "x": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "y": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "width": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "height": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "rotation": {
+                        "type": "number"
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "table_shape_id": {
+                        "type": "integer"
+                    },
+                    "uniqid": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "zone_id",
+                    "number",
+                    "capacity",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                    "rotation",
+                    "sort_order",
+                    "is_active",
+                    "created_at",
+                    "updated_at",
+                    "table_shape_id",
+                    "uniqid"
+                ],
+                "title": "DiningTableResource"
+            },
+            "DiningTableShape": {
+                "type": "string",
+                "enum": [
+                    "round",
+                    "square",
+                    "rectangular",
+                    "bar_counter"
+                ],
+                "title": "DiningTableShape"
             },
             "FullMenuResource": {
                 "type": "object",
@@ -3081,11 +3542,30 @@
                                         "null"
                                     ]
                                 },
-                                "category_icon": {
+                                "icon": {
                                     "type": [
-                                        "string",
+                                        "object",
                                         "null"
+                                    ],
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "svg": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "name",
+                                        "svg"
                                     ]
+                                },
+                                "is_active": {
+                                    "type": "boolean"
                                 },
                                 "sort_order": {
                                     "type": "integer"
@@ -3111,6 +3591,9 @@
                                                 ]
                                             },
                                             "starred": {
+                                                "type": "boolean"
+                                            },
+                                            "is_active": {
                                                 "type": "boolean"
                                             },
                                             "price_type": {
@@ -3246,6 +3729,7 @@
                                             "name",
                                             "description",
                                             "starred",
+                                            "is_active",
                                             "price_type",
                                             "price_value",
                                             "price_min",
@@ -3264,7 +3748,8 @@
                             "required": [
                                 "id",
                                 "name",
-                                "category_icon",
+                                "icon",
+                                "is_active",
                                 "sort_order",
                                 "items"
                             ]
@@ -3375,6 +3860,9 @@
                         ],
                         "format": "date-time"
                     },
+                    "is_active": {
+                        "type": "boolean"
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -3403,6 +3891,7 @@
                     "sort_order",
                     "created_at",
                     "updated_at",
+                    "is_active",
                     "name",
                     "description",
                     "image_url",
@@ -3616,11 +4105,14 @@
                         ],
                         "format": "date-time"
                     },
-                    "category_icon": {
+                    "icon_id": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ]
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     },
                     "name": {
                         "type": "string"
@@ -3632,7 +4124,8 @@
                     "sort_order",
                     "created_at",
                     "updated_at",
-                    "category_icon",
+                    "icon_id",
+                    "is_active",
                     "name"
                 ],
                 "title": "MenuSectionResource"
@@ -3739,6 +4232,24 @@
                     "uniqid": {
                         "type": "string"
                     },
+                    "logo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "google_maps_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "coordinates": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -3749,6 +4260,12 @@
                         "type": "string"
                     },
                     "thumb_url": {
+                        "type": "string"
+                    },
+                    "logo_url": {
+                        "type": "string"
+                    },
+                    "logo_thumb_url": {
                         "type": "string"
                     }
                 },
@@ -3765,10 +4282,15 @@
                     "created_at",
                     "updated_at",
                     "uniqid",
+                    "logo",
+                    "google_maps_url",
+                    "coordinates",
                     "name",
                     "address",
                     "image_url",
-                    "thumb_url"
+                    "thumb_url",
+                    "logo_url",
+                    "logo_thumb_url"
                 ],
                 "title": "RestaurantResource"
             },
@@ -3784,6 +4306,65 @@
                     "email"
                 ],
                 "title": "SendPasswordResetLinkRequest"
+            },
+            "StoreDiningTableRequest": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "capacity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    },
+                    "shape": {
+                        "$ref": "#/components/schemas/DiningTableShape"
+                    },
+                    "x": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "y": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "width": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "height": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "rotation": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 360
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "number"
+                ],
+                "title": "StoreDiningTableRequest"
             },
             "StoreMenuItemRequest": {
                 "type": "object",
@@ -3848,6 +4429,12 @@
                             "null"
                         ],
                         "minimum": 0
+                    },
+                    "is_active": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -3985,6 +4572,18 @@
                             "null"
                         ],
                         "minimum": 0
+                    },
+                    "icon_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "is_active": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -4044,6 +4643,14 @@
                         ],
                         "maxLength": 10
                     },
+                    "google_maps_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 2048
+                    },
                     "opening_hours": {
                         "type": "object",
                         "properties": {
@@ -4077,9 +4684,104 @@
                                 }
                             }
                         }
+                    },
+                    "coordinates": {
+                        "type": "object",
+                        "properties": {
+                            "lat": {
+                                "type": "number",
+                                "minimum": -90,
+                                "maximum": 90
+                            },
+                            "lng": {
+                                "type": "number",
+                                "minimum": -180,
+                                "maximum": 180
+                            }
+                        }
                     }
                 },
                 "title": "StoreRestaurantRequest"
+            },
+            "StoreZoneRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "StoreZoneRequest"
+            },
+            "UpdateDiningTableRequest": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "capacity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    },
+                    "shape": {
+                        "$ref": "#/components/schemas/DiningTableShape"
+                    },
+                    "x": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "y": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "width": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "height": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "rotation": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 360
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateDiningTableRequest"
             },
             "UpdateMenuItemRequest": {
                 "type": "object",
@@ -4138,6 +4840,9 @@
                     "sort_order": {
                         "type": "integer",
                         "minimum": 0
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     }
                 },
                 "title": "UpdateMenuItemRequest"
@@ -4236,6 +4941,15 @@
                     "sort_order": {
                         "type": "integer",
                         "minimum": 0
+                    },
+                    "icon_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     }
                 },
                 "title": "UpdateMenuSectionRequest"
@@ -4292,6 +5006,14 @@
                         ],
                         "maxLength": 10
                     },
+                    "google_maps_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 2048
+                    },
                     "opening_hours": {
                         "type": "object",
                         "properties": {
@@ -4325,174 +5047,27 @@
                                 }
                             }
                         }
+                    },
+                    "coordinates": {
+                        "type": "object",
+                        "properties": {
+                            "lat": {
+                                "type": "number",
+                                "minimum": -90,
+                                "maximum": 90
+                            },
+                            "lng": {
+                                "type": "number",
+                                "minimum": -180,
+                                "maximum": 180
+                            }
+                        }
                     }
                 },
                 "title": "UpdateRestaurantRequest"
             },
-            "HallResource": {
+            "UpdateZoneRequest": {
                 "type": "object",
-                "title": "HallResource",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "restaurant_id": {
-                        "type": "integer"
-                    },
-                    "color": {
-                        "type": "string",
-                        "example": "#6B7280"
-                    },
-                    "sort_order": {
-                        "type": "integer"
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    }
-                },
-                "required": [
-                    "id",
-                    "restaurant_id",
-                    "color",
-                    "sort_order",
-                    "is_active"
-                ]
-            },
-            "DiningTableResource": {
-                "type": "object",
-                "title": "DiningTableResource",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "hall_id": {
-                        "type": "integer"
-                    },
-                    "number": {
-                        "type": "integer",
-                        "example": 1
-                    },
-                    "capacity": {
-                        "type": "integer",
-                        "example": 4
-                    },
-                    "shape": {
-                        "type": "string",
-                        "enum": [
-                            "round",
-                            "square",
-                            "rectangular",
-                            "bar_counter"
-                        ]
-                    },
-                    "x": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "y": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "width": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "height": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "rotation": {
-                        "type": "number",
-                        "example": 0
-                    },
-                    "sort_order": {
-                        "type": "integer"
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "hall_id",
-                    "number",
-                    "capacity",
-                    "shape",
-                    "rotation",
-                    "sort_order",
-                    "is_active"
-                ]
-            },
-            "StoreHallRequest": {
-                "type": "object",
-                "title": "StoreHallRequest",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "color": {
-                        "type": "string",
-                        "pattern": "^#[0-9A-Fa-f]{6}$",
-                        "example": "#6B7280"
-                    },
-                    "sort_order": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    }
-                },
-                "required": [
-                    "name"
-                ]
-            },
-            "UpdateHallRequest": {
-                "type": "object",
-                "title": "UpdateHallRequest",
                 "properties": {
                     "name": {
                         "type": "string",
@@ -4512,134 +5087,71 @@
                 },
                 "required": [
                     "name"
-                ]
+                ],
+                "title": "UpdateZoneRequest"
             },
-            "StoreDiningTableRequest": {
+            "ZoneResource": {
                 "type": "object",
-                "title": "StoreDiningTableRequest",
                 "properties": {
-                    "number": {
-                        "type": "integer",
-                        "minimum": 1
+                    "id": {
+                        "type": "integer"
                     },
-                    "capacity": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
+                    "restaurant_id": {
+                        "type": "integer"
                     },
-                    "shape": {
-                        "type": "string",
-                        "enum": [
-                            "round",
-                            "square",
-                            "rectangular",
-                            "bar_counter"
-                        ]
-                    },
-                    "x": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "y": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "width": {
-                        "type": [
-                            "number",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "height": {
-                        "type": [
-                            "number",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "rotation": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 360
+                    "color": {
+                        "type": "string"
                     },
                     "sort_order": {
-                        "type": "integer",
-                        "minimum": 0
+                        "type": "integer"
                     },
                     "is_active": {
                         "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "image": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "image_url": {
+                        "type": "string"
+                    },
+                    "thumb_url": {
+                        "type": "string"
                     }
                 },
                 "required": [
-                    "number"
-                ]
-            },
-            "UpdateDiningTableRequest": {
-                "type": "object",
-                "title": "UpdateDiningTableRequest",
-                "properties": {
-                    "number": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "capacity": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                    },
-                    "shape": {
-                        "type": "string",
-                        "enum": [
-                            "round",
-                            "square",
-                            "rectangular",
-                            "bar_counter"
-                        ]
-                    },
-                    "x": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "y": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "width": {
-                        "type": [
-                            "number",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "height": {
-                        "type": [
-                            "number",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "rotation": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 360
-                    },
-                    "sort_order": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    }
-                }
+                    "id",
+                    "restaurant_id",
+                    "color",
+                    "sort_order",
+                    "is_active",
+                    "created_at",
+                    "updated_at",
+                    "image",
+                    "name",
+                    "image_url",
+                    "thumb_url"
+                ],
+                "title": "ZoneResource"
             }
         },
         "responses": {

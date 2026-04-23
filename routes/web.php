@@ -11,6 +11,12 @@ Route::get('/', function () {
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 
+Route::get('/{restaurant}/t/{table}/{lang?}', [MenuPageController::class, 'showTable'])
+    ->name('menu.public.table')
+    ->where('restaurant', '[0-9]+|[a-zA-Z0-9]{8,}')
+    ->where('table', '[a-zA-Z0-9]{8,}')
+    ->where('lang', '[a-z]{2}');
+
 Route::get('/{identifier}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public')
     ->where('identifier', '[0-9]+|[a-zA-Z0-9]{8,}')
     ->where('lang', '[a-z]{2}');

@@ -115,6 +115,31 @@ class DiningTableTest extends TestCase
     }
 
     #[Test]
+    public function new_table_gets_auto_generated_uniqid(): void
+    {
+        $zone = Zone::factory()->create();
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $this->assertNotEmpty($table->uniqid);
+        $this->assertDoesNotMatchRegularExpression('/\./', $table->uniqid);
+
+        $another = DiningTable::factory()->create(['zone_id' => $zone->id]);
+        $this->assertNotSame($table->uniqid, $another->uniqid);
+    }
+
+    #[Test]
+    public function explicit_uniqid_is_preserved_on_create(): void
+    {
+        $zone = Zone::factory()->create();
+        $table = DiningTable::factory()->create([
+            'zone_id' => $zone->id,
+            'uniqid' => 'custom-unique-value',
+        ]);
+
+        $this->assertSame('custom-unique-value', $table->fresh()->uniqid);
+    }
+
+    #[Test]
     public function cannot_access_table_from_other_restaurant(): void
     {
         $restaurant1 = Restaurant::factory()->create();

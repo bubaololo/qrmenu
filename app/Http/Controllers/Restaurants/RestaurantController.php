@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Restaurants;
 
-use App\Actions\GenerateRestaurantQrCode;
+use App\Actions\GenerateQrCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurants\StoreRestaurantRequest;
 use App\Http\Requests\Restaurants\UpdateRestaurantRequest;
@@ -13,6 +13,7 @@ use App\Models\Restaurant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
 class RestaurantController extends Controller
@@ -111,13 +112,19 @@ class RestaurantController extends Controller
         return response()->json(null, 204);
     }
 
-    public function qr(Restaurant $restaurant): JsonResponse
+    /**
+     * Return a PNG QR code that links to the restaurant's public menu page.
+     *
+     * The encoded URL is `{app_url}/{restaurant.id}`. A restaurant always has
+     * at most one active menu, so the QR targets the restaurant, not a specific menu.
+     */
+    public function qr(Restaurant $restaurant, GenerateQrCode $generateQr): Response
     {
         Gate::authorize('view', $restaurant);
 
-        $url = app(GenerateRestaurantQrCode::class)->handle($restaurant);
+        $url = config('app.url').'/'.$restaurant->id;
 
-        return response()->json(['data' => ['qr_url' => $url]]);
+        return $generateQr($url);
     }
 
     /**

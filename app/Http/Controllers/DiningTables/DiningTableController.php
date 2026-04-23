@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\DiningTables;
 
+use App\Actions\GenerateQrCode;
 use App\Actions\StoreDiningTableAction;
 use App\Actions\UpdateDiningTableAction;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,7 @@ use App\Models\DiningTable;
 use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
 class DiningTableController extends Controller
@@ -57,5 +59,20 @@ class DiningTableController extends Controller
         $diningTable->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Return a PNG QR code that links to the restaurant's public menu scoped to this table.
+     *
+     * The encoded URL is `{app_url}/{restaurant.uniqid}/t/{table.uniqid}`.
+     */
+    public function qr(DiningTable $diningTable, GenerateQrCode $generateQr): Response
+    {
+        Gate::authorize('view', $diningTable);
+
+        $restaurant = $diningTable->zone->restaurant;
+        $url = config('app.url').'/'.$restaurant->uniqid.'/t/'.$diningTable->uniqid;
+
+        return $generateQr($url);
     }
 }

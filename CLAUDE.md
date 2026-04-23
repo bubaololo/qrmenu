@@ -1,3 +1,11 @@
+# Project Description
+
+This is a digital menu platform for restaurants using QR codes. Key features:
+- Menu recognition from photos via LLM (items, prices, categories extracted automatically)
+- Public-facing menu pages accessible via QR code scan
+- Restaurant admin panel (Filament) for managing menus, halls, tables, and content
+- Multi-language menu support with LLM-powered translation
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

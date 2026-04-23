@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\LlmRequestFailedException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -46,6 +47,14 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => $e->getMessage(),
                     'debug' => $e->telemetry,
                 ], $e->statusCode());
+            }
+
+            return null;
+        });
+
+        $exceptions->renderable(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $e->getMessage()], 401);
             }
 
             return null;
