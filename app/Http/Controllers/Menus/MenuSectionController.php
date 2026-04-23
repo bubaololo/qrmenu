@@ -36,8 +36,9 @@ class MenuSectionController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
-        $locale = $menu->source_locale ?? 'und';
-        $section->setTranslation('name', $locale, $validated['name'], isInitial: true);
+        $sourceLocale = $menu->source_locale ?? 'und';
+        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+        $section->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuSectionResource($section->fresh()))
             ->response()

@@ -31,8 +31,9 @@ class MenuOptionGroupOptionController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        $locale = $menuOptionGroup->section->menu->source_locale ?? 'und';
-        $option->setTranslation('name', $locale, $validated['name'], isInitial: true);
+        $sourceLocale = $menuOptionGroup->section->menu->source_locale ?? 'und';
+        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+        $option->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupOptionResource($option->fresh()))
             ->response()

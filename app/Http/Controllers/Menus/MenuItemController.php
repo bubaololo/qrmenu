@@ -39,11 +39,12 @@ class MenuItemController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        $locale = $menuSection->menu->source_locale ?? 'und';
-        $item->setTranslation('name', $locale, $validated['name'], isInitial: true);
+        $sourceLocale = $menuSection->menu->source_locale ?? 'und';
+        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+        $item->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         if (isset($validated['description']) && $validated['description'] !== null) {
-            $item->setTranslation('description', $locale, $validated['description'], isInitial: true);
+            $item->setTranslation('description', $locale, $validated['description'], isInitial: $isInitial);
         }
 
         return (new MenuItemResource($item->fresh()))
