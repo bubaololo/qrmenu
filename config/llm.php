@@ -91,7 +91,8 @@ return [
         'google/gemma-4-26b-a4b-it' => ['input' => 7, 'output' => 40],
         'google/gemma-4-26b-a4b-it:free' => ['input' => 0, 'output' => 0],
         'google/gemma-4-31b-it' => ['input' => 13, 'output' => 38],
-        'deepseek-chat' => ['input' => 27, 'output' => 110],
+        // deepseek-chat = DeepSeek-V4-Flash; cache-miss pricing (worst case)
+        'deepseek-chat' => ['input' => 14, 'output' => 28],
         'openai/gpt-4.1-mini' => ['input' => 40, 'output' => 160],
     ],
 

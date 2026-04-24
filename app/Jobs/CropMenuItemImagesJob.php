@@ -26,13 +26,18 @@ class CropMenuItemImagesJob implements ShouldQueue
         public int $menuId,
         public array $originalImagePaths,
         public string $imageDisk,
-    ) {}
+    ) {
+        $this->onQueue(config('llm.queue', 'llm-analysis'));
+    }
 
     public function handle(ImageProcessor $processor): void
     {
         $menu = Menu::with('sections.items')->find($this->menuId);
 
         if (! $menu) {
+            Log::channel('llm')->warning('Bbox crop skipped: menu not found', [
+                'menu_id' => $this->menuId,
+            ]);
             $this->cleanupOriginals();
 
             return;
