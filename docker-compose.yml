@@ -74,6 +74,8 @@ services:
 
 volumes:
   pgdata:
+    name: menu_pgdata
+    external: true
 
 networks:
   app_network:

@@ -6,7 +6,6 @@ use App\Models\Menu;
 use App\Models\MenuAnalysis;
 use App\Services\AnalysisEventBroker;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SseEventsController extends Controller
@@ -38,11 +37,13 @@ class SseEventsController extends Controller
 
     /**
      * Stream events for a translation run (`menu-translation.{menuId}.{locale}` topic).
+     *
+     * Intentionally public — anonymous QR-scanning users on the public menu
+     * page need to know when translations land so the page can refresh.
+     * Topic content is harmless (chunk counts, no menu data).
      */
     public function menuTranslation(Request $request, Menu $menu, string $locale): StreamedResponse
     {
-        Gate::authorize('view', $menu);
-
         $topic = "menu-translation.{$menu->id}.{$locale}";
 
         return $this->stream(

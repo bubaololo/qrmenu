@@ -38,13 +38,16 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 | Protected API (auth:sanctum — session cookie or Bearer token)
 |--------------------------------------------------------------------------
 */
+// Public SSE — public menu page subscribes to translation progress while
+// anonymous QR-scanning users wait for new locales to land.
+Route::get('/v1/menus/{menu}/translations/{locale}/events', [SseEventsController::class, 'menuTranslation'])
+    ->name('menu-translations.events');
+
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
     Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
     Route::get('/menu-analyses/{uuid}/events', [SseEventsController::class, 'menuAnalysis'])
         ->name('menu-analyses.events');
-    Route::get('/menus/{menu}/translations/{locale}/events', [SseEventsController::class, 'menuTranslation'])
-        ->name('menu-translations.events');
 
     // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);
