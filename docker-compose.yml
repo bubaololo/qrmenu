@@ -26,6 +26,9 @@ services:
       XDEBUG_MODE: develop,debug
       XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003 discover_client_host=0
       PHP_IDE_CONFIG: serverName=menu-docker
+      # Multi-worker built-in PHP server. Without this, long-lived SSE
+      # connections monopolise the single worker and freeze every other request.
+      PHP_CLI_SERVER_WORKERS: "8"
     depends_on:
       postgres:
         condition: service_healthy
