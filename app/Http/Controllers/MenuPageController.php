@@ -51,8 +51,9 @@ class MenuPageController extends Controller
         }
 
         // On-demand translation: if locale not initial and no translations exist, trigger LLM
+        $translationPending = false;
         if ($menu && $lang !== ($menu->source_locale ?? $primaryLang)) {
-            $this->ensureTranslations($restaurant, $menu, $lang);
+            $translationPending = $this->ensureTranslations($restaurant, $menu, $lang);
             $menu = $restaurant->activeMenu; // refresh after potential translation
         }
 
@@ -75,15 +76,20 @@ class MenuPageController extends Controller
             'currencySymbol',
             'primaryLang',
             'uiStrings',
+            'translationPending',
         ));
     }
 
-    private function ensureTranslations(Restaurant $restaurant, object $menu, string $lang): void
+    /**
+     * @return bool True if translation chunks are still in-flight after dispatch
+     *              (the page should subscribe to SSE for live progress).
+     */
+    private function ensureTranslations(Restaurant $restaurant, object $menu, string $lang): bool
     {
         $itemIds = $menu->sections->flatMap->items->pluck('id');
 
         if ($itemIds->isEmpty()) {
-            return;
+            return false;
         }
 
         $hasTranslations = Translation::where('locale', $lang)
@@ -92,37 +98,32 @@ class MenuPageController extends Controller
             ->exists();
 
         if ($hasTranslations) {
-            return;
+            return false;
         }
 
         // Throttle: max 1 translation per menu+locale per hour
         $cacheKey = "menu_translation:{$menu->id}:{$lang}";
 
         if (Cache::has($cacheKey)) {
-            return;
+            // Already dispatched recently — assume chunks are still in-flight
+            // (or finished but data not loaded for this request). Either way,
+            // SSE subscription resolves it on the client.
+            return true;
         }
 
         TranslateMenuJob::dispatchSync($menu, $lang);
 
-        // Only cache if translations were actually saved — job may abort silently (no prompt, empty payload, LLM error)
+        // The orchestrator's handle() now fires Bus::batch and returns; chunks
+        // crunch in Horizon. Translations land asynchronously, so for this
+        // request we treat this as "pending" and let the client subscribe.
         $translationsSaved = Translation::where('locale', $lang)
             ->where('translatable_type', MenuItem::class)
             ->whereIn('translatable_id', $itemIds)
             ->exists();
 
-        if ($translationsSaved) {
-            Cache::put($cacheKey, true, now()->addHour());
-        }
+        Cache::put($cacheKey, true, now()->addHour());
 
-        // Reload all translations so the page renders with new data
-        $restaurant->load([
-            'translations',
-            'activeMenu.sections.translations',
-            'activeMenu.sections.items.translations',
-            'activeMenu.sections.items.variations.options.translations',
-            'activeMenu.sections.items.optionGroups.translations',
-            'activeMenu.sections.items.optionGroups.options.translations',
-        ]);
+        return ! $translationsSaved;
     }
 
     /**

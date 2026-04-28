@@ -237,6 +237,8 @@
             'lang' => $lang,
             'primaryLang' => $primaryLang,
             'restaurantId' => $restaurant->id,
+            'menuId' => $menu?->id,
+            'translationPending' => $translationPending ?? false,
         ];
     @endphp
     <script>
@@ -245,6 +247,61 @@
         window.__CONFIG__ = @json($config);
     </script>
     <script src="/js/menu.js"></script>
+
+    {{-- Live translation banner: shows up only when this request triggered a
+         pending translation. Subscribes to SSE; reloads on translation.completed. --}}
+    @if(($translationPending ?? false) && $menu)
+        <div id="translation-banner"
+             class="translation-banner"
+             role="status"
+             aria-live="polite"
+             style="position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:90;background:rgba(20,20,20,.9);color:#fff;padding:.65rem 1rem;border-radius:999px;font-size:.85rem;display:flex;gap:.6rem;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.18);backdrop-filter:blur(10px)">
+            <span class="translation-banner__spinner" aria-hidden="true"
+                  style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite"></span>
+            <span class="translation-banner__text" id="translation-banner-text">
+                {{ $uiStrings['translating'] ?? 'Translating menu…' }}
+            </span>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        <script>
+            (function () {
+                var menuId = window.__CONFIG__.menuId;
+                var locale = window.__CONFIG__.lang;
+                if (!menuId || !locale) return;
+
+                var banner = document.getElementById('translation-banner');
+                var bannerText = document.getElementById('translation-banner-text');
+                if (!banner) return;
+
+                var es = new EventSource('/api/v1/menus/' + menuId + '/translations/' + locale + '/events', { withCredentials: true });
+
+                es.onmessage = function (e) {
+                    try {
+                        var parsed = JSON.parse(e.data);
+                        var event = parsed.event;
+                        var data = parsed.data || {};
+
+                        if (event === 'translation.started') {
+                            if (bannerText) bannerText.textContent = '0/' + (data.chunk_total || '?') + ' chunks…';
+                        } else if (event === 'translation.chunk-complete') {
+                            if (bannerText) bannerText.textContent =
+                                (data.chunk_index || 0) + '/' + (data.chunk_total || '?') + ' chunks';
+                        } else if (event === 'translation.completed') {
+                            es.close();
+                            if (bannerText) bannerText.textContent = 'Done · refreshing…';
+                            setTimeout(function () { window.location.reload(); }, 800);
+                        }
+                    } catch (_) { /* ignore */ }
+                };
+
+                es.onerror = function () {
+                    if (es.readyState === EventSource.CLOSED) {
+                        if (bannerText) bannerText.textContent = 'Connection lost — refresh to retry.';
+                    }
+                };
+            })();
+        </script>
+    @endif
     <script>
         (function () {
             var hero = document.querySelector('.hero');

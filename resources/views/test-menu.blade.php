@@ -639,8 +639,8 @@
                 return;
             }
 
-            // Poll until completed or failed
-            await pollAnalysis(uuid);
+            // Subscribe to SSE for live chunk progress
+            await subscribeAnalysis(uuid);
         } catch (e) {
             err.textContent = e.message;
         } finally {
@@ -649,50 +649,107 @@
         }
     }
 
-    async function pollAnalysis(uuid) {
+    /**
+     * Server-Sent Events stream of analysis progress.
+     * Emits: analysis.started, analysis.chunk-complete (xN), analysis.completed,
+     * analysis.failed. The browser auto-reconnects via Last-Event-ID; we close
+     * the stream once we hit a terminal event and pull the final result via
+     * GET /menu-analyses/{uuid} so renderResults() gets the same shape it
+     * always did (full menu tree, saved_menu_id, etc).
+     */
+    async function subscribeAnalysis(uuid) {
         const spinner = document.getElementById('spinner');
         const err = document.getElementById('analyze-error');
-        // Find the text node inside spinner (after the SVG)
         const textNode = Array.from(spinner.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
 
-        let elapsed = 0;
-        while (true) {
-            await new Promise(r => setTimeout(r, 2500));
-            elapsed += 2;
-
-            if (textNode) {
-                textNode.textContent = ` Analyzing, please wait… (${elapsed}s)`;
+        const startedAt = Date.now();
+        const setStatus = (message) => {
+            if (!textNode) return;
+            const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+            textNode.textContent = ` ${message} (${elapsedSec}s)`;
+        };
+        const tickInterval = setInterval(() => {
+            if (textNode && textNode.textContent.trim()) {
+                // Refresh the elapsed counter without losing the chunk label.
+                const stripped = textNode.textContent.replace(/ \(\d+s\)\s*$/, '');
+                const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+                textNode.textContent = `${stripped} (${elapsedSec}s)`;
             }
+        }, 1000);
 
-            let data;
-            try {
-                const res = await fetch(`${API}/menu-analyses/${uuid}`, {
-                    credentials: 'include',
-                    headers: authHeaders({ 'Accept': 'application/vnd.api+json' }),
-                });
-                data = await res.json();
+        return new Promise((resolve) => {
+            setStatus('Analyzing, please wait…');
+            const es = new EventSource(`${API}/menu-analyses/${uuid}/events`, { withCredentials: true });
+            let chunkTotal = 0;
 
-                if (!res.ok) {
-                    err.textContent = data.message ?? `Polling error ${res.status}`;
+            const finish = async (terminalAttrs, errorMessage) => {
+                clearInterval(tickInterval);
+                es.close();
+                if (errorMessage) {
+                    err.textContent = errorMessage;
+                    resolve();
                     return;
                 }
-            } catch (e) {
-                err.textContent = 'Network error while polling: ' + e.message;
-                return;
-            }
+                if (terminalAttrs) {
+                    renderResults(terminalAttrs);
+                    resolve();
+                    return;
+                }
+                // Pull final attributes (menu tree, saved_menu_id, item_count, …)
+                try {
+                    const res = await fetch(`${API}/menu-analyses/${uuid}`, {
+                        credentials: 'include',
+                        headers: authHeaders({ 'Accept': 'application/vnd.api+json' }),
+                    });
+                    const data = await res.json();
+                    const attrs = data.data?.attributes ?? {};
+                    if (attrs.status === 'completed') {
+                        renderResults(attrs);
+                    } else if (attrs.status === 'failed') {
+                        err.textContent = attrs.error_message ?? 'Analysis failed.';
+                    } else {
+                        err.textContent = 'Analysis completed but final fetch returned an unexpected status.';
+                    }
+                } catch (e) {
+                    err.textContent = 'Failed to fetch final result: ' + e.message;
+                }
+                resolve();
+            };
 
-            const attrs = data.data?.attributes ?? {};
+            es.onmessage = (e) => {
+                let parsed;
+                try {
+                    parsed = JSON.parse(e.data);
+                } catch (_) {
+                    return;
+                }
+                const event = parsed.event;
+                const data = parsed.data ?? {};
 
-            if (attrs.status === 'completed') {
-                renderResults(attrs);
-                return;
-            }
+                if (event === 'analysis.started') {
+                    chunkTotal = Number(data.chunk_total) || 0;
+                    setStatus(chunkTotal > 0
+                        ? `Starting analysis · 0/${chunkTotal} chunks`
+                        : 'Starting analysis…');
+                } else if (event === 'analysis.chunk-complete') {
+                    const done = Number(data.chunk_index) || 0;
+                    const total = Number(data.chunk_total) || chunkTotal;
+                    chunkTotal = total;
+                    setStatus(`Chunk ${done}/${total} done`);
+                } else if (event === 'analysis.completed') {
+                    setStatus('Analysis complete, fetching menu…');
+                    finish(null, null);
+                } else if (event === 'analysis.failed') {
+                    finish(null, data.error || 'Analysis failed.');
+                }
+            };
 
-            if (attrs.status === 'failed') {
-                err.textContent = attrs.error_message ?? 'Analysis failed.';
-                return;
-            }
-        }
+            es.onerror = () => {
+                if (es.readyState === EventSource.CLOSED) {
+                    finish(null, 'Connection to event stream lost.');
+                }
+            };
+        });
     }
 
     // ── JSON:API attributes (snake_case or camelCase) ───────────────────────────
