@@ -6,6 +6,7 @@ use App\Actions\AnalyzeMenuImageAction;
 use App\Actions\SaveMenuAnalysisAction;
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
+use App\Services\AnalysisEventBroker;
 use App\Services\LlmCascadeService;
 use App\Support\MenuJson;
 use Illuminate\Bus\Batchable;
@@ -88,6 +89,17 @@ class AnalyzeChunkJob implements ShouldQueue
             'provider' => $result['provider'].':'.$result['model'],
             'tier' => $result['tier'],
         ]);
+
+        app(AnalysisEventBroker::class)->publish(
+            "menu-analysis.{$this->analysis->uuid}",
+            'analysis.chunk-complete',
+            [
+                'chunk_index' => $this->chunkIndex + 1,
+                'chunk_total' => $this->chunkTotal,
+                'provider' => $result['provider'].':'.$result['model'],
+                'tier' => $result['tier'],
+            ],
+        );
     }
 
     public function failed(Throwable $e): void

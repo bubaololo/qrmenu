@@ -7,6 +7,7 @@ use App\Actions\SaveMenuAnalysisAction;
 use App\Enums\MenuAnalysisStatus;
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
+use App\Services\AnalysisEventBroker;
 use App\Services\LlmCascadeService;
 use App\Support\MenuJson;
 use Illuminate\Bus\Queueable;
@@ -162,7 +163,19 @@ class AnalyzeMenuJob implements ShouldQueue
             'menu_id' => $menu->id,
         ]);
 
+        app(AnalysisEventBroker::class)->publish(
+            "menu-analysis.{$this->analysis->uuid}",
+            'analysis.started',
+            [
+                'image_count' => count($this->analysis->image_paths),
+                'chunk_total' => $total,
+                'chunk_size' => $chunkSize,
+                'menu_id' => $menu->id,
+            ],
+        );
+
         $analysisId = $this->analysis->id;
+        $analysisUuid = $this->analysis->uuid;
 
         Bus::batch($jobs)
             ->name("menu-analysis-{$this->analysis->uuid}")
@@ -170,7 +183,7 @@ class AnalyzeMenuJob implements ShouldQueue
             ->then(function () use ($analysisId): void {
                 FinalizeAnalysisJob::dispatch(MenuAnalysis::findOrFail($analysisId));
             })
-            ->catch(function ($batch, Throwable $e) use ($analysisId): void {
+            ->catch(function ($batch, Throwable $e) use ($analysisId, $analysisUuid): void {
                 $analysis = MenuAnalysis::find($analysisId);
                 if (! $analysis) {
                     return;
@@ -184,6 +197,12 @@ class AnalyzeMenuJob implements ShouldQueue
                 foreach ($analysis->original_image_paths ?? [] as $path) {
                     $disk->delete($path);
                 }
+
+                app(AnalysisEventBroker::class)->publish(
+                    "menu-analysis.{$analysisUuid}",
+                    'analysis.failed',
+                    ['error' => $e->getMessage()],
+                );
             })
             ->dispatch();
     }

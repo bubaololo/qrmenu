@@ -6,6 +6,7 @@ use App\Llm\DeepSeekTextProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\Menu;
 use App\Models\Prompt;
+use App\Services\AnalysisEventBroker;
 use App\Services\LlmCascadeService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -114,6 +115,18 @@ class TranslateChunkJob implements ShouldQueue
             'provider' => $result['provider'].':'.$result['model'],
             'tier' => $result['tier'],
         ]);
+
+        app(AnalysisEventBroker::class)->publish(
+            "menu-translation.{$this->menu->id}.{$this->targetLocale}",
+            'translation.chunk-complete',
+            [
+                'chunk_index' => $this->chunkIndex + 1,
+                'chunk_total' => $this->chunkTotal,
+                'fields_written' => $count,
+                'provider' => $result['provider'].':'.$result['model'],
+                'tier' => $result['tier'],
+            ],
+        );
     }
 
     public function failed(\Throwable $e): void

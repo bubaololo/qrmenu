@@ -10,6 +10,7 @@ use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
 use App\Http\Controllers\Menus\MenuSectionController;
 use App\Http\Controllers\Menus\MenuTranslationController;
 use App\Http\Controllers\Restaurants\RestaurantController;
+use App\Http\Controllers\SseEventsController;
 use App\Http\Controllers\Zones\ZoneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,10 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
     Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
+    Route::get('/menu-analyses/{uuid}/events', [SseEventsController::class, 'menuAnalysis'])
+        ->name('menu-analyses.events');
+    Route::get('/menus/{menu}/translations/{locale}/events', [SseEventsController::class, 'menuTranslation'])
+        ->name('menu-translations.events');
 
     // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);

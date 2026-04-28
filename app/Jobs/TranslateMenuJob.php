@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Menu;
 use App\Models\Prompt;
+use App\Services\AnalysisEventBroker;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Bus;
@@ -60,6 +61,17 @@ class TranslateMenuJob implements ShouldQueue
             return;
         }
 
+        app(AnalysisEventBroker::class)->publish(
+            "menu-translation.{$this->menu->id}.{$this->targetLocale}",
+            'translation.started',
+            [
+                'menu_id' => $this->menu->id,
+                'target_locale' => $this->targetLocale,
+                'chunk_total' => $chunkTotal,
+                'lines_total' => count($lines),
+            ],
+        );
+
         $jobs = [];
         foreach ($chunks as $i => $chunk) {
             $jobs[] = new TranslateChunkJob(
@@ -85,6 +97,18 @@ class TranslateMenuJob implements ShouldQueue
                     'chunks_failed' => $batch->failedJobs,
                     'chunks_ok' => $batch->totalJobs - $batch->failedJobs,
                 ]);
+
+                app(AnalysisEventBroker::class)->publish(
+                    "menu-translation.{$menuId}.{$locale}",
+                    'translation.completed',
+                    [
+                        'menu_id' => $menuId,
+                        'target_locale' => $locale,
+                        'chunks_total' => $batch->totalJobs,
+                        'chunks_failed' => $batch->failedJobs,
+                        'chunks_ok' => $batch->totalJobs - $batch->failedJobs,
+                    ],
+                );
             })
             ->dispatch();
     }

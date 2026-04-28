@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
+use App\Services\AnalysisEventBroker;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -55,6 +56,16 @@ class FinalizeAnalysisJob implements ShouldQueue
             'menu_id' => $menu?->id,
             'item_count' => $itemCount,
         ]);
+
+        app(AnalysisEventBroker::class)->publish(
+            "menu-analysis.{$this->analysis->uuid}",
+            'analysis.completed',
+            [
+                'menu_id' => $menu?->id,
+                'restaurant_id' => $this->analysis->restaurant_id,
+                'item_count' => $itemCount,
+            ],
+        );
     }
 
     private function cleanupPreprocessed(): void
