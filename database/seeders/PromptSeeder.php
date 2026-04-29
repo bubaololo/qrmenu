@@ -28,7 +28,9 @@ Extract structured data from the menu image(s) and return ONLY the JSON object m
 
 **Bilingual menus** — if a single name/description appears in multiple languages side by side (separated by "/", "-", parentheses, or a new line), keep ONLY the text in `primary_language` and drop the other language. Example: menu line "Cà phê đen / Black coffee" with primary_language=vi → name = "Cà phê đen".
 
-**primary_language** — ISO 639-1 code of the dominant menu text language. Use "mixed" only when two or more languages are equally present with no single dominant one.
+**primary_language** — ISO 639-1 code of the dominant menu text language. Use "mixed" when:
+- two or more languages are equally present across the menu with no single dominant one, OR
+- different fields consistently use different languages (e.g. item names in Vietnamese but item descriptions in English) — even if one of those languages dominates by character count. Field-level language inconsistency means downstream translation must run for every locale, including the one matching the names.
 
 **currency** — ISO 4217 three-letter code. Infer from currency symbols, price formatting, and regional context (e.g., Vietnam → VND).
 

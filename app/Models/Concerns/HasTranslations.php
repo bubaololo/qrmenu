@@ -97,20 +97,36 @@ trait HasTranslations
 
     /**
      * Persist a translation for the given field + locale.
+     *
+     * Refuses to overwrite an existing initial (source) translation with a
+     * non-initial one — source data must never be destroyed by a translation
+     * pass. This matters for mixed-language menus where a translation pipeline
+     * targets the same locale as the OCR-captured initial.
      */
     public function setTranslation(string $field, string $locale, string $value, bool $isInitial = false): void
     {
-        // Only one initial allowed per (type, id, field) — remove old if replacing
-        if ($isInitial) {
+        $fieldId = static::resolveFieldId($field);
+
+        if (! $isInitial) {
+            $existing = $this->translations()
+                ->where('locale', $locale)
+                ->where('field_id', $fieldId)
+                ->first();
+
+            if ($existing && $existing->is_initial) {
+                return;
+            }
+        } else {
+            // Only one initial allowed per (type, id, field) — remove old if replacing
             $this->translations()
-                ->where('field_id', static::resolveFieldId($field))
+                ->where('field_id', $fieldId)
                 ->where('is_initial', true)
                 ->where('locale', '!=', $locale)
                 ->delete();
         }
 
         $this->translations()->updateOrCreate(
-            ['locale' => $locale, 'field_id' => static::resolveFieldId($field)],
+            ['locale' => $locale, 'field_id' => $fieldId],
             ['value' => $value, 'is_initial' => $isInitial],
         );
     }

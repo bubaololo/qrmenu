@@ -69,11 +69,19 @@ class TranslateChunkJob implements ShouldQueue
 
         $iso = new ISO639;
         $targetLocaleName = $iso->languageByCode1($this->targetLocale) ?: $this->targetLocale;
-        $sourceLocaleName = $iso->languageByCode1($sourceLocale) ?: $sourceLocale;
+
+        // Mixed-source menus carry text in multiple languages within the same
+        // chunk (e.g. Vietnamese item names with English descriptions). Telling
+        // the LLM the source is "mixed (mixed)" gives it no useful signal — it
+        // ends up either skipping fields or hallucinating translations. Pass an
+        // auto-detect hint instead so the model treats every field on its own.
+        $sourceDescription = $sourceLocale === 'mixed'
+            ? 'auto-detect (each field may be in a different language)'
+            : ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
 
         $userPrompt = str_replace(
             ['{target_locale}', '{source_locale}', '{restaurant_name}', '{city}', '{country}'],
-            ["{$targetLocaleName} ({$this->targetLocale})", "{$sourceLocaleName} ({$sourceLocale})", $restaurant->name ?? '', $restaurant->city ?? '', $restaurant->country ?? ''],
+            ["{$targetLocaleName} ({$this->targetLocale})", $sourceDescription, $restaurant->name ?? '', $restaurant->city ?? '', $restaurant->country ?? ''],
             $prompt->user_prompt,
         );
 

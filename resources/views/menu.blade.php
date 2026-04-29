@@ -8,7 +8,7 @@
         $sectionCount = $menu ? $menu->sections->count() : 0;
         $itemCount = $menu ? $menu->sections->sum(fn($s) => $s->items->count()) : 0;
         $usedIcons = $menu
-            ? $menu->sections->pluck('category_icon')->filter()->unique()->values()->all()
+            ? $menu->sections->map(fn($s) => $s->icon?->name)->filter()->unique()->values()->all()
             : [];
         $iconSprite = \App\Support\FoodIcons::sprite($usedIcons);
     @endphp
@@ -31,20 +31,12 @@
 
     {{-- Navbar --}}
     @php
-        $localeMenu = [
-            ['code' => 'vi', 'label' => 'Tiếng Việt', 'flag' => "\u{1F1FB}\u{1F1F3}"],
-            ['code' => 'en', 'label' => 'English',    'flag' => "\u{1F1EC}\u{1F1E7}"],
-            ['code' => 'ru', 'label' => 'Русский',    'flag' => "\u{1F1F7}\u{1F1FA}"],
-            ['code' => 'zh', 'label' => '中文',        'flag' => "\u{1F1E8}\u{1F1F3}"],
-            ['code' => 'ko', 'label' => '한국어',      'flag' => "\u{1F1F0}\u{1F1F7}"],
-            ['code' => 'fr', 'label' => 'Français',   'flag' => "\u{1F1EB}\u{1F1F7}"],
-            ['code' => 'es', 'label' => 'Español',    'flag' => "\u{1F1EA}\u{1F1F8}"],
-            ['code' => 'de', 'label' => 'Deutsch',    'flag' => "\u{1F1E9}\u{1F1EA}"],
-        ];
-        $currentLocale = collect($localeMenu)->firstWhere('code', $lang)
-            ?? collect($localeMenu)->firstWhere('code', $primaryLang)
-            ?? $localeMenu[1];
-        $menuIdentifier = $restaurant->uniqid ?? $restaurant->id;
+        // Reuse the identifier the user came in with — if they hit /17/...
+        // we keep `17` in the dropdown links instead of switching to uniqid.
+        $menuIdentifier = $identifier ?? $restaurant->uniqid ?? $restaurant->id;
+        $currentLocale = collect($languages ?? [])->firstWhere('code', $lang)
+            ?? ['code' => $lang, 'label' => strtoupper($lang), 'flag' => "\u{1F310}"];
+        $availableCodes = collect($languages ?? [])->pluck('code')->all();
     @endphp
     <nav class="navbar" aria-label="Main navigation">
         <div class="container nav-row">
@@ -59,16 +51,85 @@
                         <svg class="lang-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
                     </button>
                     <div class="lang-menu" role="listbox">
-                        @foreach($localeMenu as $language)
-                            <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $language['code']]) }}"
-                               class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}"
-                               role="option"
-                               aria-selected="{{ $language['code'] === $lang ? 'true' : 'false' }}">
-                                <span class="lang-flag">{{ $language['flag'] }}</span>
-                                <span class="lang-name">{{ $language['label'] }}</span>
-                                <span class="lang-code-tag">{{ strtoupper($language['code']) }}</span>
-                            </a>
-                        @endforeach
+                        {{-- Already-translated locales --}}
+                        @if(! empty($languages))
+                            <div class="lang-section-title">{{ $uiStrings['langAvailable'] ?? 'Available' }}</div>
+                            @foreach($languages as $language)
+                                <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $language['code']]) }}"
+                                   class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}"
+                                   role="option"
+                                   aria-selected="{{ $language['code'] === $lang ? 'true' : 'false' }}">
+                                    <span class="lang-flag">{{ $language['flag'] }}</span>
+                                    <span class="lang-name">{{ $language['label'] }}</span>
+                                    <span class="lang-code-tag">{{ strtoupper($language['code']) }}</span>
+                                </a>
+                            @endforeach
+                        @endif
+
+                        {{-- Search + curated language list (translate on click) --}}
+                        @if(! empty($allLocales))
+                            <div class="lang-section-title lang-section-title--search">{{ $uiStrings['langTranslateTo'] ?? 'Translate to…' }}</div>
+                            <div class="lang-search">
+                                <input type="text" id="lang-search-input" class="lang-search-input"
+                                       placeholder="{{ $uiStrings['langSearchPlaceholder'] ?? 'Search languages…' }}"
+                                       autocomplete="off" spellcheck="false">
+                            </div>
+                            <div id="lang-all-list" class="lang-all-list">
+                                @foreach($allLocales as $loc)
+                                    @if(in_array($loc['code'], $availableCodes, true))
+                                        @continue
+                                    @endif
+                                    <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $loc['code']]) }}"
+                                       data-code="{{ $loc['code'] }}"
+                                       data-label="{{ strtolower($loc['label']) }}"
+                                       data-native="{{ strtolower($loc['native']) }}"
+                                       class="lang-option lang-option--all">
+                                        <span class="lang-flag">{{ $loc['flag'] }}</span>
+                                        <span class="lang-name">
+                                            {{ $loc['label'] }}
+                                            @if($loc['native'] !== '' && $loc['native'] !== $loc['label'])
+                                                <span class="lang-native">· {{ $loc['native'] }}</span>
+                                            @endif
+                                        </span>
+                                        <span class="lang-code-tag">{{ strtoupper($loc['code']) }}</span>
+                                    </a>
+                                @endforeach
+                                <p class="lang-no-results" id="lang-no-results" hidden>{{ $uiStrings['langNoResults'] ?? 'No matches' }}</p>
+                            </div>
+                            <script>
+                                (function () {
+                                    var input = document.getElementById('lang-search-input');
+                                    var list = document.getElementById('lang-all-list');
+                                    var emptyState = document.getElementById('lang-no-results');
+                                    if (!input || !list) return;
+                                    var items = Array.prototype.slice.call(list.querySelectorAll('a.lang-option'));
+
+                                    input.addEventListener('input', function () {
+                                        var q = input.value.trim().toLowerCase();
+                                        var visibleCount = 0;
+                                        for (var i = 0; i < items.length; i++) {
+                                            var a = items[i];
+                                            var hit = q === ''
+                                                || (a.dataset.label || '').indexOf(q) !== -1
+                                                || (a.dataset.native || '').indexOf(q) !== -1
+                                                || (a.dataset.code || '').indexOf(q) === 0;
+                                            a.hidden = !hit;
+                                            if (hit) visibleCount++;
+                                        }
+                                        if (emptyState) emptyState.hidden = visibleCount > 0;
+                                    });
+
+                                    // Don't let the dropdown's outside-click handler eat clicks inside the input.
+                                    input.addEventListener('click', function (e) { e.stopPropagation(); });
+                                    input.addEventListener('keydown', function (e) {
+                                        if (e.key === 'Escape') {
+                                            input.value = '';
+                                            input.dispatchEvent(new Event('input'));
+                                        }
+                                    });
+                                })();
+                            </script>
+                        @endif
                     </div>
                 </div>
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
@@ -141,8 +202,8 @@
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <header class="category-header">
                             <h2 class="category-title font-display">
-                                @if($section->category_icon)
-                                    <svg class="category-icon" width="28" height="28" aria-hidden="true"><use href="#{{ $section->category_icon }}"></use></svg>
+                                @if($section->icon?->name)
+                                    <svg class="category-icon" width="28" height="28" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
                                 @endif
                                 <span>{{ $sectionName }}</span>
                             </h2>
@@ -175,8 +236,8 @@
                                         </div>
                                     @else
                                         <div class="menu-card-visual menu-card-visual--empty" aria-hidden="true">
-                                            @if($section->category_icon)
-                                                <svg class="menu-card-icon-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ $section->category_icon }}"></use></svg>
+                                            @if($section->icon?->name)
+                                                <svg class="menu-card-icon-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
                                             @else
                                                 <span class="menu-card-monogram font-display">{{ mb_substr($itemName, 0, 1) }}</span>
                                             @endif
@@ -239,6 +300,7 @@
             'restaurantId' => $restaurant->id,
             'menuId' => $menu?->id,
             'translationPending' => $translationPending ?? false,
+            'translationLocale' => $translationLocale ?? null,
         ];
     @endphp
     <script>
@@ -266,7 +328,7 @@
         <script>
             (function () {
                 var menuId = window.__CONFIG__.menuId;
-                var locale = window.__CONFIG__.lang;
+                var locale = window.__CONFIG__.translationLocale || window.__CONFIG__.lang;
                 if (!menuId || !locale) return;
 
                 var banner = document.getElementById('translation-banner');
