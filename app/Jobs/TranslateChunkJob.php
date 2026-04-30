@@ -80,8 +80,8 @@ class TranslateChunkJob implements ShouldQueue
             : ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
 
         $userPrompt = str_replace(
-            ['{target_locale}', '{source_locale}', '{restaurant_name}', '{city}', '{country}'],
-            ["{$targetLocaleName} ({$this->targetLocale})", $sourceDescription, $restaurant->name ?? '', $restaurant->city ?? '', $restaurant->country ?? ''],
+            ['{target_locale}', '{source_locale}', '{restaurant_name}', '{address}'],
+            ["{$targetLocaleName} ({$this->targetLocale})", $sourceDescription, $restaurant->name ?? '', $restaurant->address ?? ''],
             $prompt->user_prompt,
         );
 
@@ -179,7 +179,6 @@ class TranslateChunkJob implements ShouldQueue
         $text = preg_replace('/\s*```\s*$/', '', $text) ?? $text;
 
         $count = 0;
-        $restaurant = $this->menu->restaurant;
 
         foreach (explode("\n", trim($text)) as $line) {
             $line = trim($line);
@@ -233,15 +232,6 @@ class TranslateChunkJob implements ShouldQueue
                     $opt = $idMap['options'][$id] ?? null;
                     if ($opt && $name !== '') {
                         $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
-                        $count++;
-                    }
-                    break;
-
-                case 'R':
-                    $field = $parts[1] ?? '';
-                    $value = $parts[2] ?? '';
-                    if (in_array($field, ['name', 'address']) && $value !== '') {
-                        $restaurant->setTranslation($field, $this->targetLocale, $value, isInitial: false);
                         $count++;
                     }
                     break;

@@ -10,9 +10,8 @@ class RestaurantResource extends JsonApiResource
     public $attributes = [
         'uniqid',
         'name',
+        'name_en',
         'address',
-        'city',
-        'country',
         'phone',
         'currency',
         'primary_language',

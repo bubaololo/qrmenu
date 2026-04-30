@@ -22,8 +22,8 @@ class RestaurantFactory extends Factory
             'created_by_user_id' => User::factory(),
             'currency' => 'VND',
             'primary_language' => 'vi',
-            'city' => $this->faker->city(),
-            'country' => $this->faker->country(),
+            'name' => $this->faker->company(),
+            'address' => $this->faker->address(),
         ];
     }
 }

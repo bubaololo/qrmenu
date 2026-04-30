@@ -28,6 +28,8 @@ Extract structured data from the menu image(s) and return ONLY the JSON object m
 
 **Bilingual menus** — if a single name/description appears in multiple languages side by side (separated by "/", "-", parentheses, or a new line), keep ONLY the text in `primary_language` and drop the other language. Example: menu line "Cà phê đen / Black coffee" with primary_language=vi → name = "Cà phê đen".
 
+**Restaurant name** — `restaurant.name` = exact original name as printed (in primary_language). `restaurant.name_en` = English version of the name ONLY if explicitly printed on the menu (subtitle, logo English text, English banner). If no English version is shown, set name_en to null — do NOT translate.
+
 **primary_language** — ISO 639-1 code of the dominant menu text language. Use "mixed" when:
 - two or more languages are equally present across the menu with no single dominant one, OR
 - different fields consistently use different languages (e.g. item names in Vietnamese but item descriptions in English) — even if one of those languages dominates by character count. Field-level language inconsistency means downstream translation must run for every locale, including the one matching the names.
@@ -158,9 +160,8 @@ Rules:
 {
   "restaurant": {
     "name": string | null,
+    "name_en": string | null,
     "address": string | null,
-    "city": string | null,
-    "country": string | null,
     "phone": string | null,
     "opening_hours": {
       "raw_text": string | null,
@@ -269,7 +270,7 @@ SYSTEM;
         $translatorUser = <<<'PROMPT'
 Translate the restaurant menu below from {source_locale} to {target_locale}.
 
-Context: {restaurant_name}, {city}, {country}
+Context: {restaurant_name}, {address}
 
 Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 - S|id|section name
