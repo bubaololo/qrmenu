@@ -71,8 +71,10 @@ class MenuPageController extends Controller
         $translationLocale = $translationPending ? $requestedLang : null;
 
         $itemsJson = $this->buildItemsJson($menu, $lang);
-        $currencySymbol = $this->getCurrencySymbol($restaurant->currency ?? 'USD');
+        $currencyCode = strtoupper($restaurant->currency ?? 'USD');
+        $currencySymbol = $this->getCurrencySymbol($currencyCode);
         $uiStrings = $this->getUiStrings($lang);
+        $heroInfo = $this->buildHeroInfo($restaurant, $uiStrings);
 
         $allLocales = $this->getCommonLanguages();
 
@@ -82,14 +84,110 @@ class MenuPageController extends Controller
             'lang',
             'languages',
             'itemsJson',
+            'currencyCode',
             'currencySymbol',
             'primaryLang',
             'uiStrings',
+            'heroInfo',
             'translationPending',
             'translationLocale',
             'allLocales',
             'identifier',
         ));
+    }
+
+    /**
+     * Compose the hero header data: today's opening window, current open/closed
+     * status, and the address with a maps link.
+     *
+     * @param  array<string, string>  $uiStrings
+     * @return array{
+     *     address: ?string,
+     *     mapsUrl: ?string,
+     *     todayHours: ?string,
+     *     isOpenNow: ?bool,
+     *     statusLabel: ?string,
+     * }
+     */
+    private function buildHeroInfo(Restaurant $restaurant, array $uiStrings): array
+    {
+        $hours = is_array($restaurant->opening_hours) ? $restaurant->opening_hours : null;
+        [$todayHours, $isOpenNow] = $this->resolveTodayHours($hours, $uiStrings);
+
+        $statusLabel = match ($isOpenNow) {
+            true => $uiStrings['openNow'] ?? 'Open',
+            false => $uiStrings['closedNow'] ?? 'Closed',
+            default => null,
+        };
+
+        return [
+            'address' => $restaurant->address,
+            'mapsUrl' => $restaurant->google_maps_url,
+            'todayHours' => $todayHours,
+            'isOpenNow' => $isOpenNow,
+            'statusLabel' => $statusLabel,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $hours
+     * @param  array<string, string>  $uiStrings
+     * @return array{0: ?string, 1: ?bool} [labelForToday, isOpenNow]
+     */
+    private function resolveTodayHours(?array $hours, array $uiStrings): array
+    {
+        if ($hours === null) {
+            return [null, null];
+        }
+
+        if (! empty($hours['is_24_7'])) {
+            return [$uiStrings['open24h'] ?? '24 hours', true];
+        }
+
+        $periods = is_array($hours['periods'] ?? null) ? $hours['periods'] : [];
+        if ($periods === []) {
+            return [null, null];
+        }
+
+        $todayCode = strtolower(now()->format('D')); // mon, tue, wed, ...
+
+        $todays = [];
+        foreach ($periods as $period) {
+            $days = array_map('strtolower', $period['days'] ?? []);
+            if (in_array($todayCode, $days, true) && ! empty($period['open']) && ! empty($period['close'])) {
+                $todays[] = ['open' => (string) $period['open'], 'close' => (string) $period['close']];
+            }
+        }
+
+        if ($todays === []) {
+            return [$uiStrings['closedToday'] ?? 'Closed today', false];
+        }
+
+        usort($todays, fn (array $a, array $b): int => strcmp($a['open'], $b['open']));
+
+        $now = now()->format('H:i');
+        $isOpenNow = false;
+        foreach ($todays as $period) {
+            if ($period['close'] >= $period['open']) {
+                if ($now >= $period['open'] && $now < $period['close']) {
+                    $isOpenNow = true;
+                    break;
+                }
+            } else {
+                // Overnight period (e.g. 18:00–02:00)
+                if ($now >= $period['open'] || $now < $period['close']) {
+                    $isOpenNow = true;
+                    break;
+                }
+            }
+        }
+
+        $label = implode(', ', array_map(
+            fn (array $p): string => $p['open'].'–'.$p['close'],
+            $todays,
+        ));
+
+        return [$label, $isOpenNow];
     }
 
     /**
@@ -367,6 +465,9 @@ class MenuPageController extends Controller
                 'deleteItem' => 'Xoá', 'required' => 'Bắt buộc', 'optional' => 'Tuỳ chọn',
                 'maxChoices' => 'Tối đa {n}', 'updateCart' => 'Cập nhật',
                 'added' => 'Đã thêm', 'noResults' => 'Không tìm thấy món',
+                'address' => 'Địa chỉ', 'hoursToday' => 'Hôm nay', 'currency' => 'Tiền tệ',
+                'openNow' => 'Đang mở', 'closedNow' => 'Đã đóng',
+                'closedToday' => 'Đóng cửa hôm nay', 'open24h' => '24 giờ',
             ],
             'en' => [
                 'search' => 'Search menu...', 'all' => 'All', 'powered' => 'Powered by QR Menu',
@@ -376,6 +477,9 @@ class MenuPageController extends Controller
                 'deleteItem' => 'Delete', 'required' => 'Required', 'optional' => 'Optional',
                 'maxChoices' => 'Max {n}', 'updateCart' => 'Update',
                 'added' => 'Added', 'noResults' => 'No results found',
+                'address' => 'Address', 'hoursToday' => 'Today', 'currency' => 'Currency',
+                'openNow' => 'Open now', 'closedNow' => 'Closed',
+                'closedToday' => 'Closed today', 'open24h' => '24 hours',
             ],
             'ru' => [
                 'search' => 'Поиск по меню...', 'all' => 'Все', 'powered' => 'Powered by QR Menu',
@@ -385,6 +489,9 @@ class MenuPageController extends Controller
                 'deleteItem' => 'Удалить', 'required' => 'Обязательно', 'optional' => 'По желанию',
                 'maxChoices' => 'Макс. {n}', 'updateCart' => 'Обновить',
                 'added' => 'Добавлено', 'noResults' => 'Ничего не найдено',
+                'address' => 'Адрес', 'hoursToday' => 'Сегодня', 'currency' => 'Валюта',
+                'openNow' => 'Открыто', 'closedNow' => 'Закрыто',
+                'closedToday' => 'Сегодня закрыто', 'open24h' => '24 часа',
             ],
             'kk' => [
                 'search' => 'Мәзірден іздеу...', 'all' => 'Барлығы', 'powered' => 'Powered by QR Menu',
@@ -394,6 +501,9 @@ class MenuPageController extends Controller
                 'deleteItem' => 'Жою', 'required' => 'Міндетті', 'optional' => 'Қалауы бойынша',
                 'maxChoices' => 'Макс. {n}', 'updateCart' => 'Жаңарту',
                 'added' => 'Қосылды', 'noResults' => 'Ештеңе табылмады',
+                'address' => 'Мекенжай', 'hoursToday' => 'Бүгін', 'currency' => 'Валюта',
+                'openNow' => 'Ашық', 'closedNow' => 'Жабық',
+                'closedToday' => 'Бүгін жабық', 'open24h' => '24 сағат',
             ],
         ];
 

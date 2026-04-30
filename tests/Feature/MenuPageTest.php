@@ -99,4 +99,65 @@ class MenuPageTest extends TestCase
 
         $this->get("/{$empty->id}")->assertStatus(200);
     }
+
+    #[Test]
+    public function test_hero_shows_currency(): void
+    {
+        $this->restaurant->update(['currency' => 'VND']);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('Currency')
+            ->assertSee('VND');
+    }
+
+    #[Test]
+    public function test_hero_shows_24_7_when_flagged(): void
+    {
+        $this->restaurant->update([
+            'opening_hours' => ['is_24_7' => true],
+        ]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('24 hours')
+            ->assertSee('Open now');
+    }
+
+    #[Test]
+    public function test_hero_shows_today_period(): void
+    {
+        $todayCode = strtolower(now()->format('D'));
+
+        $this->restaurant->update([
+            'opening_hours' => [
+                'periods' => [
+                    ['days' => [$todayCode], 'open' => '08:00', 'close' => '23:30'],
+                ],
+            ],
+        ]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('08:00–23:30');
+    }
+
+    #[Test]
+    public function test_hero_shows_closed_today_when_no_period_matches(): void
+    {
+        $otherDay = strtolower(now()->addDay()->format('D'));
+
+        $this->restaurant->update([
+            'opening_hours' => [
+                'periods' => [
+                    ['days' => [$otherDay], 'open' => '08:00', 'close' => '23:30'],
+                ],
+            ],
+        ]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('Closed today')
+            ->assertSee('Closed');
+    }
 }

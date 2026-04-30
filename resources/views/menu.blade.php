@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     @php
         $restaurantName = $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu';
-        $sectionCount = $menu ? $menu->sections->count() : 0;
-        $itemCount = $menu ? $menu->sections->sum(fn($s) => $s->items->count()) : 0;
         $usedIcons = $menu
             ? $menu->sections->map(fn($s) => $s->icon?->name)->filter()->unique()->values()->all()
             : [];
@@ -144,25 +142,45 @@
         <article class="hero-card">
             <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
             <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
+            @php
+                $eyebrowParts = collect([$restaurant->city, $heroInfo['address']])
+                    ->filter()
+                    ->values();
+            @endphp
             <div class="hero-inner">
-                <span class="eyebrow">
-                    <span class="eyebrow-dot"></span>
-                    <span>Menu</span>
-                    @if($restaurant->city)
-                        <span class="eyebrow-sep">·</span>
-                        <span>{{ $restaurant->city }}</span>
-                    @endif
-                    <span class="eyebrow-sep">·</span>
-                    <span>{{ strtoupper($restaurant->currency ?? 'USD') }}</span>
-                </span>
-                <h1 class="hero-title font-display">{{ $restaurantName }}</h1>
-                @if($sectionCount > 0)
-                <div class="hero-meta">
-                    <span class="hero-stat"><strong class="tabular">{{ $sectionCount }}</strong> {{ $sectionCount === 1 ? 'section' : 'sections' }}</span>
-                    <span class="hero-sep" aria-hidden="true">·</span>
-                    <span class="hero-stat"><strong class="tabular">{{ $itemCount }}</strong> {{ $itemCount === 1 ? 'dish' : 'dishes' }}</span>
-                </div>
+                @if($heroInfo['statusLabel'] !== null || $eyebrowParts->isNotEmpty())
+                    <span class="eyebrow">
+                        @if($heroInfo['statusLabel'] !== null)
+                            <span class="eyebrow-dot eyebrow-dot--{{ $heroInfo['isOpenNow'] ? 'open' : 'closed' }}"></span>
+                            <span>{{ $heroInfo['statusLabel'] }}</span>
+                        @endif
+                        @foreach($eyebrowParts as $part)
+                            @if(! $loop->first || $heroInfo['statusLabel'] !== null)
+                                <span class="eyebrow-sep">·</span>
+                            @endif
+                            <span class="eyebrow-text">{{ $part }}</span>
+                        @endforeach
+                    </span>
                 @endif
+                <h1 class="hero-title font-display">{{ $restaurantName }}</h1>
+                <dl class="hero-info">
+                    @if($heroInfo['todayHours'] !== null)
+                        <div class="hero-info-item">
+                            <svg class="hero-info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                            <div class="hero-info-text">
+                                <dt>{{ $uiStrings['hoursToday'] }}</dt>
+                                <dd>{{ $heroInfo['todayHours'] }}</dd>
+                            </div>
+                        </div>
+                    @endif
+                    <div class="hero-info-item">
+                        <svg class="hero-info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5a2.8 2.8 0 0 0-2.5-1.5c-1.7 0-3 1-3 2.4 0 1.3 1 1.9 2.6 2.3l1 .25c1.6.4 2.6 1 2.6 2.3 0 1.4-1.3 2.4-3 2.4a2.8 2.8 0 0 1-2.6-1.5"/><path d="M12 6.5v11"/></svg>
+                        <div class="hero-info-text">
+                            <dt>{{ $uiStrings['currency'] }}</dt>
+                            <dd>{{ $currencySymbol }} · {{ $currencyCode }}</dd>
+                        </div>
+                    </div>
+                </dl>
             </div>
         </article>
     </header>
