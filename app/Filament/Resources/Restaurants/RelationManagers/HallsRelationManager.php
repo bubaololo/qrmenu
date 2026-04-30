@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Restaurants\RelationManagers;
 
 use App\Filament\Resources\Halls\HallResource;
-use App\Models\Hall;
+use App\Models\Zone;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
@@ -20,7 +20,7 @@ use Filament\Tables\Table;
 
 class HallsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'halls';
+    protected static string $relationship = 'zones';
 
     public function form(Schema $schema): Schema
     {
@@ -39,12 +39,12 @@ class HallsRelationManager extends RelationManager
                 ColorColumn::make('color'),
                 TextColumn::make('name')
                     ->placeholder('—')
-                    ->state(fn (Hall $record) => $record->localizedText('name') ?? "Hall #{$record->id}"),
+                    ->state(fn (Zone $record) => $record->localizedText('name') ?? "Hall #{$record->id}"),
                 TextColumn::make('tables_count')->label('Tables')->counts('tables')->sortable(),
                 IconColumn::make('is_active')->label('Active')->boolean(),
             ])
             ->defaultSort('sort_order')
-            ->recordUrl(fn (Hall $record): string => HallResource::getUrl('edit', ['record' => $record]))
+            ->recordUrl(fn (Zone $record): string => HallResource::getUrl('edit', ['record' => $record]))
             ->headerActions([CreateAction::make()])
             ->recordActions([EditAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);

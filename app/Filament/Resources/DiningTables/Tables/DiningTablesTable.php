@@ -17,7 +17,7 @@ class DiningTablesTable
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
 
-                TextColumn::make('hall.name')
+                TextColumn::make('zone.name')
                     ->label('Hall')
                     ->placeholder('—')
                     ->sortable(),
@@ -32,7 +32,7 @@ class DiningTablesTable
 
                 TextColumn::make('sort_order')->label('Order')->sortable(),
             ])
-            ->defaultSort('hall_id')
+            ->defaultSort('zone_id')
             ->recordActions([EditAction::make()])
             ->toolbarActions([
                 BulkActionGroup::make([DeleteBulkAction::make()]),

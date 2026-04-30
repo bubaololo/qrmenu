@@ -8,7 +8,7 @@ use App\Filament\Resources\Halls\Pages\ListHalls;
 use App\Filament\Resources\Halls\RelationManagers\TablesRelationManager;
 use App\Filament\Resources\Halls\Schemas\HallForm;
 use App\Filament\Resources\Halls\Tables\HallsTable;
-use App\Models\Hall;
+use App\Models\Zone;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,7 +17,7 @@ use Filament\Tables\Table;
 
 class HallResource extends Resource
 {
-    protected static ?string $model = Hall::class;
+    protected static ?string $model = Zone::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 

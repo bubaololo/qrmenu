@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\DiningTables\Schemas;
 
 use App\Enums\DiningTableShape;
-use App\Models\Hall;
+use App\Models\Zone;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -14,9 +14,9 @@ class DiningTableForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('hall_id')
+            Select::make('zone_id')
                 ->label('Hall')
-                ->options(Hall::query()->get()->pluck('name', 'id'))
+                ->options(Zone::query()->get()->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
 
