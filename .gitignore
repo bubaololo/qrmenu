@@ -18,6 +18,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/dumps
 /vendor
 _ide_helper.php
 Homestead.json
