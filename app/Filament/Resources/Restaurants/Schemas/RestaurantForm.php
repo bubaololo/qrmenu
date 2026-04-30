@@ -4,14 +4,14 @@ namespace App\Filament\Resources\Restaurants\Schemas;
 
 use App\Services\ImageProcessor;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Matriphe\ISO639\ISO639;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
 
 class RestaurantForm
 {
@@ -52,9 +52,16 @@ class RestaurantForm
                     })
                     ->columnSpanFull(),
 
-                Placeholder::make('name_note')
-                    ->label('Name & Address')
-                    ->content('Name and address are stored as translations and populated automatically from the Menu Analyzer.')
+                TextInput::make('name')
+                    ->label('Name')
+                    ->maxLength(255)
+                    ->helperText('Stored as a translation in the restaurant\'s primary language.')
+                    ->columnSpanFull(),
+
+                Textarea::make('address')
+                    ->label('Address')
+                    ->rows(2)
+                    ->maxLength(500)
                     ->columnSpanFull(),
 
                 TextInput::make('city')
