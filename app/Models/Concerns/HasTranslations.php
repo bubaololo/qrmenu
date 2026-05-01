@@ -11,7 +11,9 @@ trait HasTranslations
 {
     public static function bootHasTranslations(): void
     {
-        static::deleting(fn ($model) => $model->translations()->delete());
+        static::deleting(function ($model): void {
+            $model->translations()->delete();
+        });
     }
 
     public function translations(): MorphMany
