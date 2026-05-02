@@ -55,6 +55,38 @@
         .spinner svg { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Live progress (stages + log) */
+        .progress-panel { display: none; margin-top: 1rem; background: #fff; border-radius: 8px; padding: 1rem 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-left: 3px solid #1a56db; }
+        .progress-panel.active { display: block; }
+        .stages-list { list-style: none; padding: 0; margin: 0; }
+        .stages-list li { display: flex; align-items: flex-start; gap: .65rem; margin-bottom: .55rem; font-size: .9rem; }
+        .stages-list li:last-child { margin-bottom: 0; }
+        .stage-icon { flex-shrink: 0; width: 1.25rem; height: 1.25rem; display: flex; align-items: center; justify-content: center; margin-top: .1rem; }
+        .stage-icon-dot { width: .5rem; height: .5rem; border-radius: 50%; background: #d1d5db; }
+        .stage-icon-spinner { width: 1rem; height: 1rem; border: 2px solid #93c5fd; border-top-color: #1a56db; border-radius: 50%; animation: spin .8s linear infinite; }
+        .stage-icon-check { color: #16a34a; font-weight: 700; font-size: 1rem; line-height: 1; }
+        .stage-icon-x { color: #dc2626; font-weight: 700; font-size: 1rem; line-height: 1; }
+        .stage-icon-skip { width: .65rem; height: 2px; background: #9ca3af; }
+        .stage-body { flex: 1; min-width: 0; }
+        .stage-label { font-weight: 500; line-height: 1.3; }
+        .stage-label.pending, .stage-label.skipped { color: #9ca3af; }
+        .stage-label.in_progress { color: #1a56db; }
+        .stage-label.done { color: #374151; }
+        .stage-label.failed { color: #dc2626; }
+        .stage-detail { font-size: .78rem; color: #6b7280; margin-top: .15rem; line-height: 1.3; }
+        .live-log-wrap { margin-top: .75rem; }
+        .live-log-wrap summary { font-size: .8rem; color: #6b7280; cursor: pointer; user-select: none; padding: .2rem 0; }
+        .live-log-wrap summary:hover { color: #374151; }
+        #live-log { max-height: 16rem; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; padding: .5rem .75rem; border-radius: 4px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.55; margin-top: .35rem; white-space: pre; }
+        #live-log .row { display: flex; gap: .6rem; }
+        #live-log .ts { color: #888; flex-shrink: 0; }
+        #live-log .lvl { font-weight: 600; flex-shrink: 0; width: 4rem; text-transform: uppercase; }
+        #live-log .lvl.info { color: #9ca3af; }
+        #live-log .lvl.ok { color: #4ade80; }
+        #live-log .lvl.warn { color: #fbbf24; }
+        #live-log .lvl.error { color: #f87171; }
+        #live-log .msg { color: #e5e7eb; word-break: break-all; white-space: pre-wrap; flex: 1; }
+
         /* Results */
         #results-section { display: none; }
         .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
@@ -191,6 +223,16 @@
             <details open>
                 <summary>Request / response details (debug)</summary>
                 <pre id="analyze-debug-body"></pre>
+            </details>
+        </div>
+    </div>
+
+    <div class="progress-panel" id="progress-panel">
+        <ul class="stages-list" id="stages-list"></ul>
+        <div class="live-log-wrap">
+            <details open>
+                <summary>Live log <span id="live-log-count" style="color:#9ca3af">(0)</span></summary>
+                <div id="live-log"></div>
             </details>
         </div>
     </div>
@@ -677,12 +719,19 @@
             }
         }, 1000);
 
+        // Initialise live progress UI (stages + log feed).
+        const progress = createProgressTracker();
+        progress.show();
+
         return new Promise((resolve) => {
-            setStatus('Analyzing, please wait…');
+            setStatus('Connecting to event stream…');
             const es = new EventSource(`${API}/menu-analyses/${uuid}/events`, { withCredentials: true });
             let chunkTotal = 0;
+            let finished = false;
 
             const finish = async (terminalAttrs, errorMessage) => {
+                if (finished) return;
+                finished = true;
                 clearInterval(tickInterval);
                 es.close();
                 if (errorMessage) {
@@ -725,31 +774,186 @@
                 }
                 const event = parsed.event;
                 const data = parsed.data ?? {};
+                const ts = parsed.ts;
 
                 if (event === 'analysis.started') {
                     chunkTotal = Number(data.chunk_total) || 0;
-                    setStatus(chunkTotal > 0
-                        ? `Starting analysis · 0/${chunkTotal} chunks`
-                        : 'Starting analysis…');
+                    progress.setStage('queued', 'done', `${data.image_count || ''} image${data.image_count == 1 ? '' : 's'}`);
+                    const chunkInfo = chunkTotal > 1 ? ` · ${chunkTotal} chunks` : '';
+                    progress.appendLog('info', `Analysis queued · ${data.image_count} image${data.image_count == 1 ? '' : 's'}${chunkInfo}`, ts);
+                    setStatus(chunkTotal > 1 ? `Queued · ${chunkTotal} chunks` : 'Queued for analysis…');
+                } else if (event === 'analysis.preflight-start') {
+                    progress.advance('prep');
+                    progress.preflightTotal = Number(data.image_count) || 0;
+                    progress.preflightDone = 0;
+                    progress.setStage('prep', 'in_progress', `Preflight 0/${progress.preflightTotal}`);
+                    progress.appendLog('info', `Preflight starting · ${data.image_count} image${data.image_count == 1 ? '' : 's'}`, ts);
+                } else if (event === 'analysis.preflight-image') {
+                    progress.preflightDone += 1;
+                    progress.setStage('prep', 'in_progress', `Preflight ${progress.preflightDone}/${progress.preflightTotal}`);
+                    const rot = Number(data.rotation_cw) || 0;
+                    const bbox = Array.isArray(data.content_bbox) ? ` · bbox ${data.content_bbox.map(n => n.toFixed(2)).join(',')}` : '';
+                    const rotMsg = rot ? `rotate ${rot}° CW` : 'no rotation';
+                    progress.appendLog('ok', `Preflight image #${data.index} · ${rotMsg}${bbox} · quality=${data.quality}`, ts);
+                } else if (event === 'analysis.preprocess-start') {
+                    progress.preprocessTotal = Number(data.image_count) || 0;
+                    progress.preprocessDone = 0;
+                    progress.setStage('prep', 'in_progress', `Preprocessing 0/${progress.preprocessTotal}`);
+                    progress.appendLog('info', `Preprocess starting · trim · deskew · WebP`, ts);
+                } else if (event === 'analysis.preprocess-image') {
+                    progress.preprocessDone += 1;
+                    progress.setStage('prep', 'in_progress', `Preprocessing ${progress.preprocessDone}/${progress.preprocessTotal}`);
+                    progress.appendLog('ok', `Preprocessed image #${data.index} · ${data.original_dims} → ${data.final_dims} · ${data.final_size_kb} KB`, ts);
+                } else if (event === 'analysis.vision-start') {
+                    progress.advance('vision');
+                    const providers = (data.providers || []).join(' → ');
+                    progress.setStage('vision', 'in_progress', providers ? `Trying ${providers}` : '');
+                    progress.appendLog('info', `Vision LLM starting · provider chain: ${providers || 'n/a'}`, ts);
+                    setStatus('Analyzing menu with vision LLM…');
+                } else if (event === 'analysis.cascade-attempt') {
+                    progress.appendLog('info', `Trying tier ${data.tier} · ${data.provider}:${data.model}`, ts);
+                } else if (event === 'analysis.cascade-fallback') {
+                    const sec = ((Number(data.duration_ms) || 0) / 1000).toFixed(1);
+                    const remaining = Number(data.remaining_providers);
+                    const tail = remaining > 0 ? ` · ${remaining} provider${remaining == 1 ? '' : 's'} remaining` : ' · no fallback left';
+                    progress.appendLog('warn', `Tier ${data.tier} ${data.provider}:${data.model} failed after ${sec}s — ${data.error}${tail}`, ts);
                 } else if (event === 'analysis.chunk-complete') {
+                    progress.advance('vision');
                     const done = Number(data.chunk_index) || 0;
                     const total = Number(data.chunk_total) || chunkTotal;
                     chunkTotal = total;
+                    progress.setStage('vision', 'in_progress', `${done}/${total} chunks done · ${data.provider || ''}`);
+                    progress.appendLog('ok', `Chunk ${done}/${total} done · ${data.provider || ''}:${data.model || ''} · tier ${data.tier ?? '?'}`, ts);
                     setStatus(`Chunk ${done}/${total} done`);
+                } else if (event === 'analysis.vision-complete') {
+                    const sec = ((Number(data.duration_ms) || 0) / 1000).toFixed(1);
+                    progress.setStage('vision', 'done', `${data.provider || ''}:${data.model || ''} · ${sec}s · ${data.item_count || 0} items`);
+                    progress.advance('save');
+                    const tokens = (data.input_tokens || data.output_tokens)
+                        ? ` · ${data.input_tokens || '?'} in / ${data.output_tokens || '?'} out tokens`
+                        : '';
+                    progress.appendLog('ok', `Vision LLM done · ${data.provider}:${data.model} · ${sec}s${tokens} · parsed ${data.item_count || 0} items`, ts);
+                } else if (event === 'analysis.menu-saved') {
+                    progress.setStage('save', 'done', `${data.section_count || 0} sections · ${data.item_count || 0} items`);
+                    progress.advance('crops');
+                    progress.appendLog('ok', `Menu saved · id=${data.menu_id} · ${data.section_count || 0} sections · ${data.item_count || 0} items`, ts);
+                } else if (event === 'analysis.crops-start') {
+                    progress.advance('crops');
+                    progress.setStage('crops', 'in_progress', `${data.items_with_bbox || 0} items to crop`);
+                    progress.appendLog('info', `Cropping ${data.items_with_bbox || 0} items with bbox …`, ts);
+                } else if (event === 'analysis.crops-complete') {
+                    progress.setStage('crops', 'done', `${data.items_cropped || 0} items cropped`);
+                    progress.appendLog('ok', `Cropping done · ${data.items_cropped || 0} items cropped`, ts);
                 } else if (event === 'analysis.completed') {
+                    for (const s of progress.stages) {
+                        if (s.status === 'in_progress') s.status = 'done';
+                        if (s.status === 'pending') s.status = 'skipped';
+                    }
+                    progress.setStage('done', 'done', '');
+                    progress.appendLog('ok', `Analysis complete · menu_id=${data.menu_id || 'n/a'} · ${data.item_count || 0} items`, ts);
+                    progress.render();
                     setStatus('Analysis complete, fetching menu…');
                     finish(null, null);
                 } else if (event === 'analysis.failed') {
+                    const failing = progress.stages.find(s => s.status === 'in_progress')
+                                 ?? progress.stages.find(s => s.status === 'pending');
+                    if (failing) failing.status = 'failed';
+                    progress.appendLog('error', `Analysis failed · ${data.error || 'unknown'}`, ts);
+                    progress.render();
                     finish(null, data.error || 'Analysis failed.');
                 }
             };
 
             es.onerror = () => {
+                if (finished) return;
                 if (es.readyState === EventSource.CLOSED) {
                     finish(null, 'Connection to event stream lost.');
                 }
             };
         });
+    }
+
+    /**
+     * Live progress tracker — manages the stages list + log feed DOM,
+     * shared between the spinner and the SSE event handlers.
+     */
+    function createProgressTracker() {
+        const panel = document.getElementById('progress-panel');
+        const stagesEl = document.getElementById('stages-list');
+        const logEl = document.getElementById('live-log');
+        const logCountEl = document.getElementById('live-log-count');
+        const stages = [
+            { key: 'queued', label: 'Queued for processing',                 status: 'pending', detail: '' },
+            { key: 'prep',   label: 'Preparing images (rotate · crop · deskew)', status: 'pending', detail: '' },
+            { key: 'vision', label: 'Analyzing menu with vision LLM',         status: 'pending', detail: '' },
+            { key: 'save',   label: 'Saving menu data',                       status: 'pending', detail: '' },
+            { key: 'crops',  label: 'Cropping dish photos',                   status: 'pending', detail: '' },
+            { key: 'done',   label: 'Done',                                   status: 'pending', detail: '' },
+        ];
+        let logCount = 0;
+
+        const iconHtml = (status) => {
+            switch (status) {
+                case 'in_progress': return '<span class="stage-icon-spinner"></span>';
+                case 'done':        return '<span class="stage-icon-check">✓</span>';
+                case 'failed':      return '<span class="stage-icon-x">✕</span>';
+                case 'skipped':     return '<span class="stage-icon-skip"></span>';
+                default:            return '<span class="stage-icon-dot"></span>';
+            }
+        };
+
+        const tracker = {
+            stages,
+            preflightDone: 0, preflightTotal: 0,
+            preprocessDone: 0, preprocessTotal: 0,
+            show() { panel.classList.add('active'); stagesEl.innerHTML = ''; logEl.innerHTML = ''; logCount = 0; logCountEl.textContent = '(0)'; this.render(); },
+            hide() { panel.classList.remove('active'); },
+            render() {
+                stagesEl.innerHTML = stages.map(s => `
+                    <li>
+                        <span class="stage-icon">${iconHtml(s.status)}</span>
+                        <span class="stage-body">
+                            <span class="stage-label ${s.status}">${escapeHtml(s.label)}</span>
+                            ${s.detail ? `<span class="stage-detail">${escapeHtml(s.detail)}</span>` : ''}
+                        </span>
+                    </li>
+                `).join('');
+            },
+            setStage(key, status, detail) {
+                const s = stages.find(x => x.key === key);
+                if (!s) return;
+                s.status = status;
+                if (detail !== undefined) s.detail = detail;
+                this.render();
+            },
+            advance(key) {
+                for (const s of stages) {
+                    if (s.key === key) { s.status = 'in_progress'; break; }
+                    if (s.status === 'pending' || s.status === 'in_progress') s.status = 'done';
+                }
+                this.render();
+            },
+            appendLog(level, message, ts) {
+                const date = ts ? new Date(ts * 1000) : new Date();
+                const hh = String(date.getHours()).padStart(2, '0');
+                const mm = String(date.getMinutes()).padStart(2, '0');
+                const ss = String(date.getSeconds()).padStart(2, '0');
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.innerHTML = `<span class="ts">${hh}:${mm}:${ss}</span><span class="lvl ${level}">${level}</span><span class="msg">${escapeHtml(message)}</span>`;
+                logEl.appendChild(row);
+                while (logEl.children.length > 200) logEl.removeChild(logEl.firstChild);
+                logCount++;
+                logCountEl.textContent = `(${logCount})`;
+                logEl.scrollTop = logEl.scrollHeight;
+            },
+        };
+
+        return tracker;
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
 
     // ── JSON:API attributes (snake_case or camelCase) ───────────────────────────
@@ -1042,6 +1246,7 @@
         document.getElementById('file-input').value = '';
         document.getElementById('results-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
+        document.getElementById('progress-panel').classList.remove('active');
     }
 
     function esc(str) {

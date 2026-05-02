@@ -48,6 +48,7 @@ class FinalizeAnalysisJob implements ShouldQueue
                 $menu->id,
                 $this->analysis->original_image_paths,
                 $this->analysis->image_disk,
+                $this->analysis->uuid,
             );
         }
 
@@ -56,6 +57,18 @@ class FinalizeAnalysisJob implements ShouldQueue
             'menu_id' => $menu?->id,
             'item_count' => $itemCount,
         ]);
+
+        if ($menu) {
+            app(AnalysisEventBroker::class)->publish(
+                "menu-analysis.{$this->analysis->uuid}",
+                'analysis.menu-saved',
+                [
+                    'menu_id' => $menu->id,
+                    'section_count' => $menu->sections->count(),
+                    'item_count' => $itemCount,
+                ],
+            );
+        }
 
         app(AnalysisEventBroker::class)->publish(
             "menu-analysis.{$this->analysis->uuid}",

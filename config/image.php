@@ -27,7 +27,7 @@ return [
     'preflight' => [
         'enabled' => (bool) env('IMAGE_PREFLIGHT_ENABLED', true),
         'model' => env('IMAGE_PREFLIGHT_MODEL', 'gemini-2.5-flash-lite'),
-        'max_dim' => (int) env('IMAGE_PREFLIGHT_MAX_DIM', 384),
+        'max_dim' => (int) env('IMAGE_PREFLIGHT_MAX_DIM', 768),
         'timeout' => (int) env('IMAGE_PREFLIGHT_TIMEOUT', 15),
     ],
 ];

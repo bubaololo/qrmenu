@@ -68,26 +68,6 @@ class MenuAnalysisController extends Controller
             'total_kb' => $totalSizeKb,
         ]);
 
-        // Preflight: detect rotation + content bbox per image, apply to originals on disk
-        $fullPaths = array_map(fn ($p) => $storage->path($p), $originalPaths);
-        $preflights = $preflightService->analyzeMany($fullPaths);
-
-        foreach ($fullPaths as $fullPath) {
-            $preflightApplier->apply($fullPath, $preflights[$fullPath] ?? PreflightResult::noop());
-        }
-
-        Log::channel('llm')->info('Preflight stage complete', [
-            'image_count' => count($originalPaths),
-            'results' => array_map(fn ($r) => [
-                'rotation_cw' => $r->rotationCw,
-                'has_crop' => $r->contentBbox !== null,
-                'quality' => $r->quality,
-            ], array_values($preflights)),
-        ]);
-
-        // Preprocess: trim, deskew, contrast, resize, WebP
-        $preprocessedPaths = $this->preprocessImages($originalPaths, $disk, $preprocessor);
-
         $restaurantId = $request->integer('restaurant_id') ?: null;
 
         if ($restaurantId !== null) {
@@ -95,13 +75,14 @@ class MenuAnalysisController extends Controller
             Gate::authorize('update', $restaurant);
         }
 
-        // Async mode (default)
+        // Async mode (default): dispatch with raw uploads. Preflight + preprocess
+        // run inside AnalyzeMenuJob so their progress streams over SSE.
         if (! $request->boolean('sync')) {
             $analysis = MenuAnalysis::create([
                 'restaurant_id' => $restaurantId,
                 'user_id' => auth()->id(),
-                'image_count' => count($preprocessedPaths),
-                'image_paths' => $preprocessedPaths,
+                'image_count' => count($originalPaths),
+                'image_paths' => $originalPaths,
                 'original_image_paths' => $originalPaths,
                 'image_disk' => $disk,
                 'vision_model' => $request->input('model'),
@@ -115,13 +96,21 @@ class MenuAnalysisController extends Controller
                     'id' => $analysis->uuid,
                     'attributes' => [
                         'status' => 'pending',
-                        'image_count' => count($preprocessedPaths),
+                        'image_count' => count($originalPaths),
                     ],
                 ],
             ], 202);
         }
 
-        // Sync mode (?sync=1) — legacy inline execution for dev/testing
+        // Sync mode (?sync=1) — legacy inline execution for dev/testing.
+        // Run preflight + preprocess inline since there's no worker to stream from.
+        $fullPaths = array_map(fn ($p) => $storage->path($p), $originalPaths);
+        $preflights = $preflightService->analyzeMany($fullPaths);
+        foreach ($fullPaths as $fullPath) {
+            $preflightApplier->apply($fullPath, $preflights[$fullPath] ?? PreflightResult::noop());
+        }
+        $preprocessedPaths = $this->preprocessImages($originalPaths, $disk, $preprocessor);
+
         $provider = $request->input('model', 'gemini') === 'gemini'
             ? app(GeminiVisionProvider::class)
             : app()->makeWith(OpenRouterProvider::class, ['openRouterModel' => $request->input('model')]);

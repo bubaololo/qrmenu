@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Services\AnalysisEventBroker;
 use App\Services\ImageProcessor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -26,6 +27,7 @@ class CropMenuItemImagesJob implements ShouldQueue
         public int $menuId,
         public array $originalImagePaths,
         public string $imageDisk,
+        public ?string $analysisUuid = null,
     ) {
         $this->onQueue(config('llm.queue', 'llm-analysis'));
     }
@@ -42,6 +44,16 @@ class CropMenuItemImagesJob implements ShouldQueue
 
             return;
         }
+
+        $itemsWithBbox = $menu->sections
+            ->flatMap(fn ($s) => $s->items)
+            ->filter(fn ($i) => is_array($i->image_bbox) && isset($i->image_bbox['image_index'], $i->image_bbox['coords']))
+            ->count();
+
+        $this->publish('analysis.crops-start', [
+            'menu_id' => $this->menuId,
+            'items_with_bbox' => $itemsWithBbox,
+        ]);
 
         $cropped = 0;
 
@@ -60,7 +72,28 @@ class CropMenuItemImagesJob implements ShouldQueue
             'items_cropped' => $cropped,
         ]);
 
+        $this->publish('analysis.crops-complete', [
+            'menu_id' => $this->menuId,
+            'items_cropped' => $cropped,
+        ]);
+
         $this->cleanupOriginals();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function publish(string $event, array $payload): void
+    {
+        if ($this->analysisUuid === null) {
+            return;
+        }
+
+        app(AnalysisEventBroker::class)->publish(
+            "menu-analysis.{$this->analysisUuid}",
+            $event,
+            $payload,
+        );
     }
 
     private function cropItem(MenuItem $item, ImageProcessor $processor): bool

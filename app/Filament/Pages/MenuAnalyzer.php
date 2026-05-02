@@ -34,6 +34,8 @@ class MenuAnalyzer extends Page
 
     public ?int $pendingAnalysisId = null;
 
+    public ?string $pendingAnalysisUuid = null;
+
     public static function getNavigationLabel(): string
     {
         return 'Menu Analyzer';
@@ -148,6 +150,7 @@ class MenuAnalyzer extends Page
             'user_id' => auth()->id(),
             'image_count' => count($files),
             'image_paths' => $files,
+            'original_image_paths' => $files,
             'image_disk' => 'public',
             'vision_model' => $visionModel !== 'gemini' ? $visionModel : null,
         ]);
@@ -155,6 +158,7 @@ class MenuAnalyzer extends Page
         AnalyzeMenuJob::dispatch($analysis);
 
         $this->pendingAnalysisId = $analysis->id;
+        $this->pendingAnalysisUuid = $analysis->uuid;
 
         Notification::make()
             ->title(count($files).' image(s) submitted for analysis')
@@ -172,6 +176,7 @@ class MenuAnalyzer extends Page
         $analysis = MenuAnalysis::find($this->pendingAnalysisId);
         if ($analysis === null) {
             $this->pendingAnalysisId = null;
+            $this->pendingAnalysisUuid = null;
 
             return;
         }
@@ -183,6 +188,7 @@ class MenuAnalyzer extends Page
                 'error' => null,
             ]];
             $this->pendingAnalysisId = null;
+            $this->pendingAnalysisUuid = null;
 
             $total = $analysis->result_item_count ?? 0;
 
@@ -197,6 +203,7 @@ class MenuAnalyzer extends Page
                 'error' => $analysis->error_message,
             ]];
             $this->pendingAnalysisId = null;
+            $this->pendingAnalysisUuid = null;
 
             Notification::make()
                 ->title('Analysis failed')

@@ -24,13 +24,47 @@ class SseEventsController extends Controller
             abort(403);
         }
 
+        $topic = "menu-analysis.{$uuid}";
+
         return $this->stream(
-            topic: "menu-analysis.{$uuid}",
+            topic: $topic,
             sinceIndex: (int) $request->header('Last-Event-ID', 0),
             isTerminal: function () use ($uuid): bool {
                 $a = MenuAnalysis::where('uuid', $uuid)->first();
 
                 return $a !== null && in_array($a->status->value, ['completed', 'failed'], true);
+            },
+            // For analyses that are ALREADY terminal when the client connects but
+            // have no events in the broker (events expired, or this analysis ran
+            // on a code revision that didn't publish), synthesize a terminal event
+            // from the DB row so the client doesn't reconnect-loop forever.
+            synthesizeTerminal: function () use ($uuid): ?array {
+                $a = MenuAnalysis::where('uuid', $uuid)->first();
+                if ($a === null) {
+                    return null;
+                }
+
+                return match ($a->status->value) {
+                    'completed' => [
+                        'event' => 'analysis.completed',
+                        'data' => [
+                            'menu_id' => $a->result_menu_id,
+                            'restaurant_id' => $a->restaurant_id,
+                            'item_count' => $a->result_item_count ?? 0,
+                            'synthesized' => true,
+                        ],
+                        'ts' => microtime(true),
+                    ],
+                    'failed' => [
+                        'event' => 'analysis.failed',
+                        'data' => [
+                            'error' => $a->error_message ?? 'Analysis failed.',
+                            'synthesized' => true,
+                        ],
+                        'ts' => microtime(true),
+                    ],
+                    default => null,
+                };
             },
         );
     }
@@ -65,11 +99,18 @@ class SseEventsController extends Controller
         );
     }
 
-    private function stream(string $topic, int $sinceIndex, callable $isTerminal): StreamedResponse
-    {
+    /**
+     * @param  callable(): ?array{event: string, data: array<string, mixed>, ts: float}  $synthesizeTerminal
+     */
+    private function stream(
+        string $topic,
+        int $sinceIndex,
+        callable $isTerminal,
+        ?callable $synthesizeTerminal = null,
+    ): StreamedResponse {
         $broker = $this->broker;
 
-        return new StreamedResponse(function () use ($topic, $sinceIndex, $isTerminal, $broker): void {
+        return new StreamedResponse(function () use ($topic, $sinceIndex, $isTerminal, $synthesizeTerminal, $broker): void {
             // Discourage proxy/output buffering. Nginx respects X-Accel-Buffering: no.
             @ini_set('output_buffering', '0');
             @ini_set('zlib.output_compression', '0');
@@ -80,6 +121,7 @@ class SseEventsController extends Controller
             echo "retry: 3000\n\n";
             @flush();
 
+            $emittedEventCount = 0;
             $idleTicks = 0;
             $maxIdleSeconds = 300;        // safety cap to avoid leaking workers
             $heartbeatEvery = 25;         // < typical fastcgi_read_timeout (30-60s)
@@ -95,6 +137,7 @@ class SseEventsController extends Controller
                     echo "id: {$cursor}\n";
                     echo 'data: '.$raw."\n\n";
                     $cursor++;
+                    $emittedEventCount++;
                     @flush();
                     $idleTicks = 0;
                 }
@@ -113,7 +156,22 @@ class SseEventsController extends Controller
                         echo "id: {$cursor}\n";
                         echo 'data: '.$raw."\n\n";
                         $cursor++;
+                        $emittedEventCount++;
                     }
+
+                    // If we never emitted any events during this stream AND the broker
+                    // had nothing for this topic AND the analysis is already terminal,
+                    // synthesize a terminal event from the DB so the client doesn't
+                    // reconnect-loop. Happens for old analyses whose events expired,
+                    // or analyses that ran on code revisions without SSE publishing.
+                    if ($emittedEventCount === 0 && $broker->totalEvents($topic) === 0 && $synthesizeTerminal !== null) {
+                        $synthetic = $synthesizeTerminal();
+                        if ($synthetic !== null) {
+                            echo "id: {$cursor}\n";
+                            echo 'data: '.json_encode($synthetic, JSON_UNESCAPED_UNICODE)."\n\n";
+                        }
+                    }
+
                     @flush();
 
                     return;

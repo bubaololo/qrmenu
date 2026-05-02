@@ -21,7 +21,11 @@ Analyze this restaurant menu photo and return STRICT JSON (no prose, no markdown
 }
 
 Rules:
-- rotation_cw: degrees CW to rotate so text reads left-to-right normally. 0 if already correct.
+- This image has been pre-oriented based on the camera's EXIF metadata, so in
+  most cases it is already readable as-is. Return rotation_cw=0 unless the menu
+  text is clearly rotated (e.g. flat top-down shot where the phone could not
+  detect orientation, or a scan/screenshot with no EXIF).
+- rotation_cw: degrees CW to rotate so text reads left-to-right normally.
 - content_bbox: normalized [0..1] box of the actual menu within the frame, MEASURED AFTER applying rotation_cw. Use null if the menu fills the frame with <5% margin.
 - quality: overall readability. Use "good" by default.
 
@@ -137,18 +141,26 @@ PROMPT;
         $img = new Imagick($sourcePath);
         $origW = $img->getImageWidth();
         $origH = $img->getImageHeight();
+        $exifOrient = $img->getImageOrientation();
+
+        // Apply EXIF orientation physically so the LLM sees the camera's
+        // best guess at "upright". The LLM's job is now verification —
+        // returning a non-zero rotation_cw only for edge cases where the
+        // EXIF was wrong or absent (flat top-down shots, scans, screenshots).
+        $img->autoOrient();
+
+        $orientedW = $img->getImageWidth();
+        $orientedH = $img->getImageHeight();
 
         $llm->info('Preflight start', [
             'path' => basename($sourcePath),
             'original_size_kb' => (int) round(filesize($sourcePath) / 1024),
             'original_dims' => $origW.'x'.$origH,
+            'exif_orientation' => $exifOrient,
+            'oriented_dims' => $orientedW.'x'.$orientedH,
         ]);
 
-        // Strip EXIF orientation for preflight (we want LLM to see raw pixels
-        // to judge whether rotation is needed).
-        $img->setImageOrientation(Imagick::ORIENTATION_TOPLEFT);
-
-        $maxDim = (int) config('image.preflight.max_dim', 384);
+        $maxDim = (int) config('image.preflight.max_dim', 768);
         if (max($img->getImageWidth(), $img->getImageHeight()) > $maxDim) {
             $img->resizeImage($maxDim, $maxDim, Imagick::FILTER_LANCZOS, 1, true);
         }

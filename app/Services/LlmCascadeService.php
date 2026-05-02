@@ -70,6 +70,13 @@ class LlmCascadeService
         foreach ($providers as $tier => $provider) {
             $startedAt = microtime(true);
 
+            $this->publishToAnalysis($analysis, 'analysis.cascade-attempt', [
+                'tier' => $tier,
+                'provider' => $provider->provider()->value,
+                'model' => $provider->model(),
+                'remaining_providers' => count($providers) - $tier - 1,
+            ]);
+
             try {
                 $result = $provider->execute($messages, $logContext);
                 $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
@@ -89,6 +96,7 @@ class LlmCascadeService
                     'provider' => $provider->provider()->value,
                     'model' => $provider->model(),
                     'tier' => $tier,
+                    'usage' => $result['usage'] ?? null,
                 ];
             } catch (LlmRequestFailedException $e) {
                 $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
@@ -99,6 +107,15 @@ class LlmCascadeService
 
                 $llm->warning('Cascade fallback', [
                     'analysis_uuid' => $analysis?->uuid,
+                    'tier' => $tier,
+                    'provider' => $provider->provider()->value,
+                    'model' => $provider->model(),
+                    'error' => $e->getMessage(),
+                    'duration_ms' => $durationMs,
+                    'remaining_providers' => count($providers) - $tier - 1,
+                ]);
+
+                $this->publishToAnalysis($analysis, 'analysis.cascade-fallback', [
                     'tier' => $tier,
                     'provider' => $provider->provider()->value,
                     'model' => $provider->model(),
@@ -144,6 +161,22 @@ class LlmCascadeService
             str_starts_with($model, 'qwen') => 'qwen-direct',
             default => 'openrouter',
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function publishToAnalysis(?MenuAnalysis $analysis, string $event, array $payload): void
+    {
+        if ($analysis === null) {
+            return;
+        }
+
+        app(AnalysisEventBroker::class)->publish(
+            "menu-analysis.{$analysis->uuid}",
+            $event,
+            $payload,
+        );
     }
 
     /**
