@@ -250,7 +250,9 @@
                                             <img src="{{ $item->thumb_url }}"
                                                  srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 800w"
                                                  sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
-                                                 alt="" class="menu-card__image" loading="lazy">
+                                                 alt="" class="menu-card__image" loading="lazy"
+                                                 onload="this.classList.add('loaded')"
+                                                 onerror="this.classList.add('loaded')">
                                         </div>
                                     @else
                                         <div class="menu-card-visual menu-card-visual--empty" aria-hidden="true">
