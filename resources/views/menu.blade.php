@@ -163,24 +163,18 @@
                     </span>
                 @endif
                 <h1 class="hero-title font-display">{{ $restaurantName }}</h1>
-                <dl class="hero-info">
-                    @if($heroInfo['todayHours'] !== null)
-                        <div class="hero-info-item">
-                            <svg class="hero-info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                            <div class="hero-info-text">
-                                <dt>{{ $uiStrings['hoursToday'] }}</dt>
-                                <dd>{{ $heroInfo['todayHours'] }}</dd>
-                            </div>
-                        </div>
-                    @endif
-                    <div class="hero-info-item">
-                        <svg class="hero-info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5a2.8 2.8 0 0 0-2.5-1.5c-1.7 0-3 1-3 2.4 0 1.3 1 1.9 2.6 2.3l1 .25c1.6.4 2.6 1 2.6 2.3 0 1.4-1.3 2.4-3 2.4a2.8 2.8 0 0 1-2.6-1.5"/><path d="M12 6.5v11"/></svg>
-                        <div class="hero-info-text">
-                            <dt>{{ $uiStrings['currency'] }}</dt>
-                            <dd>{{ $currencySymbol }} · {{ $currencyCode }}</dd>
-                        </div>
+                @if($heroInfo['todayHours'] !== null || $currencyCode)
+                    <div class="hero-meta">
+                        @if($heroInfo['todayHours'] !== null)
+                            <span class="hero-meta-item">
+                                <svg class="hero-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                                <span>{{ $heroInfo['todayHours'] }}</span>
+                            </span>
+                            <span class="hero-meta-sep" aria-hidden="true">·</span>
+                        @endif
+                        <span class="hero-meta-item hero-meta-currency">{{ $currencyCode }}</span>
                     </div>
-                </dl>
+                @endif
             </div>
         </article>
     </header>
