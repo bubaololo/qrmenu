@@ -276,7 +276,7 @@ class TranslateEntityJob implements ShouldQueue
             $this->entity instanceof MenuSection => $this->entity->menu,
             $this->entity instanceof MenuOptionGroup => $this->entity->section?->menu,
             $this->entity instanceof MenuOptionGroupOption => $this->entity->group?->section?->menu,
-            $this->entity instanceof Restaurant => $this->entity->activeMenu,
+            $this->entity instanceof Restaurant => $this->entity->menu,
             default => null,
         };
     }

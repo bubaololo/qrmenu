@@ -208,7 +208,6 @@ class AutoTranslationTest extends TestCase
         Bus::fake([TranslateEntityJob::class]);
 
         $menu = $this->makeTranslatedMenu();
-        $menu->update(['is_active' => true]);
         $restaurant = $menu->restaurant->fresh();
 
         $restaurant->setTranslation('name', 'vi', 'Quán Phở', isInitial: true);

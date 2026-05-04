@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Menus;
 
-use App\Actions\CloneMenuAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Menus\StoreMenuRequest;
 use App\Http\Requests\Menus\UpdateMenuRequest;
@@ -21,15 +20,16 @@ use Illuminate\Support\Facades\Redis;
 class MenuController extends Controller
 {
     /**
-     * List all menus for a restaurant.
+     * List the menu(s) for a restaurant. After the multi-menu collapse, every
+     * restaurant has at most one menu — the response is a collection of 0 or 1.
      */
     public function index(Restaurant $restaurant): AnonymousResourceCollection
     {
         Gate::authorize('view', $restaurant);
 
-        return MenuResource::collection(
-            $restaurant->menus()->orderByDesc('created_at')->get()
-        );
+        $menus = $restaurant->menu()->get();
+
+        return MenuResource::collection($menus);
     }
 
     /**
@@ -101,18 +101,6 @@ class MenuController extends Controller
     }
 
     /**
-     * Activate a menu and deactivate all siblings.
-     */
-    public function activate(Menu $menu): MenuResource
-    {
-        Gate::authorize('update', $menu);
-
-        $menu->activate();
-
-        return new MenuResource($menu->fresh());
-    }
-
-    /**
      * Search menu items across all translations.
      */
     public function search(Request $request, Menu $menu): JsonResponse
@@ -145,19 +133,5 @@ class MenuController extends Controller
                 'price' => $item->price_original_text,
             ]),
         ]);
-    }
-
-    /**
-     * Clone a menu (deep copy with sections, items, groups, translations).
-     */
-    public function clone(Menu $menu): JsonResponse
-    {
-        Gate::authorize('update', $menu);
-
-        $cloned = (new CloneMenuAction)->handle($menu);
-
-        return (new MenuResource($cloned))
-            ->response()
-            ->setStatusCode(201);
     }
 }

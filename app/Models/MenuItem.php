@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PriceType;
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuItemFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -127,5 +128,11 @@ class MenuItem extends Model
     public function variations(): BelongsToMany
     {
         return $this->optionGroups()->where('is_variation', true);
+    }
+
+    /** @param  Builder<MenuItem>  $query */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 }

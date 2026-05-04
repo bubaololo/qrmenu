@@ -9,6 +9,10 @@ use App\Http\Controllers\Menus\MenuOptionGroupController;
 use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
 use App\Http\Controllers\Menus\MenuSectionController;
 use App\Http\Controllers\Menus\MenuTranslationController;
+use App\Http\Controllers\Orders\BillController;
+use App\Http\Controllers\Orders\OrderController;
+use App\Http\Controllers\Orders\OrderItemController;
+use App\Http\Controllers\Public\PublicOrderController;
 use App\Http\Controllers\Restaurants\RestaurantController;
 use App\Http\Controllers\SseEventsController;
 use App\Http\Controllers\Zones\ZoneController;
@@ -42,6 +46,14 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 // anonymous QR-scanning users wait for new locales to land.
 Route::get('/v1/menus/{menu}/translations/{locale}/events', [SseEventsController::class, 'menuTranslation'])
     ->name('menu-translations.events');
+
+// Public Orders — guests place orders by table_uniqid + restaurant_uniqid.
+Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void {
+    Route::post('/orders', [PublicOrderController::class, 'store'])->name('public.orders.store');
+    Route::get('/orders/{guestToken}', [PublicOrderController::class, 'show'])
+        ->where('guestToken', '[0-9a-fA-F-]{36}')
+        ->name('public.orders.show');
+});
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
@@ -79,8 +91,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::get('/menus/{menu}', [MenuController::class, 'full']);
     Route::put('/menus/{menu}', [MenuController::class, 'update']);
     Route::delete('/menus/{menu}', [MenuController::class, 'destroy']);
-    Route::post('/menus/{menu}/activate', [MenuController::class, 'activate']);
-    Route::post('/menus/{menu}/clone', [MenuController::class, 'clone']);
     Route::get('/menus/{menu}/search', [MenuController::class, 'search']);
     Route::get('/menus/{menu}/locales', [MenuTranslationController::class, 'locales']);
     Route::post('/menus/{menu}/translations/{locale}', [MenuTranslationController::class, 'store']);
@@ -108,6 +118,21 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-option-groups/{menuOptionGroup}/options', [MenuOptionGroupOptionController::class, 'store']);
     Route::put('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'update']);
     Route::delete('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'destroy']);
+
+    // Orders
+    Route::get('/restaurants/{restaurant}/orders', [OrderController::class, 'index']);
+    Route::get('/restaurants/{restaurant}/orders/events', [SseEventsController::class, 'restaurantOrders'])
+        ->name('restaurant-orders.events');
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::patch('/orders/{order}', [OrderController::class, 'update']);
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy']);
+    Route::patch('/order-items/{orderItem}', [OrderItemController::class, 'update']);
+
+    // Bills
+    Route::get('/restaurants/{restaurant}/bills', [BillController::class, 'index']);
+    Route::get('/bills/{bill}', [BillController::class, 'show']);
+    Route::post('/bills/{bill}/close', [BillController::class, 'close']);
+    Route::post('/bills/{bill}/split', [BillController::class, 'split']);
 
     // Images
     Route::post('/restaurants/{restaurantId}/image', [ImageController::class, 'updateRestaurant']);

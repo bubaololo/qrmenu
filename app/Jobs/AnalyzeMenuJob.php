@@ -212,11 +212,14 @@ class AnalyzeMenuJob implements ShouldQueue
         $pathChunks = array_chunk($this->analysis->image_paths, $chunkSize);
         $total = count($pathChunks);
 
+        // Each restaurant has a single menu. Replace the previous one before
+        // analysis writes a fresh tree.
+        Menu::where('restaurant_id', $this->analysis->restaurant_id)->delete();
+
         $menu = Menu::create([
             'restaurant_id' => $this->analysis->restaurant_id,
             'source_locale' => null,
             'source_images_count' => count($this->analysis->image_paths),
-            'is_active' => false,
             'detected_date' => now()->toDateString(),
         ]);
         $this->analysis->update(['result_menu_id' => $menu->id]);

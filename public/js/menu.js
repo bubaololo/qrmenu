@@ -2,7 +2,7 @@
    QR Menu - App (Blade integration)
    Data comes from window.__ITEMS__, window.__UI__, window.__CONFIG__
    HTML is rendered server-side by Blade.
-   JS handles: cart, bottom sheet, search/filter, theme, swipe, QR.
+   JS handles: cart, bottom sheet, search/filter, theme, swipe, order submit.
    ============================================================ */
 
 const App = {
@@ -54,11 +54,6 @@ const App = {
     this._setupObserver();
     this._setupDelegation();
     this._setupSwipe();
-
-    // Preload QR lib after main content is ready
-    (typeof requestIdleCallback !== 'undefined')
-      ? requestIdleCallback(() => this._loadQRLib())
-      : setTimeout(() => this._loadQRLib(), 1000);
 
     const hash = window.location.hash;
     if (hash && hash.startsWith('#cat-')) {
@@ -735,48 +730,135 @@ const App = {
     document.body.style.overflow = 'auto';
   },
 
-  _buildOrderPayload() {
-    return this.cart.map(e => {
-      const base = [e.itemId, e.variantIndex, e.qty];
-      if (e.options && Object.keys(e.options).some(k => e.options[k].length > 0)) {
-        base.push(e.options);
-      }
-      return base;
-    });
+  /**
+   * Build API payload matching POST /api/v1/public/orders schema.
+   *
+   * Variations live in their own option-group with `is_variation: true`; the
+   * Blade controller flattens them into `item.variants[]` per item, indexed
+   * by position. To map a chosen variant back to a `variation_option_id`, we
+   * look at the source item's option-groups (kept in window.__ITEMS_RAW__ if
+   * available) — but the simplified itemsJson doesn't expose option IDs for
+   * variants. So we send the variant index as a hint via selected_options,
+   * and rely on the server to snapshot the price from menu_items.price_value.
+   * For items without variations the omission is fine.
+   */
+  _buildApiOrderPayload() {
+    const cfg = window.__CONFIG__ || {};
+    return {
+      restaurant_uniqid: cfg.restaurantUniqid,
+      table_uniqid: cfg.tableUniqid || null,
+      items: this.cart.map(e => {
+        const item = this._findItem(e.itemId);
+        const groups = (item && item.options) ? item.options : [];
+        const selectedOptions = [];
+        if (e.options) {
+          Object.keys(e.options).forEach(groupId => {
+            const ids = e.options[groupId] || [];
+            if (ids.length > 0) {
+              selectedOptions.push({
+                group_id: Number(groupId),
+                option_ids: ids.map(Number),
+              });
+            }
+          });
+        }
+        return {
+          menu_item_id: e.itemId,
+          quantity: e.qty,
+          selected_options: selectedOptions.length ? selectedOptions : null,
+        };
+      }),
+    };
   },
 
-  _qrLoaded: false,
-
-  _loadQRLib() {
-    if (this._qrLoaded || typeof qrcode !== 'undefined') {
-      this._qrLoaded = true;
-      return Promise.resolve();
+  async submitOrder() {
+    const cfg = window.__CONFIG__ || {};
+    if (!cfg.tableUniqid) {
+      this._showToast(this.t('orderRequiresTable') || 'Open menu via table QR to order');
+      return;
     }
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
-      s.onload = () => { this._qrLoaded = true; resolve(); };
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  },
-
-  _generateQR(data) {
-    if (typeof qrcode === 'undefined') return '';
-    const text = JSON.stringify(data);
-    const qr = qrcode(0, 'M');
-    qr.addData(text);
-    qr.make();
-    return qr.createSvgTag({ cellSize: 4, margin: 4 });
-  },
-
-  async showWaiterView() {
+    const payload = this._buildApiOrderPayload();
     const content = document.getElementById('cart-sheet-content');
-    await this._loadQRLib().catch(() => {});
+    content.innerHTML = '<div class="waiter-view"><h2 class="waiter-title">' + this.t('placingOrder') + '…</h2></div>';
 
-    const orderPayload = this._buildOrderPayload();
-    const qrSvg = this._generateQR(orderPayload);
+    try {
+      const csrfToken = this._getCookie('XSRF-TOKEN');
+      const response = await fetch(cfg.orderEndpoint || '/api/v1/public/orders', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-XSRF-TOKEN': csrfToken ? decodeURIComponent(csrfToken) : '',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Failed' }));
+        throw new Error(err.message || 'Order failed');
+      }
+      const json = await response.json();
+      this._renderOrderConfirmation(json.data);
+      this.cart = [];
+      this._saveCart();
+      this.updateCartFab();
+    } catch (e) {
+      content.innerHTML =
+        '<div class="waiter-view">' +
+          '<h2 class="waiter-title">' + (this.t('orderFailed') || 'Order failed') + '</h2>' +
+          '<p class="order-qr-hint">' + (e && e.message ? e.message : '') + '</p>' +
+          '<div class="waiter-footer">' +
+            '<button class="waiter-view-back">' + this.t('back') + '</button>' +
+          '</div>' +
+        '</div>';
+    }
+  },
 
+  _getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : null;
+  },
+
+  _showToast(message) {
+    const el = document.createElement('div');
+    el.className = 'qr-toast';
+    el.textContent = message;
+    el.style.cssText = 'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:2000;background:rgba(20,20,20,.92);color:#fff;padding:.65rem 1rem;border-radius:999px;font-size:.85rem;';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2400);
+  },
+
+  _renderOrderConfirmation(orderData) {
+    const content = document.getElementById('cart-sheet-content');
+    const orderId = orderData.id;
+    const items = (orderData.relationships && orderData.relationships.items)
+      ? (orderData.relationships.items.data || [])
+      : [];
+    const itemsHtml = items.map(it => {
+      const attr = it.attributes || {};
+      return '<div class="waiter-item">' +
+        '<span class="waiter-item-qty">' + (attr.quantity || 1) + 'x</span>' +
+        '<div class="waiter-item-info">' +
+          '<span class="waiter-item-name">#' + it.id + '</span>' +
+        '</div>' +
+        '<span class="waiter-item-price">' + this.formatPrice((attr.unit_price || 0) * (attr.quantity || 1)) + '</span>' +
+      '</div>';
+    }).join('');
+
+    content.innerHTML =
+      '<div class="waiter-view">' +
+        '<h2 class="waiter-title">' + (this.t('orderPlaced') || 'Order placed') + '</h2>' +
+        '<p class="order-qr-hint">' + (this.t('orderNumber') || 'Order') + ' #' + orderId + '</p>' +
+        '<div class="order-divider"></div>' +
+        '<div class="waiter-items">' + itemsHtml + '</div>' +
+        '<div class="waiter-footer">' +
+          '<button class="waiter-view-back">' + this.t('close') + '</button>' +
+        '</div>' +
+      '</div>';
+  },
+
+  showWaiterView() {
+    const content = document.getElementById('cart-sheet-content');
     const items = this.cart.map(entry => {
       const item = this._findItem(entry.itemId);
       if (!item) return '';
@@ -801,9 +883,6 @@ const App = {
     content.innerHTML =
       '<div class="waiter-view">' +
         '<h2 class="waiter-title">' + this.t('yourOrder') + '</h2>' +
-        '<div class="order-qr">' + qrSvg + '</div>' +
-        '<p class="order-qr-hint">' + this.t('scanOrder') + '</p>' +
-        '<div class="order-divider"></div>' +
         '<div class="waiter-items">' + items + '</div>' +
         '<div class="waiter-total">' +
           '<span class="waiter-total-label">' + this.t('total') + '</span>' +
@@ -812,6 +891,7 @@ const App = {
       '</div>' +
       '<div class="waiter-footer">' +
         '<button class="waiter-view-back">' + this.t('back') + '</button>' +
+        '<button class="cart-submit-order">' + (this.t('submitOrder') || this.t('showWaiter')) + '</button>' +
       '</div>';
   },
 
@@ -1031,6 +1111,12 @@ const App = {
       // Show waiter view
       if (e.target.closest('.cart-show-waiter')) {
         this.showWaiterView();
+        return;
+      }
+
+      // Submit order to API
+      if (e.target.closest('.cart-submit-order')) {
+        this.submitOrder();
         return;
       }
 

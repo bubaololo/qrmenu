@@ -6,7 +6,6 @@ use App\Filament\Resources\Restaurants\Pages\CreateRestaurant;
 use App\Filament\Resources\Restaurants\Pages\EditRestaurant;
 use App\Filament\Resources\Restaurants\Pages\ListRestaurants;
 use App\Filament\Resources\Restaurants\RelationManagers\HallsRelationManager;
-use App\Filament\Resources\Restaurants\RelationManagers\MenusRelationManager;
 use App\Filament\Resources\Restaurants\RelationManagers\StaffRelationManager;
 use App\Filament\Resources\Restaurants\Schemas\RestaurantForm;
 use App\Filament\Resources\Restaurants\Tables\RestaurantsTable;
@@ -38,7 +37,6 @@ class RestaurantResource extends Resource
     public static function getRelations(): array
     {
         return [
-            MenusRelationManager::class,
             StaffRelationManager::class,
             HallsRelationManager::class,
         ];

@@ -23,26 +23,20 @@ class MenuPageController extends Controller
 
         abort_unless($tableModel->zone->restaurant_id === $restaurantModel->id, 404);
 
-        return $this->show($restaurantModel->uniqid, $lang);
+        return $this->show($restaurantModel->uniqid, $lang, $tableModel->uniqid);
     }
 
-    public function show(string $identifier, ?string $lang = null): View
+    public function show(string $identifier, ?string $lang = null, ?string $tableUniqid = null): View
     {
         $restaurant = is_numeric($identifier)
             ? Restaurant::findOrFail((int) $identifier)
             : Restaurant::where('uniqid', $identifier)->firstOrFail();
 
-        $restaurant->load([
-            'translations',
-            'activeMenu.sections.icon',
-            'activeMenu.sections.translations',
-            'activeMenu.sections.items.translations',
-            'activeMenu.sections.items.variations.options.translations',
-            'activeMenu.sections.items.optionGroups.translations',
-            'activeMenu.sections.items.optionGroups.options.translations',
-        ]);
+        // First pass: load the menu metadata so we know source_locale before loading
+        // the (potentially huge) translations chain.
+        $restaurant->load(['menu']);
 
-        $menu = $restaurant->activeMenu;
+        $menu = $restaurant->menu;
         $primaryLang = $restaurant->primary_language ?? 'en';
 
         // Normalize: null, 'mixed', or invalid ISO-639-1 code → default to primaryLang
@@ -51,12 +45,38 @@ class MenuPageController extends Controller
             $lang = $primaryLang;
         }
 
+        // Scope translation eager-loads to (a) the requested locale, (b) the menu's
+        // source_locale where MenuItem/Section/etc. initials live, and (c) the
+        // restaurant's primary_language where Restaurant/Zone initials live. This
+        // is a superset that guarantees translate()'s initial-fallback always finds
+        // its source row in the loaded collection.
+        $sourceLocale = $menu?->source_locale ?? $primaryLang;
+        $locales = array_values(array_unique(array_filter([$lang, $sourceLocale, $primaryLang])));
+        $scope = fn ($q) => $q->whereIn('locale', $locales);
+
+        $activeSection = fn ($q) => $q->where('is_active', true);
+        $activeItem = fn ($q) => $q->where('is_active', true);
+
+        $restaurant->load([
+            'translations' => $scope,
+            'menu.sections' => $activeSection,
+            'menu.sections.icon',
+            'menu.sections.translations' => $scope,
+            'menu.sections.items' => $activeItem,
+            'menu.sections.items.translations' => $scope,
+            'menu.sections.items.variations.options.translations' => $scope,
+            'menu.sections.items.optionGroups.translations' => $scope,
+            'menu.sections.items.optionGroups.options.translations' => $scope,
+        ]);
+
+        $menu = $restaurant->menu;
+
         // On-demand translation: if locale not initial and no translations exist, trigger LLM
         $translationPending = false;
         $requestedLang = $lang;
         if ($menu && $lang !== ($menu->source_locale ?? $primaryLang)) {
             $translationPending = $this->ensureTranslations($restaurant, $menu, $lang);
-            $menu = $restaurant->activeMenu; // refresh after potential translation
+            $menu = $restaurant->menu; // refresh after potential translation
         }
 
         $languages = $this->getAvailableLanguages($restaurant, $menu, $lang);
@@ -92,6 +112,7 @@ class MenuPageController extends Controller
             'translationLocale',
             'locales',
             'identifier',
+            'tableUniqid',
         ));
     }
 
@@ -532,6 +553,9 @@ class MenuPageController extends Controller
                 'address' => 'Địa chỉ', 'hoursToday' => 'Hôm nay', 'currency' => 'Tiền tệ',
                 'openNow' => 'Đang mở', 'closedNow' => 'Đã đóng',
                 'closedToday' => 'Đóng cửa hôm nay', 'open24h' => '24 giờ',
+                'submitOrder' => 'Gửi đơn hàng', 'placingOrder' => 'Đang gửi đơn',
+                'orderPlaced' => 'Đã đặt đơn', 'orderNumber' => 'Đơn',
+                'orderFailed' => 'Đặt đơn thất bại', 'orderRequiresTable' => 'Vui lòng quét mã QR trên bàn để đặt đơn',
             ],
             'en' => [
                 'search' => 'Search menu...', 'all' => 'All', 'powered' => 'Powered by QR Menu',
@@ -544,6 +568,9 @@ class MenuPageController extends Controller
                 'address' => 'Address', 'hoursToday' => 'Today', 'currency' => 'Currency',
                 'openNow' => 'Open now', 'closedNow' => 'Closed',
                 'closedToday' => 'Closed today', 'open24h' => '24 hours',
+                'submitOrder' => 'Submit order', 'placingOrder' => 'Sending order',
+                'orderPlaced' => 'Order placed', 'orderNumber' => 'Order',
+                'orderFailed' => 'Order failed', 'orderRequiresTable' => 'Scan the table QR code to order',
             ],
             'ru' => [
                 'search' => 'Поиск по меню...', 'all' => 'Все', 'powered' => 'Powered by QR Menu',
@@ -556,6 +583,9 @@ class MenuPageController extends Controller
                 'address' => 'Адрес', 'hoursToday' => 'Сегодня', 'currency' => 'Валюта',
                 'openNow' => 'Открыто', 'closedNow' => 'Закрыто',
                 'closedToday' => 'Сегодня закрыто', 'open24h' => '24 часа',
+                'submitOrder' => 'Отправить заказ', 'placingOrder' => 'Отправляем заказ',
+                'orderPlaced' => 'Заказ принят', 'orderNumber' => 'Заказ',
+                'orderFailed' => 'Не удалось отправить заказ', 'orderRequiresTable' => 'Отсканируйте QR на столе, чтобы заказать',
             ],
             'kk' => [
                 'search' => 'Мәзірден іздеу...', 'all' => 'Барлығы', 'powered' => 'Powered by QR Menu',
@@ -568,6 +598,9 @@ class MenuPageController extends Controller
                 'address' => 'Мекенжай', 'hoursToday' => 'Бүгін', 'currency' => 'Валюта',
                 'openNow' => 'Ашық', 'closedNow' => 'Жабық',
                 'closedToday' => 'Бүгін жабық', 'open24h' => '24 сағат',
+                'submitOrder' => 'Тапсырысты жіберу', 'placingOrder' => 'Жіберілуде',
+                'orderPlaced' => 'Тапсырыс қабылданды', 'orderNumber' => 'Тапсырыс',
+                'orderFailed' => 'Жіберу сәтсіз', 'orderRequiresTable' => 'Тапсырыс беру үшін үстелдегі QR кодты сканерлеңіз',
             ],
         ];
 

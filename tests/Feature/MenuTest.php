@@ -4,12 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\RestaurantUserRole;
 use App\Models\Menu;
+use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
 use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
-use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -47,12 +48,12 @@ class MenuTest extends TestCase
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
-        Menu::factory()->count(2)->create(['restaurant_id' => $restaurant->id]);
+        Menu::factory()->create(['restaurant_id' => $restaurant->id]);
 
         $this->actingAs($user)
             ->getJson("/api/v1/restaurants/{$restaurant->id}/menus")
             ->assertStatus(200)
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(1, 'data');
     }
 
     #[Test]
@@ -166,40 +167,14 @@ class MenuTest extends TestCase
     }
 
     #[Test]
-    public function test_activate_activates_menu_and_deactivates_siblings(): void
+    public function test_restaurant_cannot_have_two_menus(): void
     {
         $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu1 = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'is_active' => true]);
-        $menu2 = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'is_active' => false]);
+        Menu::factory()->create(['restaurant_id' => $restaurant->id]);
 
-        $this->actingAs($user)
-            ->postJson("/api/v1/menus/{$menu2->id}/activate")
-            ->assertStatus(200)
-            ->assertJsonPath('data.attributes.is_active', true);
+        $this->expectException(QueryException::class);
 
-        $this->assertDatabaseHas('menus', ['id' => $menu1->id, 'is_active' => false]);
-        $this->assertDatabaseHas('menus', ['id' => $menu2->id, 'is_active' => true]);
-    }
-
-    #[Test]
-    public function test_clone_creates_deep_copy(): void
-    {
-        $restaurant = Restaurant::factory()->create();
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
-
-        $response = $this->actingAs($user)
-            ->postJson("/api/v1/menus/{$menu->id}/clone")
-            ->assertStatus(201)
-            ->assertJsonPath('data.type', 'menus');
-
-        $clonedId = $response->json('data.id');
-        $this->assertNotEquals($menu->id, (int) $clonedId);
-        $this->assertDatabaseHas('menus', [
-            'id' => $clonedId,
-            'created_from_menu_id' => $menu->id,
-        ]);
+        Menu::factory()->create(['restaurant_id' => $restaurant->id]);
     }
 
     #[Test]

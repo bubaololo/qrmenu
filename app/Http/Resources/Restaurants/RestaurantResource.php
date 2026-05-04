@@ -27,7 +27,6 @@ class RestaurantResource extends JsonApiResource
 
     /** @var array<int, string> */
     public $relationships = [
-        'activeMenu',
-        'menus',
+        'menu',
     ];
 }

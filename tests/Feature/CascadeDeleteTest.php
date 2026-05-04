@@ -10,6 +10,7 @@ use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\Zone;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -54,7 +55,6 @@ class CascadeDeleteTest extends TestCase
         $this->menu = Menu::factory()->create([
             'restaurant_id' => $this->restaurant->id,
             'source_locale' => 'en',
-            'is_active' => true,
         ]);
 
         foreach (range(1, 2) as $s) {
@@ -84,7 +84,7 @@ class CascadeDeleteTest extends TestCase
         }
     }
 
-    /** @param  iterable<int, \Illuminate\Database\Eloquent\Model>  $models */
+    /** @param  iterable<int, Model>  $models */
     private function countTranslationsFor(string $class, iterable $models): int
     {
         return Translation::where('translatable_type', $class)

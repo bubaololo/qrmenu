@@ -11,16 +11,17 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SectionsRelationManager extends RelationManager
 {
@@ -39,6 +40,10 @@ class SectionsRelationManager extends RelationManager
                     ->label('Sort Order')
                     ->numeric()
                     ->default(0),
+
+                Toggle::make('is_active')
+                    ->label('Visible to guests')
+                    ->default(true),
 
                 Repeater::make('items')
                     ->relationship('items')
@@ -92,6 +97,10 @@ class SectionsRelationManager extends RelationManager
 
                         Toggle::make('starred')
                             ->label('Starred'),
+
+                        Toggle::make('is_active')
+                            ->label('Visible to guests')
+                            ->default(true),
 
                         Select::make('price_type')
                             ->label('Price Type')
@@ -203,6 +212,9 @@ class SectionsRelationManager extends RelationManager
                 TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items'),
+
+                ToggleColumn::make('is_active')
+                    ->label('Visible'),
             ])
             ->defaultSort('sort_order')
             ->headerActions([

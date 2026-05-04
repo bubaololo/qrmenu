@@ -102,8 +102,7 @@ class RestaurantTest extends TestCase
 
         $raw = file_get_contents(base_path('tests/llm_responce.json'));
         $menuData = MenuJson::decodeMenuFromLlmText($raw);
-        $menu = (new SaveMenuAnalysisAction)->handle($menuData, $restaurant->id, 1);
-        $menu->update(['is_active' => true]);
+        (new SaveMenuAnalysisAction)->handle($menuData, $restaurant->id, 1);
 
         $response = $this->actingAs($user)
             ->getJson('/api/v1/restaurants/active-menus')

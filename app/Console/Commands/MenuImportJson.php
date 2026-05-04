@@ -107,13 +107,7 @@ class MenuImportJson extends Command
 
         $menu = $action->handle($menuData, $restaurant->id, 1);
 
-        if ($this->option('activate')) {
-            $restaurant->menus()->where('id', '!=', $menu->id)->update(['is_active' => false]);
-            $menu->update(['is_active' => true]);
-            $this->line("  Menu <info>#{$menu->id}</info> marked as active.");
-        } else {
-            $this->line("  Menu <info>#{$menu->id}</info> created (inactive). Pass --activate to make it active.");
-        }
+        $this->line("  Menu <info>#{$menu->id}</info> created.");
 
         $this->line("  Restaurant ID: <info>{$restaurant->id}</info>");
         $this->line('');

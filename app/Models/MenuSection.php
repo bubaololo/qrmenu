@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuSectionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -76,5 +77,11 @@ class MenuSection extends Model
     public function optionGroups(): HasMany
     {
         return $this->hasMany(MenuOptionGroup::class, 'section_id')->orderBy('sort_order');
+    }
+
+    /** @param  Builder<MenuSection>  $query */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 }

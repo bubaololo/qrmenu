@@ -128,7 +128,7 @@ class RestaurantController extends Controller
     }
 
     /**
-     * Active menus with sections and items for all owned restaurants.
+     * Menus (one per restaurant) with sections and items for all owned restaurants.
      */
     public function activeMenus(Request $request): AnonymousResourceCollection
     {
@@ -136,7 +136,7 @@ class RestaurantController extends Controller
             ->ownedRestaurants()
             ->pluck('restaurants.id');
 
-        $menus = Menu::active()
+        $menus = Menu::query()
             ->whereIn('restaurant_id', $restaurantIds)
             ->with(['restaurant', 'sections'])
             ->get();

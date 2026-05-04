@@ -111,14 +111,9 @@ class Restaurant extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
-    public function menus(): HasMany
+    public function menu(): HasOne
     {
-        return $this->hasMany(Menu::class);
-    }
-
-    public function activeMenu(): HasOne
-    {
-        return $this->hasOne(Menu::class)->where('is_active', true);
+        return $this->hasOne(Menu::class);
     }
 
     public function restaurantUsers(): HasMany

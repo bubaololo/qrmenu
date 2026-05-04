@@ -285,9 +285,12 @@
             'lang' => $lang,
             'primaryLang' => $primaryLang,
             'restaurantId' => $restaurant->id,
+            'restaurantUniqid' => $restaurant->uniqid,
+            'tableUniqid' => $tableUniqid ?? null,
             'menuId' => $menu?->id,
             'translationPending' => $translationPending ?? false,
             'translationLocale' => $translationLocale ?? null,
+            'orderEndpoint' => '/api/v1/public/orders',
         ];
     @endphp
     <script>

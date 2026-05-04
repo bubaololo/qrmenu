@@ -16,7 +16,6 @@ class MenuFactory extends Factory
         return [
             'restaurant_id' => Restaurant::factory(),
             'source_locale' => 'vi',
-            'is_active' => false,
             'source_images_count' => 0,
         ];
     }

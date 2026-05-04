@@ -45,15 +45,16 @@ class SaveMenuAnalysisAction
             $version = $menuData['menu_version'] ?? [];
             $sourceLocale = $menuData['restaurant']['primary_language'] ?? null;
 
+            // Each restaurant has a single menu. Re-running analysis replaces
+            // the previous one (sections / items / option groups cascade out).
+            Menu::where('restaurant_id', $restaurantId)->delete();
+
             $menu = Menu::create([
                 'restaurant_id' => $restaurantId,
                 'source_locale' => is_string($sourceLocale) && $sourceLocale !== '' ? $sourceLocale : null,
                 'source_images_count' => (int) ($version['source_images_count'] ?? $sourceImagesCount),
-                'is_active' => false,
                 'detected_date' => $version['detected_date'] ?? now()->toDateString(),
             ]);
-
-            $menu->activate();
 
             $this->createSectionsForMenu(
                 $menu,

@@ -52,32 +52,33 @@ trait HasTranslations
      */
     public function translate(string $field, string $locale): ?string
     {
-        /** @var Collection<int, Translation> $loaded */
-        $loaded = $this->relationLoaded('translations') ? $this->translations : collect();
+        $fieldId = static::resolveFieldId($field);
 
-        if ($loaded->isNotEmpty()) {
-            $match = $loaded->first(fn (Translation $t) => $t->locale === $locale && $t->field_id === static::resolveFieldId($field));
+        // Use the eager-loaded collection authoritatively when present — even if
+        // empty for this row. Falling through to a DB query when the relation is
+        // already loaded would be a redundant N+1.
+        if ($this->relationLoaded('translations')) {
+            /** @var Collection<int, Translation> $loaded */
+            $loaded = $this->translations;
+            $match = $loaded->first(fn (Translation $t) => $t->locale === $locale && $t->field_id === $fieldId);
             if ($match) {
                 return $match->value;
             }
 
-            // Fallback: return any initial translation for this field
-            return $loaded->first(fn (Translation $t) => $t->field_id === static::resolveFieldId($field) && $t->is_initial)?->value;
+            return $loaded->first(fn (Translation $t) => $t->field_id === $fieldId && $t->is_initial)?->value;
         }
 
-        // Not eager-loaded: query the DB directly
         $match = $this->translations()
             ->where('locale', $locale)
-            ->where('field_id', static::resolveFieldId($field))
+            ->where('field_id', $fieldId)
             ->value('value');
 
         if ($match !== null) {
             return $match;
         }
 
-        // Fallback to any initial
         return $this->translations()
-            ->where('field_id', static::resolveFieldId($field))
+            ->where('field_id', $fieldId)
             ->where('is_initial', true)
             ->value('value');
     }
@@ -148,8 +149,17 @@ trait HasTranslations
         return $result;
     }
 
+    /** @var array<string, int> */
+    private static array $fieldIdCache = [];
+
     private static function resolveFieldId(string $name): int
     {
-        return TranslationField::firstOrCreate(['name' => $name])->id;
+        return self::$fieldIdCache[$name] ??= TranslationField::firstOrCreate(['name' => $name])->id;
+    }
+
+    /** Reset the per-process field-id cache. Use between tests when DB is rolled back. */
+    public static function clearTranslationFieldCache(): void
+    {
+        self::$fieldIdCache = [];
     }
 }

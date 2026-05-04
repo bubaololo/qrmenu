@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
+use App\Models\Order;
+use App\Models\Restaurant;
 use App\Services\AnalysisEventBroker;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SseEventsController extends Controller
@@ -96,6 +99,24 @@ class SseEventsController extends Controller
 
                 return false;
             },
+        );
+    }
+
+    /**
+     * Stream order events for a restaurant (`restaurant-orders.{id}` topic).
+     *
+     * Long-lived stream; never terminates on its own (kitchen/waiter dashboards
+     * stay subscribed for the whole shift). Disconnect happens when the client
+     * navigates away or the idle cap kicks in.
+     */
+    public function restaurantOrders(Request $request, Restaurant $restaurant): StreamedResponse
+    {
+        Gate::authorize('viewAny', [Order::class, $restaurant]);
+
+        return $this->stream(
+            topic: "restaurant-orders.{$restaurant->id}",
+            sinceIndex: (int) $request->header('Last-Event-ID', 0),
+            isTerminal: fn (): bool => false,
         );
     }
 
