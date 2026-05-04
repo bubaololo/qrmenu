@@ -98,8 +98,13 @@ class SectionsRelationManager extends RelationManager
                         Toggle::make('starred')
                             ->label('Starred'),
 
-                        Toggle::make('is_active')
+                        Toggle::make('is_visible')
                             ->label('Visible to guests')
+                            ->default(true),
+
+                        Toggle::make('is_orderable')
+                            ->label('Available to order')
+                            ->helperText('Untick to keep showing the item but block ordering (e.g. out of stock).')
                             ->default(true),
 
                         Select::make('price_type')

@@ -55,14 +55,14 @@ class MenuPageController extends Controller
         $scope = fn ($q) => $q->whereIn('locale', $locales);
 
         $activeSection = fn ($q) => $q->where('is_active', true);
-        $activeItem = fn ($q) => $q->where('is_active', true);
+        $visibleItem = fn ($q) => $q->where('is_visible', true);
 
         $restaurant->load([
             'translations' => $scope,
             'menu.sections' => $activeSection,
             'menu.sections.icon',
             'menu.sections.translations' => $scope,
-            'menu.sections.items' => $activeItem,
+            'menu.sections.items' => $visibleItem,
             'menu.sections.items.translations' => $scope,
             'menu.sections.items.variations.options.translations' => $scope,
             'menu.sections.items.optionGroups.translations' => $scope,
@@ -470,6 +470,7 @@ class MenuPageController extends Controller
                     'price' => (float) $item->price_value,
                     'image_url' => $item->image_url,
                     'thumb_url' => $item->thumb_url,
+                    'orderable' => (bool) $item->is_orderable,
                 ];
 
                 $allGroups = $item->optionGroups;

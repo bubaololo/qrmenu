@@ -4085,7 +4085,10 @@
                                             "starred": {
                                                 "type": "boolean"
                                             },
-                                            "is_active": {
+                                            "is_visible": {
+                                                "type": "boolean"
+                                            },
+                                            "is_orderable": {
                                                 "type": "boolean"
                                             },
                                             "price_type": {
@@ -4352,7 +4355,10 @@
                         ],
                         "format": "date-time"
                     },
-                    "is_active": {
+                    "is_visible": {
+                        "type": "boolean"
+                    },
+                    "is_orderable": {
                         "type": "boolean"
                     },
                     "name": {
@@ -4383,7 +4389,8 @@
                     "sort_order",
                     "created_at",
                     "updated_at",
-                    "is_active",
+                    "is_visible",
+                    "is_orderable",
                     "name",
                     "description",
                     "image_url",
@@ -4918,11 +4925,19 @@
                         ],
                         "minimum": 0
                     },
-                    "is_active": {
+                    "is_visible": {
                         "type": [
                             "boolean",
                             "null"
-                        ]
+                        ],
+                        "description": "Whether the item is shown in the public menu. Default true."
+                    },
+                    "is_orderable": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "Whether the item can be added to a cart / ordered. Default true. `is_visible=true` + `is_orderable=false` is the \"shown but out of stock\" state."
                     }
                 },
                 "required": [
@@ -5329,8 +5344,13 @@
                         "type": "integer",
                         "minimum": 0
                     },
-                    "is_active": {
-                        "type": "boolean"
+                    "is_visible": {
+                        "type": "boolean",
+                        "description": "Whether the item is shown in the public menu."
+                    },
+                    "is_orderable": {
+                        "type": "boolean",
+                        "description": "Whether the item can be added to a cart / ordered."
                     }
                 },
                 "title": "UpdateMenuItemRequest"

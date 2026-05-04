@@ -17,7 +17,6 @@ class UpdateMenuRequest extends FormRequest
         return [
             'source_locale' => ['sometimes', 'string', 'max:10'],
             'detected_date' => ['sometimes', 'nullable', 'date'],
-            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

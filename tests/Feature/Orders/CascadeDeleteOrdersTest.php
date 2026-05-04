@@ -124,7 +124,7 @@ class CascadeDeleteOrdersTest extends TestCase
     public function test_deleting_menu_item_cascades_to_order_items(): void
     {
         // Direct menu_item deletion cascades to its order_items. Admins
-        // typically disable items via `is_active` instead of deleting; this
+        // typically disable items via `is_orderable` instead of deleting; this
         // path exists mainly so a `restaurant->delete()` cascade resolves
         // cleanly when both parallel chains converge on order_items.
         $ctx = $this->setupOrder();

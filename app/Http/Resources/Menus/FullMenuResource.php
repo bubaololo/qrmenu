@@ -27,7 +27,6 @@ class FullMenuResource extends JsonResource
             'source_locale' => $this->source_locale,
             'locale' => $locale,
             'detected_date' => $this->detected_date?->toDateString(),
-            'is_active' => $this->is_active,
             'locales' => $this->availableLocales(),
             'sections' => $this->sections->map(fn ($section) => [
                 'id' => $section->id,
@@ -42,7 +41,8 @@ class FullMenuResource extends JsonResource
                     'name' => $item->translate('name', $locale),
                     'description' => $item->translate('description', $locale),
                     'starred' => $item->starred,
-                    'is_active' => $item->is_active,
+                    'is_visible' => $item->is_visible,
+                    'is_orderable' => $item->is_orderable,
                     'price_type' => $item->price_type?->value,
                     'price_value' => $item->price_value,
                     'price_min' => $item->price_min,

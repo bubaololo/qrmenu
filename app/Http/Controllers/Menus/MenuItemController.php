@@ -37,6 +37,8 @@ class MenuItemController extends Controller
             'price_unit' => $validated['price_unit'] ?? null,
             'price_original_text' => $validated['price_original_text'] ?? '',
             'sort_order' => $validated['sort_order'] ?? 0,
+            'is_visible' => $validated['is_visible'] ?? true,
+            'is_orderable' => $validated['is_orderable'] ?? true,
         ]);
 
         $sourceLocale = $menuSection->menu->source_locale ?? 'und';

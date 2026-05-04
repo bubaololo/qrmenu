@@ -8,6 +8,7 @@ class DiningTableResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
+        'uniqid',
         'number',
         'capacity',
         'shape',

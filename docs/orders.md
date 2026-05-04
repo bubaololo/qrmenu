@@ -65,7 +65,7 @@ Place an order from the public Blade menu (or any external client).
 | --- | --- | --- |
 | `restaurant_uniqid` | ✓ | 8–32 chars; resolved server-side. |
 | `table_uniqid` | ✓ | Must belong to a zone of the same restaurant. |
-| `items[].menu_item_id` | ✓ | Must belong to an active section of the restaurant's single menu and itself be active. |
+| `items[].menu_item_id` | ✓ | Must belong to an active section of the restaurant's single menu, with both `is_visible=true` and `is_orderable=true` on the item. Hidden items (`is_visible=false`) and "out of stock" items (`is_orderable=false`) are rejected. |
 | `items[].quantity` | ✓ | 1..99 |
 | `items[].variation_option_id` | – | Picked variant — adjusts `unit_price`. |
 | `items[].selected_options` | – | Non-variation extras (`{group_id, option_ids[]}`); price adjusts apply. |
@@ -248,7 +248,7 @@ $z = App\Models\Zone::factory()->create(["restaurant_id" => $r->id]);
 $t = App\Models\DiningTable::factory()->create(["zone_id" => $z->id]);
 $m = App\Models\Menu::factory()->create(["restaurant_id" => $r->id]);
 $s = App\Models\MenuSection::factory()->create(["menu_id" => $m->id, "is_active" => true]);
-$i = App\Models\MenuItem::factory()->create(["section_id" => $s->id, "price_value" => 12.50, "is_active" => true]);
+$i = App\Models\MenuItem::factory()->create(["section_id" => $s->id, "price_value" => 12.50, "is_visible" => true, "is_orderable" => true]);
 echo "uniqid: {$r->uniqid} / {$t->uniqid} / item_id: {$i->id}\n";
 '
 

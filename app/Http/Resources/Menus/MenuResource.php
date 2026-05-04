@@ -15,7 +15,6 @@ class MenuResource extends JsonApiResource
         'source_locale',
         'detected_date',
         'source_images_count',
-        'is_active',
         'created_from_menu_id',
         'created_at',
     ];

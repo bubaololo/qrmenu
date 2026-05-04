@@ -31,7 +31,8 @@ class PublicOrderCreationTest extends TestCase
         $item = MenuItem::factory()->create([
             'section_id' => $section->id,
             'price_value' => 12.50,
-            'is_active' => true,
+            'is_visible' => true,
+            'is_orderable' => true,
         ]);
 
         return [
@@ -140,10 +141,23 @@ class PublicOrderCreationTest extends TestCase
     }
 
     #[Test]
-    public function test_rejects_inactive_item(): void
+    public function test_rejects_unorderable_item(): void
     {
         ['restaurant' => $r, 'table' => $t, 'item' => $i] = $this->setupMenu();
-        $i->update(['is_active' => false]);
+        $i->update(['is_orderable' => false]);
+
+        $this->postJson('/api/v1/public/orders', [
+            'restaurant_uniqid' => $r->uniqid,
+            'table_uniqid' => $t->uniqid,
+            'items' => [['menu_item_id' => $i->id, 'quantity' => 1]],
+        ])->assertStatus(422)->assertJsonValidationErrors(['items']);
+    }
+
+    #[Test]
+    public function test_rejects_invisible_item(): void
+    {
+        ['restaurant' => $r, 'table' => $t, 'item' => $i] = $this->setupMenu();
+        $i->update(['is_visible' => false]);
 
         $this->postJson('/api/v1/public/orders', [
             'restaurant_uniqid' => $r->uniqid,

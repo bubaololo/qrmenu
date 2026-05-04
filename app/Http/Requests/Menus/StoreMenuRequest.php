@@ -17,7 +17,6 @@ class StoreMenuRequest extends FormRequest
         return [
             'source_locale' => ['required', 'string', 'max:10'],
             'detected_date' => ['nullable', 'date'],
-            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

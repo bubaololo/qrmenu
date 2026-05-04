@@ -27,7 +27,8 @@ class UpdateMenuItemRequest extends FormRequest
             'price_unit' => ['sometimes', 'nullable', 'string', 'max:50'],
             'price_original_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
-            'is_active' => ['sometimes', 'boolean'],
+            'is_visible' => ['sometimes', 'boolean'],
+            'is_orderable' => ['sometimes', 'boolean'],
         ];
     }
 }

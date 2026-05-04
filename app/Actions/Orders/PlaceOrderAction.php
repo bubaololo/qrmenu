@@ -55,14 +55,15 @@ class PlaceOrderAction
 
         $menuItemIds = array_column($payload['items'], 'menu_item_id');
         $menuItems = MenuItem::whereIn('id', $menuItemIds)
-            ->where('is_active', true)
+            ->where('is_visible', true)
+            ->where('is_orderable', true)
             ->whereHas('section', fn ($q) => $q->where('menu_id', $menu->id)->where('is_active', true))
             ->get()
             ->keyBy('id');
 
         if ($menuItems->count() !== count(array_unique($menuItemIds))) {
             throw ValidationException::withMessages([
-                'items' => 'One or more menu items are unavailable or do not belong to the active menu.',
+                'items' => 'One or more menu items are unavailable, hidden, or do not belong to the active menu.',
             ]);
         }
 

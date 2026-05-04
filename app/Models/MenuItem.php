@@ -34,7 +34,8 @@ class MenuItem extends Model
         'image_bbox',
         'image',
         'sort_order',
-        'is_active',
+        'is_visible',
+        'is_orderable',
     ];
 
     /** Pending translation value to be written after save */
@@ -65,7 +66,8 @@ class MenuItem extends Model
     {
         return [
             'starred' => 'boolean',
-            'is_active' => 'boolean',
+            'is_visible' => 'boolean',
+            'is_orderable' => 'boolean',
             'price_type' => PriceType::class,
             'price_value' => 'decimal:2',
             'price_min' => 'decimal:2',
@@ -131,8 +133,14 @@ class MenuItem extends Model
     }
 
     /** @param  Builder<MenuItem>  $query */
-    public function scopeActive(Builder $query): Builder
+    public function scopeVisible(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_visible', true);
+    }
+
+    /** @param  Builder<MenuItem>  $query */
+    public function scopeOrderable(Builder $query): Builder
+    {
+        return $query->where('is_orderable', true);
     }
 }
