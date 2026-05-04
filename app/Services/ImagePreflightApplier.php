@@ -27,35 +27,24 @@ class ImagePreflightApplier
 
         $beforeW = $img->getImageWidth();
         $beforeH = $img->getImageHeight();
-        $exifReliable = $exifOrient !== Imagick::ORIENTATION_UNDEFINED;
-        $exifApplied = $exifReliable && $exifOrient !== Imagick::ORIENTATION_TOPLEFT;
+        $exifApplied = $exifOrient !== Imagick::ORIENTATION_UNDEFINED && $exifOrient !== Imagick::ORIENTATION_TOPLEFT;
 
-        // When the camera EXIF was set (any value 1-8 from the device sensor),
-        // we trust autoOrient's result and discard the LLM's rotation guess.
-        // Small vision models hallucinate rotation direction at low resolution
-        // and the camera's own orientation tag is already authoritative.
-        // LLM rotation is only honored as a fallback for files without EXIF
-        // (scans, screenshots, edited images).
-        $effectiveRotation = $result->rotationCw;
-        $rotationOverridden = false;
-        if ($exifReliable && $effectiveRotation !== 0) {
-            $rotationOverridden = true;
-            $effectiveRotation = 0;
-        }
-
+        // EXIF was applied first via autoOrient(). LLM sees the EXIF-corrected
+        // image and is the authoritative rotation signal: it returns 0 when
+        // EXIF was right, and the corrective rotation when EXIF was wrong
+        // (e.g. Samsung Galaxy bug where landscape captures get tagged with
+        // Orientation=6). We trust the LLM either way.
         $llm->info('Preflight apply start', [
             'path' => $name,
-            'llm_rotation_cw' => $result->rotationCw,
-            'effective_rotation_cw' => $effectiveRotation,
-            'rotation_overridden_by_exif' => $rotationOverridden,
+            'rotation_cw' => $result->rotationCw,
             'content_bbox' => $result->contentBbox,
             'exif_orientation' => $exifOrient,
             'raw_dims' => $rawW.'x'.$rawH,
             'before_dims' => $beforeW.'x'.$beforeH,
         ]);
 
-        if ($effectiveRotation !== 0) {
-            $img->rotateImage('#000', $effectiveRotation);
+        if ($result->rotationCw !== 0) {
+            $img->rotateImage('#000', $result->rotationCw);
             $img->setImagePage(0, 0, 0, 0);
         }
 
@@ -75,8 +64,7 @@ class ImagePreflightApplier
             'after_dims' => $afterW.'x'.$afterH,
             'file_size_kb' => (int) round(filesize($sourcePath) / 1024),
             'exif_applied' => $exifApplied,
-            'rotation_applied' => $effectiveRotation,
-            'rotation_overridden_by_exif' => $rotationOverridden,
+            'rotation_applied' => $result->rotationCw,
             'crop_applied' => $cropApplied,
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
         ]);

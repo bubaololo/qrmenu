@@ -16,6 +16,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class AnalyzeChunkJob implements ShouldQueue
@@ -54,12 +55,51 @@ class AnalyzeChunkJob implements ShouldQueue
         ini_set('memory_limit', '512M');
 
         // Bus::batch cancels remaining jobs once any sibling has failed — skip quietly.
-        if ($this->batch() && $this->batch()->cancelled()) {
+        // Also bail out if the batch already finished (then() fired) — a stale retry
+        // landing here would only crash on missing prep files cleaned up by FinalizeAnalysisJob.
+        if ($this->batch() && ($this->batch()->cancelled() || $this->batch()->finished())) {
+            Log::channel('llm')->info('Chunk skipped (batch already finished/cancelled)', [
+                'analysis_uuid' => $this->analysis->uuid,
+                'chunk_index' => $this->chunkIndex,
+                'attempts' => $this->attempts(),
+            ]);
+
+            return;
+        }
+
+        // Defensive: if the analysis is already in a terminal state, drop the retry.
+        // Happens when an earlier attempt of this same chunk succeeded and FinalizeAnalysisJob
+        // already activated the menu + cleaned up the preprocessed images.
+        $this->analysis->refresh();
+        if (in_array($this->analysis->status->value, ['completed', 'failed'], true)) {
+            Log::channel('llm')->info('Chunk skipped (analysis already terminal)', [
+                'analysis_uuid' => $this->analysis->uuid,
+                'chunk_index' => $this->chunkIndex,
+                'analysis_status' => $this->analysis->status->value,
+                'attempts' => $this->attempts(),
+            ]);
+
             return;
         }
 
         if ($this->analysis->result_menu_id === null) {
             throw new \RuntimeException('Chunked analysis requires result_menu_id set by orchestrator; refusing to run.');
+        }
+
+        // Defensive: skip silently if the preprocessed images are already gone — we lost the race
+        // to FinalizeAnalysisJob's cleanup. The batch is otherwise considered complete.
+        $disk = Storage::disk($this->analysis->image_disk);
+        foreach ($this->chunkPaths as $path) {
+            if (! $disk->exists($path)) {
+                Log::channel('llm')->info('Chunk skipped (prep file already cleaned up)', [
+                    'analysis_uuid' => $this->analysis->uuid,
+                    'chunk_index' => $this->chunkIndex,
+                    'missing_path' => $path,
+                    'attempts' => $this->attempts(),
+                ]);
+
+                return;
+            }
         }
 
         $providers = $cascade->resolveProviders(count($this->chunkPaths), $this->analysis->vision_model);

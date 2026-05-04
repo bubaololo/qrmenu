@@ -256,6 +256,20 @@ class AnalyzeMenuJob implements ShouldQueue
                 if (! $analysis) {
                     return;
                 }
+
+                // Late retry crashes (e.g. mime_content_type failing on a prep file already
+                // cleaned up by FinalizeAnalysisJob) should not flip a completed analysis
+                // back to failed. The batch is technically failed from Laravel's perspective,
+                // but functionally the analysis is done.
+                if ($analysis->status === MenuAnalysisStatus::Completed) {
+                    Log::channel('llm')->warning('Batch catch hook fired after analysis completion — ignoring', [
+                        'analysis_uuid' => $analysisUuid,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    return;
+                }
+
                 $analysis->markFailed("Batch failed: {$e->getMessage()}");
 
                 $disk = Storage::disk($analysis->image_disk);

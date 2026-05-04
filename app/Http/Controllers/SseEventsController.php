@@ -115,10 +115,21 @@ class SseEventsController extends Controller
             @ini_set('output_buffering', '0');
             @ini_set('zlib.output_compression', '0');
 
+            // PHP-FPM and Laravel may have started output buffering above us — close every
+            // remaining ob layer so each echo + flush() goes straight to FPM → nginx → client.
+            // Without this, Laravel's middleware ob_start() can hold the SSE stream until the
+            // response finishes, which for SSE means "never".
+            while (ob_get_level() > 0) {
+                @ob_end_flush();
+            }
+            @ob_implicit_flush(true);
+
             $cursor = max(0, $sinceIndex);
 
-            // Emit a hello so the client knows we connected.
-            echo "retry: 3000\n\n";
+            // Emit a hello so the client knows we connected. Padding forces some
+            // intermediaries to flush their internal 4KB/16KB buffer right away.
+            echo "retry: 3000\n";
+            echo ': '.str_repeat(' ', 2048)."\n\n";
             @flush();
 
             $emittedEventCount = 0;

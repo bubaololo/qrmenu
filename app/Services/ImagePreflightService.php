@@ -12,7 +12,7 @@ use Imagick;
 class ImagePreflightService
 {
     private const PROMPT = <<<'PROMPT'
-Analyze this restaurant menu photo and return STRICT JSON (no prose, no markdown):
+You are inspecting a restaurant menu photo. Return STRICT JSON (no prose, no markdown):
 
 {
   "rotation_cw": 0 | 90 | 180 | 270,
@@ -20,16 +20,22 @@ Analyze this restaurant menu photo and return STRICT JSON (no prose, no markdown
   "quality": "good" | "blurry" | "glare" | "dark"
 }
 
-Rules:
-- This image has been pre-oriented based on the camera's EXIF metadata, so in
-  most cases it is already readable as-is. Return rotation_cw=0 unless the menu
-  text is clearly rotated (e.g. flat top-down shot where the phone could not
-  detect orientation, or a scan/screenshot with no EXIF).
-- rotation_cw: degrees CW to rotate so text reads left-to-right normally.
-- content_bbox: normalized [0..1] box of the actual menu within the frame, MEASURED AFTER applying rotation_cw. Use null if the menu fills the frame with <5% margin.
-- quality: overall readability. Use "good" by default.
+Definitions:
+- rotation_cw: degrees clockwise to rotate this image so the menu text reads
+  upright in normal left-to-right, top-to-bottom flow. Look at the actual letters
+  and the natural top of each glyph. If letters already stand upright with their
+  tops pointing up, return 0. If the text reads bottom-to-top up the left edge
+  (letter tops pointing right), return 90. If the text is upside-down, return 180.
+  If the text reads top-to-bottom down the right edge (letter tops pointing left),
+  return 270. Decide solely from the orientation of the printed text — ignore
+  the dish-photo orientation, page aspect ratio, and any prior assumptions about
+  how the photo was taken.
+- content_bbox: normalized [0..1] box [x1, y1, x2, y2] of the actual menu page(s)
+  inside the frame, measured AFTER applying rotation_cw. Use null if the menu
+  already fills the frame with less than 5% margin on every side.
+- quality: overall readability of the printed text. Default to "good".
 
-Return only the JSON object.
+Return only the JSON object, nothing else.
 PROMPT;
 
     public function analyze(string $sourcePath): PreflightResult
