@@ -27,21 +27,68 @@
     {{-- Grain overlay --}}
     <div class="grain" aria-hidden="true"></div>
 
-    {{-- Navbar --}}
+    {{-- Top block --}}
     @php
         // Reuse the identifier the user came in with — if they hit /17/...
         // we keep `17` in the dropdown links instead of switching to uniqid.
         $menuIdentifier = $identifier ?? $restaurant->uniqid ?? $restaurant->id;
-        $currentLocale = collect($languages ?? [])->firstWhere('code', $lang)
+        $currentLocale = collect($locales ?? [])->firstWhere('code', $lang)
             ?? ['code' => $lang, 'label' => strtoupper($lang), 'flag' => "\u{1F310}"];
-        $availableCodes = collect($languages ?? [])->pluck('code')->all();
+        $locationParts = collect([$restaurant->city, $heroInfo['address']])
+            ->filter()
+            ->values();
+        $locationLabel = $locationParts->implode(', ');
+        $hasMeta = $heroInfo['statusLabel'] !== null
+            || $heroInfo['todayHours'] !== null
+            || $locationParts->isNotEmpty();
     @endphp
-    <nav class="navbar" aria-label="Main navigation">
-        <div class="container nav-row">
-            <div class="brand-group">
-                <span class="brand-name-compact font-display">{{ $restaurantName }}</span>
+
+    {{-- Meta strip — scrolls away with the page --}}
+    @if($hasMeta)
+        <div id="top" class="meta-strip">
+            <div class="container meta-strip-row">
+                @if($heroInfo['statusLabel'] !== null)
+                    <span class="meta-item meta-status">
+                        <span class="meta-dot meta-dot--{{ $heroInfo['isOpenNow'] ? 'open' : 'closed' }}" aria-hidden="true"></span>
+                        <span class="meta-status-label">{{ $heroInfo['statusLabel'] }}</span>
+                        @if($heroInfo['todayHours'] !== null)
+                            <span class="meta-status-hours">· {{ $heroInfo['todayHours'] }}</span>
+                        @endif
+                    </span>
+                @endif
+                @if($locationParts->isNotEmpty())
+                    @if($heroInfo['mapsUrl'])
+                        <a class="meta-item meta-loc" href="{{ $heroInfo['mapsUrl'] }}" target="_blank" rel="noopener" aria-label="{{ $locationLabel }} — open in Maps">
+                            <svg class="meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span class="meta-loc-label">{{ $locationLabel }}</span>
+                        </a>
+                    @else
+                        <span class="meta-item meta-loc">
+                            <svg class="meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span class="meta-loc-label">{{ $locationLabel }}</span>
+                        </span>
+                    @endif
+                @endif
             </div>
-            <div class="nav-ctrls">
+        </div>
+    @endif
+
+    {{-- Brand row — scrolls away naturally above the sticky topbar, no JS morph --}}
+    <div class="container topbar-brandrow">
+        <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
+    </div>
+
+    {{-- Sticky topbar: search + ctrls, sticks once brand row has scrolled away. --}}
+    <header class="topbar topbar-sticky" aria-label="Main navigation">
+        <div class="container topbar-mainrow">
+            <div id="search" class="search-field">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="search-input" class="search-input" placeholder="{{ $uiStrings['search'] }}">
+            </div>
+            <div class="topbar-ctrls">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                    <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
                 <div class="lang-switcher lang-dropdown" id="lang-switcher">
                     <button class="lang-current" id="lang-toggle" aria-label="Language" aria-haspopup="listbox">
                         <span class="lang-flag">{{ $currentLocale['flag'] }}</span>
@@ -49,43 +96,25 @@
                         <svg class="lang-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
                     </button>
                     <div class="lang-menu" role="listbox">
-                        {{-- Already-translated locales --}}
-                        @if(! empty($languages))
-                            <div class="lang-section-title">{{ $uiStrings['langAvailable'] ?? 'Available' }}</div>
-                            @foreach($languages as $language)
-                                <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $language['code']]) }}"
-                                   class="lang-option{{ $language['code'] === $lang ? ' lang-option-active' : '' }}"
-                                   role="option"
-                                   aria-selected="{{ $language['code'] === $lang ? 'true' : 'false' }}">
-                                    <span class="lang-flag">{{ $language['flag'] }}</span>
-                                    <span class="lang-name">{{ $language['label'] }}</span>
-                                    <span class="lang-code-tag">{{ strtoupper($language['code']) }}</span>
-                                </a>
-                            @endforeach
-                        @endif
-
-                        {{-- Search + curated language list (translate on click) --}}
-                        @if(! empty($allLocales))
-                            <div class="lang-section-title lang-section-title--search">{{ $uiStrings['langTranslateTo'] ?? 'Translate to…' }}</div>
+                        @if(! empty($locales))
                             <div class="lang-search">
                                 <input type="text" id="lang-search-input" class="lang-search-input"
                                        placeholder="{{ $uiStrings['langSearchPlaceholder'] ?? 'Search languages…' }}"
                                        autocomplete="off" spellcheck="false">
                             </div>
                             <div id="lang-all-list" class="lang-all-list">
-                                @foreach($allLocales as $loc)
-                                    @if(in_array($loc['code'], $availableCodes, true))
-                                        @continue
-                                    @endif
+                                @foreach($locales as $loc)
                                     <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $loc['code']]) }}"
                                        data-code="{{ $loc['code'] }}"
                                        data-label="{{ strtolower($loc['label']) }}"
-                                       data-native="{{ strtolower($loc['native']) }}"
-                                       class="lang-option lang-option--all">
+                                       data-native="{{ strtolower($loc['native'] ?? '') }}"
+                                       class="lang-option lang-option--all{{ $loc['code'] === $lang ? ' lang-option-active' : '' }}{{ ! empty($loc['translated']) ? ' lang-option--ready' : '' }}"
+                                       role="option"
+                                       aria-selected="{{ $loc['code'] === $lang ? 'true' : 'false' }}">
                                         <span class="lang-flag">{{ $loc['flag'] }}</span>
                                         <span class="lang-name">
                                             {{ $loc['label'] }}
-                                            @if($loc['native'] !== '' && $loc['native'] !== $loc['label'])
+                                            @if(! empty($loc['native']) && $loc['native'] !== $loc['label'])
                                                 <span class="lang-native">· {{ $loc['native'] }}</span>
                                             @endif
                                         </span>
@@ -130,62 +159,9 @@
                         @endif
                     </div>
                 </div>
-                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-                    <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                </button>
             </div>
         </div>
-    </nav>
-
-    {{-- Hero --}}
-    <header id="top" class="hero container">
-        <article class="hero-card">
-            <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
-            <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
-            @php
-                $eyebrowParts = collect([$restaurant->city, $heroInfo['address']])
-                    ->filter()
-                    ->values();
-            @endphp
-            <div class="hero-inner">
-                @if($heroInfo['statusLabel'] !== null || $eyebrowParts->isNotEmpty())
-                    <span class="eyebrow">
-                        @if($heroInfo['statusLabel'] !== null)
-                            <span class="eyebrow-dot eyebrow-dot--{{ $heroInfo['isOpenNow'] ? 'open' : 'closed' }}"></span>
-                            <span>{{ $heroInfo['statusLabel'] }}</span>
-                        @endif
-                        @foreach($eyebrowParts as $part)
-                            @if(! $loop->first || $heroInfo['statusLabel'] !== null)
-                                <span class="eyebrow-sep">·</span>
-                            @endif
-                            <span class="eyebrow-text">{{ $part }}</span>
-                        @endforeach
-                    </span>
-                @endif
-                <h1 class="hero-title font-display">{{ $restaurantName }}</h1>
-                @if($heroInfo['todayHours'] !== null || $currencyCode)
-                    <div class="hero-meta">
-                        @if($heroInfo['todayHours'] !== null)
-                            <span class="hero-meta-item">
-                                <svg class="hero-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                                <span>{{ $heroInfo['todayHours'] }}</span>
-                            </span>
-                            <span class="hero-meta-sep" aria-hidden="true">·</span>
-                        @endif
-                        <span class="hero-meta-item hero-meta-currency">{{ $currencyCode }}</span>
-                    </div>
-                @endif
-            </div>
-        </article>
     </header>
-
-    {{-- Search --}}
-    <div class="container search-wrap">
-        <div id="search" class="search-field">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="search-input" class="search-input" placeholder="{{ $uiStrings['search'] }}">
-        </div>
-    </div>
 
     {{-- Category Tabs --}}
     @if($menu && $menu->sections->isNotEmpty())
@@ -195,7 +171,10 @@
                     <button class="tab tab-active" data-cat="all">{{ $uiStrings['all'] }}</button>
                     @foreach($menu->sections as $section)
                         <button class="tab" data-cat="{{ $section->id }}">
-                            {{ $section->translate('name', $lang) ?? $section->name ?? '' }}
+                            @if($section->icon?->name)
+                                <svg class="tab-icon" width="16" height="16" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
+                            @endif
+                            <span>{{ $section->translate('name', $lang) ?? $section->name ?? '' }}</span>
                         </button>
                     @endforeach
                 </div>

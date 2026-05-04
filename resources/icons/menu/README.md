@@ -1,97 +1,111 @@
 # Menu icons
 
-Stroke-style 24×24 SVGs from the Hugeicons Rounded / Stroke pack (Food Drinks + Kitchen).
+Stroke-style 24×24 SVGs from the Hugeicons Rounded / Stroke pack (Food Drinks subset).
 Each filename (without `.svg`) is the icon ID used in:
 
-- `menu_sections.category_icon` — per-section icon
-- `config/food_icons.php` — `allowed` whitelist
+- `icons.name` — DB row referenced by `menu_sections.icon_id`
+- `config/food_icons.php` — `allowed` whitelist enforced in `SaveMenuAnalysisAction::validateIconName()`
 - `App\Support\FoodIcons::sprite()` — inline sprite generator
 - Blade `<use href="#<id>">`
 
 All ink is normalized to `currentColor` at render time.
 
----
+The whitelist is curated for SEA (Vietnam, Thailand) + European cuisine commonly served
+in those markets. Names are 1–4 words and semantically explicit so the menu-analyzer
+LLM can map a section heading to an icon with minimal ambiguity. Other SVGs in this
+folder are kept for reference but are NOT in the whitelist; the LLM may not select them
+and they will not render via the FoodIcons sprite during normal flow.
 
-## Meals & proteins
+## Whitelisted icons (46)
 
-`steak`, `chicken-thighs`, `hamburger-01`, `hamburger-02`, `hotdog`, `sausage`,
-`bbq-grill`, `fry`, `noodles`, `rice-bowl-01`, `rice-bowl-02`, `spaghetti`,
-`pizza-01`, `pizza-02`, `taco-01`, `taco-02`,
-`french-fries-01`, `french-fries-02`,
-`sushi-01`, `sushi-02`, `sushi-03`,
-`dim-sum-01`, `dim-sum-02`, `mochi`, `popcorn`
+### Asian mains
+`noodle-bowl`, `rice-bowl`, `dim-sum`, `sushi`, `mochi`
 
-## Seafood
+### Western mains
+`pizza`, `spaghetti`, `burger`, `hotdog`, `wrap`, `french-fries`
 
-`fish-food`, `crab`, `prawn`, `shellfish`, `octopus`, `snail`
+### Grill & meat
+`steak`, `chicken-leg`, `sausage`, `grill`
 
-## Breads & pastries
+### Seafood
+`fish`, `prawn`, `crab`, `shellfish`, `octopus`, `snail`
 
-`bread-01`, `bread-02`, `bread-03`, `bread-04`,
-`croissant`, `pie`, `apple-pie`, `biscuit`, `cinnamon-roll`
+### Soup, curry, hot pot
+`soup-pot`
 
-## Desserts
+### Bread & pastry
+`baguette`, `croissant`, `pie`
 
-`birthday-cake`, `cheese-cake-01`, `cheese-cake-02`,
-`cupcake-01`, `cupcake-02`, `cupcake-03`,
-`doughnut`, `cookie`,
-`ice-cream-01`, `ice-cream-02`, `ice-cream-03`, `ice-cream-04`,
-`chocolate`, `lollipop`, `cotton-candy`
+### Breakfast & dairy
+`eggs`, `cheese`
 
-## Drinks — hot
+### Vegetarian / healthy
+`salad`, `healthy-food`
 
-`coffee-01`, `coffee-02`, `coffee-beans`, `tea`, `tea-pod`
+### Sweets
+`cupcake`, `cake`, `donut`, `cookie`, `ice-cream`, `chocolate`
 
-## Drinks — cold
+### Hot drinks
+`iced-coffee`, `hot-coffee`, `tea`
 
-`bubble-tea-01`, `bubble-tea-02`,
-`soft-drink-01`, `soft-drink-02`, `soda-can`, `drink`,
-`milk-bottle`, `milk-carton`, `milk-coconut`, `milk-oat`, `yogurt`
+### Cold drinks
+`bubble-tea`, `soft-drink`, `soda-can`, `cocktail`, `milk`, `yogurt`
 
-## Basics & ingredients
+### Chef's specials
+`chef-hat`
 
-`eggs`, `cheese`, `mushroom`, `broccoli`, `carrot`, `corn`, `pumpkin`,
-`avocado`, `vegetarian-food`, `organic-food`, `natural-food`,
-`honey-01`, `honey-02`, `nut`
-
-## Fruits
-
-`apple`, `apricot`, `banana`, `cherry`, `grapes`, `orange`, `watermelon`
-
-## Kitchen & service
-
-`chef`, `chef-hat`, `cook-book`, `apron`, `glove`, `matches`,
-`dish-01`, `dish-02`, `dish-washer`, `plate`, `fork`, `spoon`,
-`knife-01`, `knife-02`, `knife-bread`, `knives`, `kitchen-utensils`,
-`pot-01`, `pot-02`, `pan-01`, `pan-02`, `pan-03`,
-`pizza-cutter`, `rolling-pin`, `spatula`, `whisk`, `beater`, `hand-beater`,
-`mixer`, `blender`, `kettle`, `kettle-1`, `jar`,
-`gas-stove`, `oven`, `microwave`, `refrigerator`, `weight-scale`
+### Add-ons / extras
+`extras`
 
 ---
 
-## Suggested mappings
+## Section → icon cues
 
-| Section / category                       | Icon               |
-|------------------------------------------|--------------------|
-| Soups, stews, hot pot                    | `pot-01`           |
-| Rice bowls, donburi, curry-rice          | `rice-bowl-01`     |
-| Noodle soups, ramen, phở                 | `noodles`          |
-| Pasta, spaghetti                         | `spaghetti`        |
-| Burgers, sandwich                        | `hamburger-01`     |
-| Wraps, shawarma, souvlaki pita           | `taco-01`          |
-| Grilled meats, BBQ, kebabs               | `bbq-grill`        |
-| Breakfast, eggs, omelet                  | `eggs`             |
-| Salads, veggie platters                  | `vegetarian-food`  |
-| Seafood, fish                            | `fish-food`        |
-| Sushi, nigiri, maki                      | `sushi-01`         |
-| Pizza                                    | `pizza-01`         |
-| Desserts, pastries                       | `cupcake-01`       |
-| Ice cream                                | `ice-cream-01`     |
-| Coffee                                   | `coffee-01`        |
-| Tea                                      | `tea`              |
-| Smoothies, juices, soft drinks           | `drink`            |
-| Bubble tea                               | `bubble-tea-01`    |
-| Kids menu / specialties                  | `chef-hat`         |
-| Sides / extras                           | `plate`            |
-| Appetizers / starters                    | `dish-01`          |
+| Section heading                                          | Icon              |
+|----------------------------------------------------------|-------------------|
+| Phở, Bún, Hủ tiếu, ramen, pad thai, mì xào, noodle soups | `noodle-bowl`     |
+| Cơm tấm, fried rice, donburi, khao pad, curry rice       | `rice-bowl`       |
+| Dim sum, bao, dumplings, gyoza                           | `dim-sum`         |
+| Sushi, nigiri, maki, sashimi                             | `sushi`           |
+| Mochi, daifuku                                           | `mochi`           |
+| Pizza                                                    | `pizza`           |
+| Pasta, spaghetti, lasagna                                | `spaghetti`       |
+| Burgers, sandwich (Western)                              | `burger`          |
+| Hotdogs                                                  | `hotdog`          |
+| Wraps, tacos, shawarma, burrito                          | `wrap`            |
+| Fries, sides                                             | `french-fries`    |
+| Steaks, beef                                             | `steak`           |
+| Chicken, poultry                                         | `chicken-leg`     |
+| Sausages                                                 | `sausage`         |
+| BBQ, grill, satay, kebabs, bún chả                       | `grill`           |
+| Fish                                                     | `fish`            |
+| Prawn, shrimp, tôm                                       | `prawn`           |
+| Crab, cua                                                | `crab`            |
+| Clams, mussels, oysters                                  | `shellfish`       |
+| Octopus, squid, mực                                      | `octopus`         |
+| Escargot, snail, ốc                                      | `snail`           |
+| Soups, stews, hot pot, lẩu, tom yum, curry               | `soup-pot`        |
+| Bánh mì, baguette sandwiches                             | `baguette`        |
+| Croissant, pastries                                      | `croissant`       |
+| Pies (savory or sweet)                                   | `pie`             |
+| Breakfast, eggs, omelet                                  | `eggs`            |
+| Cheese plate                                             | `cheese`          |
+| Salads, gỏi, raw veg                                     | `salad`           |
+| Healthy, organic, vegan                                  | `healthy-food`    |
+| Cupcakes, sweet pastries                                 | `cupcake`         |
+| Cake (slice or whole)                                    | `cake`            |
+| Donuts                                                   | `donut`           |
+| Cookies, biscuits                                        | `cookie`          |
+| Ice cream, gelato                                        | `ice-cream`       |
+| Chocolate, sweets                                        | `chocolate`       |
+| Iced coffee, cà phê đá, cold brew                        | `iced-coffee`     |
+| Hot coffee, espresso, cappuccino                         | `hot-coffee`      |
+| Tea (any)                                                | `tea`             |
+| Bubble tea, milk tea                                     | `bubble-tea`      |
+| Smoothies, juices, sinh tố, coconut water, fresh drinks  | `soft-drink`      |
+| Canned drinks                                            | `soda-can`        |
+| Cocktails, wine, beer                                    | `cocktail`        |
+| Plain milk drinks                                        | `milk`            |
+| Yogurt, lassi, sữa chua                                  | `yogurt`          |
+| Chef's specials, signature, recommended                  | `chef-hat`        |
+| Add-ons, extras, toppings, "thêm" sections               | `extras`          |

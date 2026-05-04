@@ -76,13 +76,12 @@ class MenuPageController extends Controller
         $uiStrings = $this->getUiStrings($lang);
         $heroInfo = $this->buildHeroInfo($restaurant, $uiStrings);
 
-        $allLocales = $this->getCommonLanguages();
+        $locales = $this->buildLocaleList($languages, $this->getCommonLanguages());
 
         return view('menu', compact(
             'restaurant',
             'menu',
             'lang',
-            'languages',
             'itemsJson',
             'currencyCode',
             'currencySymbol',
@@ -91,9 +90,74 @@ class MenuPageController extends Controller
             'heroInfo',
             'translationPending',
             'translationLocale',
-            'allLocales',
+            'locales',
             'identifier',
         ));
+    }
+
+    /**
+     * Build the flat language list rendered in the public switcher.
+     *
+     * Sort order:
+     *   1. Already-translated locales first
+     *   2. Primary tier:   vi → en → zh → ko → ru → fr (curated for SEA tourist mix)
+     *   3. Secondary tier: ja → th → id → ms → de → es → it → nl
+     *      (next-most-likely demand: NE Asia + SEA neighbours + Western Europe)
+     *   4. Alphabetical by English label for the long tail
+     *
+     * @param  list<array{code: string, label: string, flag: string}>  $languages  Already-translated locales
+     * @param  list<array{code: string, label: string, native: string, flag: string}>  $allLocales  Curated full list
+     * @return list<array{code: string, label: string, native: string, flag: string, translated: bool}>
+     */
+    private function buildLocaleList(array $languages, array $allLocales): array
+    {
+        $translatedCodes = collect($languages)->pluck('code')->all();
+        $byCode = [];
+
+        foreach ($allLocales as $loc) {
+            $byCode[$loc['code']] = $loc + [
+                'translated' => in_array($loc['code'], $translatedCodes, true),
+            ];
+        }
+
+        // Translated locales not in the curated list (e.g. exotic source_locale)
+        // still need to show up at the top.
+        foreach ($languages as $lang) {
+            if (! isset($byCode[$lang['code']])) {
+                $byCode[$lang['code']] = [
+                    'code' => $lang['code'],
+                    'label' => $lang['label'],
+                    'native' => '',
+                    'flag' => $lang['flag'],
+                    'translated' => true,
+                ];
+            }
+        }
+
+        $priority = [
+            'vi', 'en', 'zh', 'ko', 'ru', 'fr',
+            'ja', 'th', 'id', 'ms', 'de', 'es', 'it', 'nl',
+        ];
+        $rows = array_values($byCode);
+
+        usort($rows, function ($a, $b) use ($priority) {
+            $byTranslated = ($b['translated'] <=> $a['translated']);
+            if ($byTranslated !== 0) {
+                return $byTranslated;
+            }
+
+            $pa = array_search($a['code'], $priority, true);
+            $pb = array_search($b['code'], $priority, true);
+            $pa = $pa === false ? PHP_INT_MAX : $pa;
+            $pb = $pb === false ? PHP_INT_MAX : $pb;
+            if ($pa !== $pb) {
+                return $pa <=> $pb;
+            }
+
+            return strcmp($a['label'], $b['label']);
+        });
+
+        return $rows;
     }
 
     /**
