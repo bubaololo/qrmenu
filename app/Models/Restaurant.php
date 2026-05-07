@@ -22,12 +22,6 @@ class Restaurant extends Model
 
     use HasTranslations;
 
-    /** Pending translation value to be written after save */
-    protected ?string $pendingName = null;
-
-    /** Pending address translation value to be written after save */
-    protected ?string $pendingAddress = null;
-
     public static function boot(): void
     {
         parent::boot();
@@ -37,20 +31,6 @@ class Restaurant extends Model
                 $restaurant->uniqid = Str::random(8);
             }
         });
-
-        static::saved(function (self $restaurant): void {
-            $locale = $restaurant->primary_language ?? 'und';
-
-            if ($restaurant->pendingName !== null) {
-                $restaurant->setTranslation('name', $locale, $restaurant->pendingName, true);
-                $restaurant->pendingName = null;
-            }
-
-            if ($restaurant->pendingAddress !== null) {
-                $restaurant->setTranslation('address', $locale, $restaurant->pendingAddress, true);
-                $restaurant->pendingAddress = null;
-            }
-        });
     }
 
     /** @var array<int, string> */
@@ -58,8 +38,6 @@ class Restaurant extends Model
 
     protected $fillable = [
         'created_by_user_id',
-        'name',
-        'address',
         'city',
         'country',
         'phone',
@@ -77,19 +55,9 @@ class Restaurant extends Model
         return $this->localizedText('name');
     }
 
-    public function setNameAttribute(?string $value): void
-    {
-        $this->pendingName = $value;
-    }
-
     public function getAddressAttribute(): ?string
     {
         return $this->localizedText('address');
-    }
-
-    public function setAddressAttribute(?string $value): void
-    {
-        $this->pendingAddress = $value;
     }
 
     public function getImageUrlAttribute(): ?string
