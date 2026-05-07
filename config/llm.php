@@ -63,6 +63,11 @@ return [
     'translation' => [
         'chunk_lines' => (int) env('LLM_TRANSLATION_CHUNK_LINES', 80),
         'openrouter_fallback_model' => env('LLM_TRANSLATION_OR_FALLBACK_MODEL', 'openai/gpt-4.1-mini'),
+        // When true, TranslationObserver auto-dispatches TranslateEntityJob
+        // each time an initial translation is created or its value changes.
+        // Disabled in tests by default; the observer-driven path has its own
+        // dedicated test that flips this on.
+        'auto_sync' => filter_var(env('LLM_TRANSLATION_AUTO_SYNC', true), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'deepseek' => [
