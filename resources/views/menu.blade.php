@@ -38,24 +38,13 @@
             ->filter()
             ->values();
         $locationLabel = $locationParts->implode(', ');
-        $hasMeta = $heroInfo['statusLabel'] !== null
-            || $heroInfo['todayHours'] !== null
-            || $locationParts->isNotEmpty();
+        $hasMeta = $locationParts->isNotEmpty();
     @endphp
 
     {{-- Meta strip — scrolls away with the page --}}
     @if($hasMeta)
         <div id="top" class="meta-strip">
             <div class="container meta-strip-row">
-                @if($heroInfo['statusLabel'] !== null)
-                    <span class="meta-item meta-status">
-                        <span class="meta-dot meta-dot--{{ $heroInfo['isOpenNow'] ? 'open' : 'closed' }}" aria-hidden="true"></span>
-                        <span class="meta-status-label">{{ $heroInfo['statusLabel'] }}</span>
-                        @if($heroInfo['todayHours'] !== null)
-                            <span class="meta-status-hours">· {{ $heroInfo['todayHours'] }}</span>
-                        @endif
-                    </span>
-                @endif
                 @if($locationParts->isNotEmpty())
                     @if($heroInfo['mapsUrl'])
                         <a class="meta-item meta-loc" href="{{ $heroInfo['mapsUrl'] }}" target="_blank" rel="noopener" aria-label="{{ $locationLabel }} — open in Maps">
@@ -75,7 +64,12 @@
 
     {{-- Brand row — scrolls away naturally above the sticky topbar, no JS morph --}}
     <div class="container topbar-brandrow">
-        <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
+        <div class="topbar-brand-stack">
+            <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
+            @if($heroInfo['todayHours'] !== null)
+                <div class="topbar-brand-hours">{{ $heroInfo['todayHours'] }}</div>
+            @endif
+        </div>
     </div>
 
     {{-- Sticky topbar: search + ctrls, sticks once brand row has scrolled away. --}}
