@@ -23,8 +23,8 @@ SYSTEM;
 Return ONLY the JSON object below. No markdown, no prose.
 
 === TEXT ===
-All `name`, `description`, `category_name`, `restaurant.address|phone`: exact original text from the menu, do NOT translate. Use null when absent.
-`restaurant.name`: in primary_language. `restaurant.name_en`: only if an English version is explicitly printed (subtitle/logo/banner); else null — do NOT translate.
+All `name`, `description`, `category_name`, `restaurant.address|phone|city|country`: exact original text from the menu, do NOT translate. Use null when absent.
+`restaurant.name`: in primary_language.
 Bilingual lines (one item rendered in 2+ languages, separated by /, -, parens, newline): keep ONLY the primary_language version. Example with primary_language=vi: "Cà phê đen / Black coffee" → "Cà phê đen".
 
 === LANGUAGE & CURRENCY ===
@@ -121,8 +121,9 @@ Prefer specific over generic. If two icons fit equally, prefer the one whose map
 {
   "restaurant": {
     "name": string|null,
-    "name_en": string|null,
     "address": string|null,
+    "city": string|null,
+    "country": string|null,
     "phone": string|null,
     "opening_hours": {
       "raw_text": string|null,
@@ -201,7 +202,7 @@ SYSTEM;
         $translatorUser = <<<'PROMPT'
 Translate the restaurant menu below from {source_locale} to {target_locale}.
 
-Context: {restaurant_name}, {address}
+Context: {restaurant_name}, {city}, {country}
 
 Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 - S|id|section name

@@ -142,12 +142,15 @@ class SaveMenuAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_saves_restaurant_name_to_column(): void
+    public function test_saves_restaurant_name_translation(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        $this->restaurant->refresh();
-        $this->assertSame('Amélie Pâtisserie et Café', $this->restaurant->name);
+        $this->assertDatabaseHas('translations', [
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
+            'value' => 'Amélie Pâtisserie et Café',
+            'is_initial' => true,
+        ]);
     }
 
     #[Test]

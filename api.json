@@ -3068,105 +3068,6 @@
                 }
             }
         },
-        "/v1/menus/{menu}/translations/{locale}/events": {
-            "get": {
-                "operationId": "menu-translations.events",
-                "description": "Intentionally public \u2014 anonymous QR-scanning users on the public menu\npage need to know when translations land so the page can refresh.\nTopic content is harmless (chunk counts, no menu data).",
-                "summary": "Stream events for a translation run (`menu-translation.{menuId}.{locale}` topic)",
-                "tags": [
-                    "SseEvents"
-                ],
-                "parameters": [
-                    {
-                        "name": "menu",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "locale",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-analyses/{uuid}/events": {
-            "get": {
-                "operationId": "menu-analyses.events",
-                "description": "Per-pack progress: started \u2192 chunk-complete (\u00d7N) \u2192 completed/failed.",
-                "summary": "Stream events for a menu analysis (`menu-analysis.{uuid}` topic)",
-                "tags": [
-                    "SseEvents"
-                ],
-                "parameters": [
-                    {
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview.",
-                                            "example": ""
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/v1/restaurants/{restaurant}/zones": {
             "get": {
                 "operationId": "zone.index",
@@ -4277,6 +4178,18 @@
                     "created_by_user_id": {
                         "type": "integer"
                     },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "phone": {
                         "type": [
                             "string",
@@ -4337,23 +4250,11 @@
                             "null"
                         ]
                     },
-                    "address": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
                     "name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "string"
                     },
-                    "name_en": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                    "address": {
+                        "type": "string"
                     },
                     "image_url": {
                         "type": "string"
@@ -4371,6 +4272,8 @@
                 "required": [
                     "id",
                     "created_by_user_id",
+                    "city",
+                    "country",
                     "phone",
                     "currency",
                     "primary_language",
@@ -4382,9 +4285,8 @@
                     "logo",
                     "google_maps_url",
                     "coordinates",
-                    "address",
                     "name",
-                    "name_en",
+                    "address",
                     "image_url",
                     "thumb_url",
                     "logo_url",
@@ -4677,145 +4579,6 @@
                             "null"
                         ]
                     },
-                    "icon_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "steak",
-                            "chicken-thighs",
-                            "hamburger-01",
-                            "hamburger-02",
-                            "hotdog",
-                            "sausage",
-                            "bbq-grill",
-                            "fry",
-                            "noodles",
-                            "rice-bowl-01",
-                            "rice-bowl-02",
-                            "spaghetti",
-                            "pizza-01",
-                            "pizza-02",
-                            "taco-01",
-                            "taco-02",
-                            "french-fries-01",
-                            "french-fries-02",
-                            "sushi-01",
-                            "sushi-02",
-                            "sushi-03",
-                            "dim-sum-01",
-                            "dim-sum-02",
-                            "mochi",
-                            "popcorn",
-                            "fish-food",
-                            "crab",
-                            "prawn",
-                            "shellfish",
-                            "octopus",
-                            "snail",
-                            "bread-01",
-                            "bread-02",
-                            "bread-03",
-                            "bread-04",
-                            "croissant",
-                            "pie",
-                            "apple-pie",
-                            "biscuit",
-                            "cinnamon-roll",
-                            "birthday-cake",
-                            "cheese-cake-01",
-                            "cheese-cake-02",
-                            "cupcake-01",
-                            "cupcake-02",
-                            "cupcake-03",
-                            "doughnut",
-                            "cookie",
-                            "ice-cream-01",
-                            "ice-cream-02",
-                            "ice-cream-03",
-                            "ice-cream-04",
-                            "chocolate",
-                            "lollipop",
-                            "cotton-candy",
-                            "coffee-01",
-                            "coffee-02",
-                            "coffee-beans",
-                            "tea",
-                            "tea-pod",
-                            "bubble-tea-01",
-                            "bubble-tea-02",
-                            "soft-drink-01",
-                            "soft-drink-02",
-                            "soda-can",
-                            "drink",
-                            "milk-bottle",
-                            "milk-carton",
-                            "milk-coconut",
-                            "milk-oat",
-                            "yogurt",
-                            "eggs",
-                            "cheese",
-                            "mushroom",
-                            "broccoli",
-                            "carrot",
-                            "corn",
-                            "pumpkin",
-                            "avocado",
-                            "vegetarian-food",
-                            "organic-food",
-                            "natural-food",
-                            "honey-01",
-                            "honey-02",
-                            "nut",
-                            "apple",
-                            "apricot",
-                            "banana",
-                            "cherry",
-                            "grapes",
-                            "orange",
-                            "watermelon",
-                            "chef",
-                            "chef-hat",
-                            "cook-book",
-                            "apron",
-                            "glove",
-                            "matches",
-                            "dish-01",
-                            "dish-02",
-                            "dish-washer",
-                            "plate",
-                            "fork",
-                            "spoon",
-                            "knife-01",
-                            "knife-02",
-                            "knife-bread",
-                            "knives",
-                            "kitchen-utensils",
-                            "pot-01",
-                            "pot-02",
-                            "pan-01",
-                            "pan-02",
-                            "pan-03",
-                            "pizza-cutter",
-                            "rolling-pin",
-                            "spatula",
-                            "whisk",
-                            "beater",
-                            "hand-beater",
-                            "mixer",
-                            "blender",
-                            "kettle",
-                            "kettle-1",
-                            "jar",
-                            "gas-stove",
-                            "oven",
-                            "microwave",
-                            "refrigerator",
-                            "weight-scale"
-                        ],
-                        "maxLength": 100
-                    },
                     "is_active": {
                         "type": [
                             "boolean",
@@ -4838,19 +4601,26 @@
                         ],
                         "maxLength": 255
                     },
-                    "name_en": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "maxLength": 255
-                    },
                     "address": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 500
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
                     },
                     "phone": {
                         "type": [
@@ -5178,145 +4948,6 @@
                             "null"
                         ]
                     },
-                    "icon_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "steak",
-                            "chicken-thighs",
-                            "hamburger-01",
-                            "hamburger-02",
-                            "hotdog",
-                            "sausage",
-                            "bbq-grill",
-                            "fry",
-                            "noodles",
-                            "rice-bowl-01",
-                            "rice-bowl-02",
-                            "spaghetti",
-                            "pizza-01",
-                            "pizza-02",
-                            "taco-01",
-                            "taco-02",
-                            "french-fries-01",
-                            "french-fries-02",
-                            "sushi-01",
-                            "sushi-02",
-                            "sushi-03",
-                            "dim-sum-01",
-                            "dim-sum-02",
-                            "mochi",
-                            "popcorn",
-                            "fish-food",
-                            "crab",
-                            "prawn",
-                            "shellfish",
-                            "octopus",
-                            "snail",
-                            "bread-01",
-                            "bread-02",
-                            "bread-03",
-                            "bread-04",
-                            "croissant",
-                            "pie",
-                            "apple-pie",
-                            "biscuit",
-                            "cinnamon-roll",
-                            "birthday-cake",
-                            "cheese-cake-01",
-                            "cheese-cake-02",
-                            "cupcake-01",
-                            "cupcake-02",
-                            "cupcake-03",
-                            "doughnut",
-                            "cookie",
-                            "ice-cream-01",
-                            "ice-cream-02",
-                            "ice-cream-03",
-                            "ice-cream-04",
-                            "chocolate",
-                            "lollipop",
-                            "cotton-candy",
-                            "coffee-01",
-                            "coffee-02",
-                            "coffee-beans",
-                            "tea",
-                            "tea-pod",
-                            "bubble-tea-01",
-                            "bubble-tea-02",
-                            "soft-drink-01",
-                            "soft-drink-02",
-                            "soda-can",
-                            "drink",
-                            "milk-bottle",
-                            "milk-carton",
-                            "milk-coconut",
-                            "milk-oat",
-                            "yogurt",
-                            "eggs",
-                            "cheese",
-                            "mushroom",
-                            "broccoli",
-                            "carrot",
-                            "corn",
-                            "pumpkin",
-                            "avocado",
-                            "vegetarian-food",
-                            "organic-food",
-                            "natural-food",
-                            "honey-01",
-                            "honey-02",
-                            "nut",
-                            "apple",
-                            "apricot",
-                            "banana",
-                            "cherry",
-                            "grapes",
-                            "orange",
-                            "watermelon",
-                            "chef",
-                            "chef-hat",
-                            "cook-book",
-                            "apron",
-                            "glove",
-                            "matches",
-                            "dish-01",
-                            "dish-02",
-                            "dish-washer",
-                            "plate",
-                            "fork",
-                            "spoon",
-                            "knife-01",
-                            "knife-02",
-                            "knife-bread",
-                            "knives",
-                            "kitchen-utensils",
-                            "pot-01",
-                            "pot-02",
-                            "pan-01",
-                            "pan-02",
-                            "pan-03",
-                            "pizza-cutter",
-                            "rolling-pin",
-                            "spatula",
-                            "whisk",
-                            "beater",
-                            "hand-beater",
-                            "mixer",
-                            "blender",
-                            "kettle",
-                            "kettle-1",
-                            "jar",
-                            "gas-stove",
-                            "oven",
-                            "microwave",
-                            "refrigerator",
-                            "weight-scale"
-                        ],
-                        "maxLength": 100
-                    },
                     "is_active": {
                         "type": "boolean"
                     }
@@ -5333,19 +4964,26 @@
                         ],
                         "maxLength": 255
                     },
-                    "name_en": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "maxLength": 255
-                    },
                     "address": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "maxLength": 500
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
                     },
                     "phone": {
                         "type": [
@@ -5566,8 +5204,8 @@
                     }
                 }
             },
-            "ModelNotFoundException": {
-                "description": "Not found",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -5585,8 +5223,8 @@
                     }
                 }
             },
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "ModelNotFoundException": {
+                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {

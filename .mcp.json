@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/usr/bin/php8.5",
+            "args": [
+                "/home/buba/projects/menu/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}

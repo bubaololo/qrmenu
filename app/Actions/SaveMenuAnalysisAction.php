@@ -135,9 +135,8 @@ class SaveMenuAnalysisAction
         }
 
         $updates = array_filter([
-            'name' => MenuJson::extractText($r['name'] ?? null),
-            'name_en' => isset($r['name_en']) ? (string) $r['name_en'] : null,
-            'address' => MenuJson::extractText($r['address'] ?? null),
+            'city' => isset($r['city']) ? (string) $r['city'] : null,
+            'country' => isset($r['country']) ? (string) $r['country'] : null,
             'phone' => isset($r['phone']) ? (string) $r['phone'] : null,
             'currency' => isset($r['currency']) ? (string) $r['currency'] : null,
             'primary_language' => isset($r['primary_language']) ? (string) $r['primary_language'] : null,
@@ -148,6 +147,20 @@ class SaveMenuAnalysisAction
 
         if (! empty($updates)) {
             $restaurant->update($updates);
+        }
+
+        $locale = is_string($r['primary_language'] ?? null) && ($r['primary_language'] ?? '') !== ''
+            ? (string) $r['primary_language']
+            : 'und';
+
+        $name = MenuJson::extractText($r['name'] ?? null);
+        if ($name !== null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        $address = MenuJson::extractText($r['address'] ?? null);
+        if ($address !== null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
         }
     }
 
@@ -165,29 +178,31 @@ class SaveMenuAnalysisAction
         }
 
         $updates = [];
-        foreach (['phone', 'currency', 'primary_language'] as $field) {
+        foreach (['city', 'country', 'phone', 'currency', 'primary_language'] as $field) {
             $value = isset($r[$field]) ? (string) $r[$field] : '';
             if ($value !== '' && empty($restaurant->{$field})) {
                 $updates[$field] = $value;
             }
-        }
-        $name = MenuJson::extractText($r['name'] ?? null);
-        if ($name !== null && empty($restaurant->name)) {
-            $updates['name'] = $name;
-        }
-        $nameEn = isset($r['name_en']) ? (string) $r['name_en'] : '';
-        if ($nameEn !== '' && empty($restaurant->name_en)) {
-            $updates['name_en'] = $nameEn;
-        }
-        $address = MenuJson::extractText($r['address'] ?? null);
-        if ($address !== null && empty($restaurant->address)) {
-            $updates['address'] = $address;
         }
         if (isset($r['opening_hours']) && is_array($r['opening_hours']) && $restaurant->opening_hours === null) {
             $updates['opening_hours'] = $r['opening_hours'];
         }
         if (! empty($updates)) {
             $restaurant->update($updates);
+        }
+
+        $locale = is_string($r['primary_language'] ?? null) && $r['primary_language'] !== ''
+            ? (string) $r['primary_language']
+            : ($restaurant->primary_language ?? 'und');
+
+        $name = MenuJson::extractText($r['name'] ?? null);
+        if ($name !== null && $restaurant->initialText('name') === null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        $address = MenuJson::extractText($r['address'] ?? null);
+        if ($address !== null && $restaurant->initialText('address') === null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
         }
     }
 

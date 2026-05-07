@@ -30,6 +30,5 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="LLM_TRANSLATION_AUTO_SYNC" value="false"/>
     </php>
 </phpunit>

@@ -46,12 +46,28 @@ class RestaurantController extends Controller
      */
     public function store(StoreRestaurantRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+
+        $name = $validated['name'] ?? null;
+        $address = $validated['address'] ?? null;
+        unset($validated['name'], $validated['address']);
+
         $restaurant = Restaurant::create([
             'created_by_user_id' => $request->user()->id,
-            ...$request->validated(),
+            ...$validated,
         ]);
 
-        return (new RestaurantResource($restaurant))
+        $locale = $restaurant->primary_language ?? 'und';
+
+        if ($name !== null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        if ($address !== null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
+        }
+
+        return (new RestaurantResource($restaurant->fresh()))
             ->response()
             ->setStatusCode(201);
     }
@@ -63,7 +79,23 @@ class RestaurantController extends Controller
     {
         Gate::authorize('update', $restaurant);
 
-        $restaurant->update($request->validated());
+        $validated = $request->validated();
+
+        $name = $validated['name'] ?? null;
+        $address = $validated['address'] ?? null;
+        unset($validated['name'], $validated['address']);
+
+        $restaurant->update($validated);
+
+        $locale = $restaurant->primary_language ?? 'und';
+
+        if ($name !== null) {
+            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        }
+
+        if ($address !== null) {
+            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
+        }
 
         return new RestaurantResource($restaurant->fresh());
     }

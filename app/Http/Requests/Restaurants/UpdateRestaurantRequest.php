@@ -16,8 +16,9 @@ class UpdateRestaurantRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'name_en' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'country' => ['sometimes', 'nullable', 'string', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'currency' => ['sometimes', 'nullable', 'string', 'max:10'],
             'primary_language' => ['sometimes', 'nullable', 'string', 'max:10'],

@@ -21,8 +21,7 @@ class RestaurantsTable
                 TextColumn::make('name')
                     ->label('Name')
                     ->placeholder('—')
-                    ->searchable()
-                    ->sortable(),
+                    ->state(fn ($record) => $record->translate('name', $record->primary_language ?? 'und') ?? "Restaurant #{$record->id}"),
 
                 TextColumn::make('creator.name')
                     ->label('Owner')
@@ -30,8 +29,7 @@ class RestaurantsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('address')
-                    ->limit(50)
+                TextColumn::make('city')
                     ->searchable()
                     ->sortable(),
 
