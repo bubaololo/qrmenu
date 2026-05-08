@@ -42,11 +42,10 @@ class MenuItemController extends Controller
         ]);
 
         $sourceLocale = $menuSection->menu->source_locale ?? 'und';
-        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
-        $item->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
+        $item->setTranslation('name', $sourceLocale, $validated['name'], isInitial: true);
 
         if (isset($validated['description']) && $validated['description'] !== null) {
-            $item->setTranslation('description', $locale, $validated['description'], isInitial: $isInitial);
+            $item->setTranslation('description', $sourceLocale, $validated['description'], isInitial: true);
         }
 
         return (new MenuItemResource($item->fresh()))

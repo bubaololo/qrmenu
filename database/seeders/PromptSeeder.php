@@ -93,30 +93,6 @@ For each section pick exactly ONE icon name from the closed list below, OR null 
 Closed list (46):
 noodle-bowl, rice-bowl, dim-sum, sushi, mochi, pizza, spaghetti, burger, hotdog, wrap, french-fries, steak, chicken-leg, sausage, grill, fish, prawn, crab, shellfish, octopus, snail, soup-pot, baguette, croissant, pie, eggs, cheese, salad, healthy-food, cupcake, cake, donut, cookie, ice-cream, chocolate, iced-coffee, hot-coffee, tea, bubble-tea, soft-drink, soda-can, cocktail, milk, yogurt, chef-hat, extras
 
-Mapping cues (most → least common in SEA + European menus):
-- Phở, bún, hủ tiếu, ramen, pad thai, mì xào, any noodle dish or noodle soup → noodle-bowl
-- Cơm tấm, fried rice, donburi, khao pad, curry rice → rice-bowl
-- Bao, dumplings, dim sum, gyoza → dim-sum
-- Sushi, nigiri, maki, sashimi → sushi
-- Pizza → pizza; pasta/spaghetti/lasagna → spaghetti
-- Western burgers/sandwich → burger; bánh mì or baguette sandwich → baguette
-- Tacos, wraps, shawarma, burrito → wrap
-- Fries, sides → french-fries
-- BBQ, grilled meat, satay, kebabs, bún chả → grill; steaks → steak; chicken/poultry → chicken-leg; sausages → sausage
-- Fish → fish; prawn/shrimp/tôm → prawn; crab/cua → crab; clams/mussels/oysters → shellfish; squid/mực/octopus → octopus; escargot/ốc → snail
-- Soups, stews, hot pot/lẩu, tom yum, curry → soup-pot
-- Croissant/pastries → croissant; pies (savory or sweet) → pie
-- Breakfast/eggs/omelet → eggs; cheese plate → cheese
-- Salads, gỏi, raw veg → salad; healthy/organic/vegan/raw section → healthy-food
-- Cake (slice or whole) → cake; cupcakes/sweet pastries → cupcake; donuts → donut; cookies/biscuits → cookie; ice cream/gelato → ice-cream; chocolate/sweets → chocolate
-- Iced coffee, cà phê đá, cold brew → iced-coffee; hot coffee, espresso, cappuccino → hot-coffee; any tea → tea
-- Bubble tea, milk tea → bubble-tea; smoothies, juices, fresh fruit drinks, sinh tố, coconut water/dừa → soft-drink; canned drinks → soda-can; cocktails, wine, beer → cocktail; plain milk drinks → milk; yogurt drinks, lassi, sữa chua → yogurt
-- Chef's specials, signature, recommended → chef-hat
-- Add-ons / extras / toppings / "thêm" / extra ingredients to a base dish (mixed proteins+veg+noodles+broth as separately-priced add-ons) → extras
-- Generic "Food" / "Our menu" with no clear theme → null
-
-Prefer specific over generic. If two icons fit equally, prefer the one whose mapping cue contains a word from `category_name`.
-
 === JSON SCHEMA ===
 {
   "restaurant": {

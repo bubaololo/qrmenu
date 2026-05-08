@@ -125,12 +125,12 @@ class MenuSectionTest extends TestCase
         $response = $this->actingAs($user)
             ->postJson("/api/v1/menus/{$menu->id}/sections", [
                 'name' => 'Hot dishes',
-                'icon_name' => 'noodles',
+                'icon_name' => 'noodle-bowl',
             ])
             ->assertStatus(201);
 
         $sectionId = $response->json('data.id');
-        $icon = Icon::where('name', 'noodles')->firstOrFail();
+        $icon = Icon::where('name', 'noodle-bowl')->firstOrFail();
 
         $this->assertDatabaseHas('menu_sections', [
             'id' => $sectionId,
@@ -141,7 +141,7 @@ class MenuSectionTest extends TestCase
     #[Test]
     public function test_store_reuses_existing_icon_by_name(): void
     {
-        $existing = Icon::firstOrCreate(['name' => 'coffee-01']);
+        $existing = Icon::firstOrCreate(['name' => 'iced-coffee']);
 
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
@@ -150,11 +150,11 @@ class MenuSectionTest extends TestCase
         $this->actingAs($user)
             ->postJson("/api/v1/menus/{$menu->id}/sections", [
                 'name' => 'Coffee',
-                'icon_name' => 'coffee-01',
+                'icon_name' => 'iced-coffee',
             ])
             ->assertStatus(201);
 
-        $this->assertSame(1, Icon::where('name', 'coffee-01')->count());
+        $this->assertSame(1, Icon::where('name', 'iced-coffee')->count());
         $this->assertDatabaseHas('menu_sections', ['icon_id' => $existing->id]);
     }
 
@@ -184,11 +184,11 @@ class MenuSectionTest extends TestCase
 
         $this->actingAs($user)
             ->putJson("/api/v1/menu-sections/{$section->id}", [
-                'icon_name' => 'pizza-01',
+                'icon_name' => 'pizza',
             ])
             ->assertStatus(200);
 
-        $icon = Icon::where('name', 'pizza-01')->firstOrFail();
+        $icon = Icon::where('name', 'pizza')->firstOrFail();
         $this->assertDatabaseHas('menu_sections', [
             'id' => $section->id,
             'icon_id' => $icon->id,
