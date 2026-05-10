@@ -11,6 +11,8 @@ use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Reactively syncs translations across all target locales when an initial
@@ -35,6 +37,15 @@ class TranslationObserver
 
         if (! $translation->wasRecentlyCreated && ! $translation->wasChanged('value')) {
             return;
+        }
+
+        if (config('llm.translation.warn_on_bulk_observer', false) && DB::transactionLevel() > 0) {
+            Log::channel('llm')->warning('TranslationObserver fired inside DB transaction — bulk path likely forgot Translation::withoutEvents()', [
+                'translatable_type' => $translation->translatable_type,
+                'translatable_id' => $translation->translatable_id,
+                'field_id' => $translation->field_id,
+                'locale' => $translation->locale,
+            ]);
         }
 
         $owner = $translation->translatable;

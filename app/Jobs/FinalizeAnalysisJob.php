@@ -48,6 +48,10 @@ class FinalizeAnalysisJob implements ShouldQueue
             );
         }
 
+        if ($menu) {
+            TranslateMenuJob::dispatchForAllTargetLocales($menu);
+        }
+
         Log::channel('llm')->info('Analysis finalized', [
             'analysis_uuid' => $this->analysis->uuid,
             'menu_id' => $menu?->id,

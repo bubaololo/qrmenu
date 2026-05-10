@@ -174,6 +174,10 @@ class AnalyzeMenuJob implements ShouldQueue
                 );
             }
 
+            if ($savedMenu) {
+                TranslateMenuJob::dispatchForAllTargetLocales($savedMenu);
+            }
+
             $this->analysis->markCompleted($savedMenu, $menuData, $itemCount);
 
             app(AnalysisEventBroker::class)->publish(

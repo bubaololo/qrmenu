@@ -21,6 +21,28 @@ class TranslateMenuJob implements ShouldQueue
         public string $targetLocale,
     ) {}
 
+    /**
+     * Dispatch one TranslateMenuJob per non-source target locale known to the
+     * menu. Used as the post-bulk-save replacement for the per-entity observer
+     * path (TranslationObserver / TranslateEntityJob), which is silenced via
+     * Translation::withoutEvents() during bulk writes.
+     *
+     * @return list<string> the locales actually dispatched
+     */
+    public static function dispatchForAllTargetLocales(Menu $menu): array
+    {
+        $dispatched = [];
+        foreach ($menu->availableLocales() as $loc) {
+            if ($loc['is_source']) {
+                continue;
+            }
+            self::dispatch($menu, $loc['code']);
+            $dispatched[] = $loc['code'];
+        }
+
+        return $dispatched;
+    }
+
     public function handle(): void
     {
         $prompt = Prompt::activeForType(self::PROMPT_TYPE);

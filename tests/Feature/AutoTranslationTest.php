@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Actions\SaveMenuAnalysisAction;
 use App\Jobs\TranslateEntityJob;
+use App\Jobs\TranslateMenuJob;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
@@ -11,6 +13,7 @@ use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\TranslationField;
+use App\Support\MenuJson;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use PHPUnit\Framework\Attributes\Test;
@@ -243,5 +246,69 @@ class AutoTranslationTest extends TestCase
         $item->setTranslation('name', 'en', 'Translated', isInitial: false);
 
         Bus::assertNotDispatched(TranslateEntityJob::class);
+    }
+
+    /**
+     * Bulk-save contract: SaveMenuAnalysisAction wraps the transaction in
+     * Translation::withoutEvents(), so no Translation event listener should
+     * fire during the save. We verify this by attaching an ad-hoc saved
+     * listener and asserting it never ran — withoutEvents silences ALL
+     * listeners on the model class for the closure's duration.
+     */
+    #[Test]
+    public function test_save_menu_analysis_does_not_fire_translation_observers(): void
+    {
+        Bus::fake([TranslateEntityJob::class]);
+
+        $savedCount = 0;
+        Translation::saved(function () use (&$savedCount) {
+            $savedCount++;
+        });
+
+        $restaurant = Restaurant::factory()->create();
+        $menuData = MenuJson::decodeMenuFromLlmText(
+            file_get_contents(base_path('tests/llm_responce.json')),
+        );
+
+        (new SaveMenuAnalysisAction)->handle($menuData, $restaurant->id, 1);
+
+        $this->assertSame(
+            0,
+            $savedCount,
+            'Translation observers must be silenced during bulk save (withoutEvents).',
+        );
+        Bus::assertNotDispatched(TranslateEntityJob::class);
+    }
+
+    #[Test]
+    public function test_dispatch_for_all_target_locales_dispatches_one_job_per_non_source_locale(): void
+    {
+        Bus::fake([TranslateMenuJob::class]);
+
+        $menu = $this->makeTranslatedMenu(sourceLocale: 'vi', targetLocale: 'en');
+
+        TranslateMenuJob::dispatchForAllTargetLocales($menu);
+
+        Bus::assertDispatchedTimes(TranslateMenuJob::class, 1);
+        Bus::assertDispatched(
+            TranslateMenuJob::class,
+            fn (TranslateMenuJob $job) => $job->menu->is($menu) && $job->targetLocale === 'en',
+        );
+    }
+
+    #[Test]
+    public function test_dispatch_for_all_target_locales_dispatches_nothing_when_no_targets(): void
+    {
+        Bus::fake([TranslateMenuJob::class]);
+
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $menu = Menu::factory()->create([
+            'restaurant_id' => $restaurant->id,
+            'source_locale' => 'vi',
+        ]);
+
+        TranslateMenuJob::dispatchForAllTargetLocales($menu);
+
+        Bus::assertNotDispatched(TranslateMenuJob::class);
     }
 }

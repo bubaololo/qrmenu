@@ -68,6 +68,11 @@ return [
         // Disabled in tests by default; the observer-driven path has its own
         // dedicated test that flips this on.
         'auto_sync' => filter_var(env('LLM_TRANSLATION_AUTO_SYNC', true), FILTER_VALIDATE_BOOLEAN),
+        // Safety net: when true, TranslationObserver logs a warning whenever it
+        // fires inside an open DB transaction. Such firings indicate a bulk
+        // save path that forgot to silence the observer via withoutEvents().
+        // Off in production (zero overhead), on in staging to catch regressions.
+        'warn_on_bulk_observer' => filter_var(env('LLM_TRANSLATION_WARN_ON_BULK_OBSERVER', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'deepseek' => [
