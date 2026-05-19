@@ -90,7 +90,6 @@ class MenuPageController extends Controller
         // subscribe to *that* topic and reload the page when chunks land.
         $translationLocale = $translationPending ? $requestedLang : null;
 
-        $itemsJson = $this->buildItemsJson($menu, $lang);
         $currencyCode = strtoupper($restaurant->currency ?? 'USD');
         $currencySymbol = $this->getCurrencySymbol($currencyCode);
         $uiStrings = $this->getUiStrings($lang);
@@ -102,7 +101,6 @@ class MenuPageController extends Controller
             'restaurant',
             'menu',
             'lang',
-            'itemsJson',
             'currencyCode',
             'currencySymbol',
             'primaryLang',
@@ -448,73 +446,6 @@ class MenuPageController extends Controller
         }
 
         return array_values($langs);
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildItemsJson(?object $menu, string $lang): array
-    {
-        if (! $menu) {
-            return [];
-        }
-
-        $items = [];
-        foreach ($menu->sections as $section) {
-            foreach ($section->items as $item) {
-                $entry = [
-                    'id' => $item->id,
-                    'sectionId' => $section->id,
-                    'name' => $item->translate('name', $lang) ?? $item->translate('name', $menu->source_locale ?? 'und') ?? '',
-                    'description' => $item->translate('description', $lang) ?? $item->translate('description', $menu->source_locale ?? 'und'),
-                    'price' => (float) $item->price_value,
-                    'image_url' => $item->image_url,
-                    'thumb_url' => $item->thumb_url,
-                    'orderable' => (bool) $item->is_orderable,
-                ];
-
-                $allGroups = $item->optionGroups;
-                $sourceLocale = $menu->source_locale ?? 'und';
-
-                $variationGroups = $allGroups->where('is_variation', true);
-                if ($variationGroups->isNotEmpty()) {
-                    $variants = [];
-                    foreach ($variationGroups as $group) {
-                        foreach ($group->options as $opt) {
-                            $variants[] = [
-                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
-                                'price' => (float) $item->price_value + (float) $opt->price_adjust,
-                            ];
-                        }
-                    }
-                    $entry['variants'] = $variants;
-                }
-
-                $optionGroups = $allGroups->where('is_variation', false);
-                if ($optionGroups->isNotEmpty()) {
-                    $options = [];
-                    foreach ($optionGroups as $group) {
-                        $options[] = [
-                            'id' => $group->id,
-                            'name' => $group->translate('name', $lang) ?? $group->translate('name', $sourceLocale) ?? '',
-                            'required' => $group->min_select > 0,
-                            'type' => $group->max_select === 1 ? 'single' : 'multiple',
-                            'max' => $group->max_select,
-                            'choices' => $group->options->map(fn ($opt) => [
-                                'id' => $opt->id,
-                                'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
-                                'price' => (float) $opt->price_adjust,
-                            ])->all(),
-                        ];
-                    }
-                    $entry['options'] = $options;
-                }
-
-                $items[] = $entry;
-            }
-        }
-
-        return $items;
     }
 
     private function getCurrencySymbol(string $currency): string

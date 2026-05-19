@@ -1,6 +1,10 @@
 /* ============================================================
    QR Menu - App (Blade integration)
-   Data comes from window.__ITEMS__, window.__UI__, window.__CONFIG__
+   UI strings come from window.__UI__, config from window.__CONFIG__.
+   Per-item modal extras (variants/options/full description) are read
+   from <script type="application/json" class="menu-card-extras">
+   embedded inside each <article data-item-id="X">. Card-visible
+   fields (name, price, image) are read from the DOM itself.
    HTML is rendered server-side by Blade.
    JS handles: cart, bottom sheet, search/filter, theme, swipe, order submit.
    ============================================================ */
@@ -33,7 +37,28 @@ const App = {
   },
 
   _findItem(id) {
-    return (window.__ITEMS__ || []).find(i => i.id === id) || null;
+    const article = document.querySelector('[data-item-id="' + id + '"]');
+    if (!article) return null;
+
+    const extrasEl = article.querySelector('.menu-card-extras');
+    const extras = extrasEl ? JSON.parse(extrasEl.textContent) : {};
+
+    const img = article.querySelector('img.menu-card__image');
+    const sectionEl = article.closest('section.category-section');
+    const nameEl = article.querySelector('.menu-card-name');
+
+    return {
+      id: Number(id),
+      sectionId: sectionEl ? Number(sectionEl.dataset.catId) : null,
+      name: nameEl ? nameEl.textContent.trim() : '',
+      image_url: img ? img.src : null,
+      thumb_url: img ? img.src : null,
+      description: extras.description || null,
+      price: typeof extras.price === 'number' ? extras.price : 0,
+      orderable: extras.orderable !== false,
+      variants: extras.variants,
+      options: extras.options,
+    };
   },
 
   // ---- Lifecycle ----

@@ -16,8 +16,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&display=swap">
-    <style>html,body{background:oklch(0.965 0.012 85);margin:0}</style>
-    @vite(['resources/css/menu.css'])
+    @if(\App\Support\InlineAssets::isHot())
+        @vite(['resources/css/menu.css'])
+    @else
+        <style>{!! \App\Support\InlineAssets::viteCss('resources/css/menu.css') !!}</style>
+    @endif
 </head>
 <body>
 
@@ -196,6 +199,7 @@
                         <div class="menu-grid">
                             @foreach($section->items as $item)
                                 @php
+                                    $sourceLocale = $menu->source_locale ?? 'und';
                                     $itemName = $item->translate('name', $lang) ?? $item->name ?? '';
                                     $itemDesc = $item->translate('description', $lang);
 
@@ -209,7 +213,50 @@
                                     }
 
                                     $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
-                                    $hasOptions = $item->optionGroups->isNotEmpty();
+                                    $hasOptions = $item->optionGroups->where('is_variation', false)->isNotEmpty();
+
+                                    // Modal-only extras: fields menu.js needs that aren't visible in the card DOM.
+                                    $extras = [];
+                                    $fullDesc = $itemDesc ?? $item->translate('description', $sourceLocale);
+                                    if ($fullDesc !== null && $fullDesc !== '') {
+                                        $extras['description'] = $fullDesc;
+                                    }
+                                    $extras['price'] = (float) $item->price_value;
+                                    $extras['orderable'] = (bool) $item->is_orderable;
+
+                                    if ($hasVariants) {
+                                        $variants = [];
+                                        foreach ($item->variations as $g) {
+                                            foreach ($g->options as $opt) {
+                                                $variants[] = [
+                                                    'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
+                                                    'price' => (float) $item->price_value + (float) $opt->price_adjust,
+                                                ];
+                                            }
+                                        }
+                                        $extras['variants'] = $variants;
+                                    }
+
+                                    if ($hasOptions) {
+                                        $options = [];
+                                        foreach ($item->optionGroups->where('is_variation', false) as $g) {
+                                            $options[] = [
+                                                'id' => $g->id,
+                                                'name' => $g->translate('name', $lang) ?? $g->translate('name', $sourceLocale) ?? '',
+                                                'required' => $g->min_select > 0,
+                                                'type' => $g->max_select === 1 ? 'single' : 'multiple',
+                                                'max' => $g->max_select,
+                                                'choices' => $g->options->map(fn ($o) => [
+                                                    'id' => $o->id,
+                                                    'name' => $o->translate('name', $lang) ?? $o->translate('name', $sourceLocale) ?? '',
+                                                    'price' => (float) $o->price_adjust,
+                                                ])->all(),
+                                            ];
+                                        }
+                                        $extras['options'] = $options;
+                                    }
+
+                                    $shouldEmbedExtras = $hasVariants || $hasOptions || isset($extras['description']);
                                 @endphp
                                 <article class="menu-card{{ $item->image ? ' menu-card--image' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}">
                                     @if($item->image)
@@ -244,6 +291,9 @@
                                             @endif
                                         </div>
                                     </div>
+                                    @if($shouldEmbedExtras)
+                                        <script type="application/json" class="menu-card-extras">{!! json_encode($extras, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}</script>
+                                    @endif
                                 </article>
                             @endforeach
                         </div>
@@ -294,11 +344,14 @@
         ];
     @endphp
     <script>
-        window.__ITEMS__ = @json($itemsJson);
         window.__UI__ = @json($uiStrings);
         window.__CONFIG__ = @json($config);
     </script>
-    <script src="/js/menu.js"></script>
+    @if(\App\Support\InlineAssets::isHot())
+        @vite(['resources/js/menu.js'])
+    @else
+        <script>{!! \App\Support\InlineAssets::viteJs('resources/js/menu.js') !!}</script>
+    @endif
 
     {{-- Live translation banner: shows up only when this request triggered a
          pending translation. Subscribes to SSE; reloads on translation.completed. --}}
