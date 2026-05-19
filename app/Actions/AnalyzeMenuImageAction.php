@@ -44,16 +44,16 @@ class AnalyzeMenuImageAction
 
         $iconList = FoodIcons::namesList();
         $iconCount = $iconList === '' ? 0 : substr_count($iconList, ',') + 1;
+        $substitute = fn (string $text): string => str_replace(
+            ['{icon_list}', '{icon_count}'],
+            [$iconList, (string) $iconCount],
+            $text,
+        );
 
         $messages = [];
 
         if ($prompt->system_prompt) {
-            $systemPrompt = str_replace(
-                ['{icon_list}', '{icon_count}'],
-                [$iconList, (string) $iconCount],
-                $prompt->system_prompt,
-            );
-            $messages[] = new SystemMessage($systemPrompt);
+            $messages[] = new SystemMessage($substitute($prompt->system_prompt));
         }
 
         $prismImages = array_map(
@@ -62,7 +62,7 @@ class AnalyzeMenuImageAction
         );
 
         $messages[] = new UserMessage(
-            content: $prompt->user_prompt,
+            content: $substitute($prompt->user_prompt),
             additionalContent: $prismImages,
         );
 
