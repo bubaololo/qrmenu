@@ -8,9 +8,13 @@ use App\Models\Zone;
 
 class ZonePolicy
 {
-    public function create(User $user, Restaurant $restaurant): bool
+    public function create(User $user, ?Restaurant $restaurant = null): bool
     {
-        return $restaurant->owners()->where('user_id', $user->id)->exists();
+        if ($restaurant !== null) {
+            return $restaurant->owners()->where('user_id', $user->id)->exists();
+        }
+
+        return $user->ownedRestaurants()->exists();
     }
 
     public function view(User $user, Zone $zone): bool

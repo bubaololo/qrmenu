@@ -2,19 +2,26 @@
 
 namespace App\Observers;
 
+use App\Jobs\DeleteImageFilesJob;
 use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
 use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
 use App\Models\Translation;
+use App\Services\ImageProcessor;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MenuSectionObserver
 {
+    /** @var array<int, array<string, array<int, string>>> */
+    private static array $pendingPaths = [];
+
     /**
      * The section's own translations are handled by the HasTranslations trait.
-     * Pre-delete polymorphic translations of descendant items/groups/options
-     * before FK CASCADE wipes their rows.
+     * Before FK CASCADE wipes descendant rows:
+     *   1. Bulk-delete polymorphic translations of descendant items/groups/options.
+     *   2. Collect menu_items.image paths so the post-delete event can dispatch cleanup.
      */
     public function deleting(MenuSection $section): void
     {
@@ -24,25 +31,64 @@ class MenuSectionObserver
             ? collect()
             : DB::table('menu_option_group_options')->whereIn('group_id', $groupIds)->pluck('id');
 
-        if ($itemIds->isEmpty() && $groupIds->isEmpty() && $optionIds->isEmpty()) {
-            return;
+        if ($itemIds->isNotEmpty() || $groupIds->isNotEmpty() || $optionIds->isNotEmpty()) {
+            Translation::query()
+                ->where(function ($q) use ($itemIds, $groupIds, $optionIds) {
+                    if ($itemIds->isNotEmpty()) {
+                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuItem::class)
+                            ->whereIn('translatable_id', $itemIds));
+                    }
+                    if ($groupIds->isNotEmpty()) {
+                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroup::class)
+                            ->whereIn('translatable_id', $groupIds));
+                    }
+                    if ($optionIds->isNotEmpty()) {
+                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroupOption::class)
+                            ->whereIn('translatable_id', $optionIds));
+                    }
+                })
+                ->delete();
         }
 
-        Translation::query()
-            ->where(function ($q) use ($itemIds, $groupIds, $optionIds) {
-                if ($itemIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuItem::class)
-                        ->whereIn('translatable_id', $itemIds));
-                }
-                if ($groupIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroup::class)
-                        ->whereIn('translatable_id', $groupIds));
-                }
-                if ($optionIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroupOption::class)
-                        ->whereIn('translatable_id', $optionIds));
-                }
-            })
-            ->delete();
+        $paths = $this->collectItemImagePaths($itemIds);
+        if ($paths !== []) {
+            self::$pendingPaths[$section->id] = $paths;
+        }
+    }
+
+    public function deleted(MenuSection $section): void
+    {
+        $paths = self::$pendingPaths[$section->id] ?? null;
+        unset(self::$pendingPaths[$section->id]);
+
+        if ($paths) {
+            DeleteImageFilesJob::dispatch($paths);
+        }
+    }
+
+    /**
+     * @param  Collection<int, int>  $itemIds
+     * @return array<string, array<int, string>>
+     */
+    private function collectItemImagePaths($itemIds): array
+    {
+        if ($itemIds->isEmpty()) {
+            return [];
+        }
+
+        $processor = app(ImageProcessor::class);
+        $disk = config('image.disk');
+        $paths = [];
+
+        DB::table('menu_items')
+            ->whereIn('id', $itemIds)
+            ->whereNotNull('image')
+            ->pluck('image')
+            ->each(function (string $image) use (&$paths, $processor): void {
+                $paths[] = $image;
+                $paths[] = $processor->thumbPath($image);
+            });
+
+        return $paths === [] ? [] : [$disk => $paths];
     }
 }

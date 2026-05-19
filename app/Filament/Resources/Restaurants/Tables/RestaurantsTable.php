@@ -36,10 +36,9 @@ class RestaurantsTable
                 TextColumn::make('currency')
                     ->badge(),
 
-                TextColumn::make('menus_count')
-                    ->label('Menus')
-                    ->counts('menus')
-                    ->sortable(),
+                TextColumn::make('menu.id')
+                    ->label('Menu')
+                    ->placeholder('—'),
 
                 TextColumn::make('created_at')
                     ->label('Created')

@@ -8,9 +8,13 @@ use App\Models\Zone;
 
 class DiningTablePolicy
 {
-    public function create(User $user, Zone $zone): bool
+    public function create(User $user, ?Zone $zone = null): bool
     {
-        return $zone->restaurant->owners()->where('user_id', $user->id)->exists();
+        if ($zone !== null) {
+            return $zone->restaurant->owners()->where('user_id', $user->id)->exists();
+        }
+
+        return $user->ownedRestaurants()->exists();
     }
 
     public function view(User $user, DiningTable $diningTable): bool

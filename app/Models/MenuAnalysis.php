@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\MenuAnalysisStatus;
+use Database\Factories\MenuAnalysisFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +12,9 @@ use Illuminate\Support\Str;
 
 class MenuAnalysis extends Model
 {
+    /** @use HasFactory<MenuAnalysisFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'uuid',
         'restaurant_id',
