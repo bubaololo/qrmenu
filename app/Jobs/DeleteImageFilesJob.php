@@ -30,7 +30,25 @@ class DeleteImageFilesJob implements ShouldQueue
                 continue;
             }
 
-            Storage::disk($disk)->delete($paths);
+            $storage = Storage::disk($disk);
+            $storage->delete($paths);
+
+            // Sweep parent directories that became empty (e.g. `menu-items/{menu_id}/`
+            // left over after cropped item images are removed). Only sub-directories
+            // are touched — top-level dirs like `menu-items`, `restaurants`, `logos`
+            // are kept so new uploads don't have to recreate them.
+            $dirs = array_unique(array_map('dirname', $paths));
+            rsort($dirs); // deepest first so nested empties collapse upward
+
+            foreach ($dirs as $dir) {
+                if ($dir === '.' || $dir === '' || ! str_contains($dir, '/')) {
+                    continue;
+                }
+
+                if ($storage->allFiles($dir) === [] && $storage->directories($dir) === []) {
+                    $storage->deleteDirectory($dir);
+                }
+            }
         }
     }
 }

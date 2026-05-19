@@ -207,4 +207,14 @@ class IconSpriteTest extends TestCase
 
         $this->assertSame($firstCount, Icon::count());
     }
+
+    #[Test]
+    public function test_icons_sync_prunes_rows_without_matching_svg_file(): void
+    {
+        $stale = Icon::create(['name' => 'this-icon-does-not-exist-on-disk', 'svg' => 'stub']);
+
+        $this->artisan('icons:sync')->assertSuccessful();
+
+        $this->assertFalse(Icon::where('name', $stale->name)->exists());
+    }
 }

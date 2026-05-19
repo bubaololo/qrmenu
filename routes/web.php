@@ -3,13 +3,21 @@
 use App\Actions\AnalyzeMenuImageAction;
 use App\Http\Controllers\MenuPageController;
 use App\Support\FoodIcons;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+// Static asset — strip session/cookie middleware to avoid Set-Cookie pollution
+// on every fetch. Sprite has no per-user state; cookies bloat headers by ~600
+// bytes per response and force redundant session writes.
 Route::get('/menu-sprite.svg', function (Request $request) {
     $sprite = FoodIcons::sprite();
 
@@ -22,7 +30,13 @@ Route::get('/menu-sprite.svg', function (Request $request) {
     $response->isNotModified($request);
 
     return $response;
-})->name('menu.sprite');
+})->name('menu.sprite')->withoutMiddleware([
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+    StartSession::class,
+    ShareErrorsFromSession::class,
+    PreventRequestForgery::class,
+]);
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 

@@ -44,13 +44,29 @@ class IconsSync extends Command
             }
         });
 
+        // Prune icons that exist in the DB but no longer have a matching SVG file.
+        // FK menu_sections.icon_id is nullOnDelete, so sections referencing a
+        // deleted icon become iconless (rather than dangling on a row with empty svg).
+        $staleNames = Icon::query()->whereNotIn('name', $names)->pluck('name')->all();
+        $pruned = 0;
+        if ($staleNames !== []) {
+            $pruned = Icon::query()->whereIn('name', $staleNames)->delete();
+            foreach ($staleNames as $name) {
+                Cache::forget("icon_sprite:symbol:{$name}");
+            }
+        }
+
         Cache::forget('icon_sprite:full');
         Cache::forget('icon_names:list');
         foreach ($names as $name) {
             Cache::forget("icon_sprite:symbol:{$name}");
         }
 
-        $this->info("Synced {$synced} icons. Skipped {$skipped}.");
+        $msg = "Synced {$synced} icons. Skipped {$skipped}.";
+        if ($pruned > 0) {
+            $msg .= " Pruned {$pruned} stale rows: ".implode(', ', $staleNames).'.';
+        }
+        $this->info($msg);
 
         return self::SUCCESS;
     }
