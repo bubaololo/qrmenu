@@ -885,6 +885,15 @@ a.meta-loc:hover { color: var(--foreground); }
 .theme-toggle .ui-icon { width: 18px; height: 18px; }
 .theme-toggle:hover { color: var(--foreground); border-color: var(--border-strong); }
 .theme-toggle:active { transform: scale(0.92); }
+/* Both icons live in the DOM; we hide the inactive one with CSS so the JS
+   toggle just flips data-theme on <html> — no innerHTML manipulation. */
+.theme-toggle .ui-icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle .ui-icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle .ui-icon-sun { display: inline; }
+
+/* Search-filter visibility — class toggle is cheaper than direct style writes
+   (browser computes display once for the rule, not per element). */
+.hidden-by-search { display: none !important; }
 
 /* ============================================================
    Overlay + bottom sheet

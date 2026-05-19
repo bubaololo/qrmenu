@@ -24,13 +24,10 @@
 </head>
 <body>
 
-    {{-- Inline icon sprite — only symbols referenced on this page --}}
     {!! $iconSprite !!}
 
-    {{-- Grain overlay --}}
     <div class="grain" aria-hidden="true"></div>
 
-    {{-- Top block --}}
     @php
         // Reuse the identifier the user came in with — if they hit /17/...
         // we keep `17` in the dropdown links instead of switching to uniqid.
@@ -44,7 +41,6 @@
         $hasMeta = $locationParts->isNotEmpty();
     @endphp
 
-    {{-- Meta strip — scrolls away with the page --}}
     @if($hasMeta)
         <div id="top" class="meta-strip">
             <div class="container meta-strip-row">
@@ -65,7 +61,6 @@
         </div>
     @endif
 
-    {{-- Brand row — scrolls away naturally above the sticky topbar, no JS morph --}}
     <div class="container topbar-brandrow">
         <div class="topbar-brand-stack">
             <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
@@ -75,7 +70,6 @@
         </div>
     </div>
 
-    {{-- Sticky topbar: search + ctrls, sticks once brand row has scrolled away. --}}
     <header class="topbar topbar-sticky" aria-label="Main navigation">
         <div class="container topbar-mainrow">
             <div id="search" class="search-field">
@@ -84,7 +78,8 @@
             </div>
             <div class="topbar-ctrls">
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-                    <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg class="ui-icon ui-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg class="ui-icon ui-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </button>
                 <div class="lang-switcher lang-dropdown" id="lang-switcher">
                     <button class="lang-current" id="lang-toggle" aria-label="Language" aria-haspopup="listbox">
@@ -160,7 +155,6 @@
         </div>
     </header>
 
-    {{-- Category Tabs --}}
     @if($menu && $menu->sections->isNotEmpty())
         <div class="tabs-wrapper tabs-sticky">
             <div class="container">
@@ -179,7 +173,6 @@
         </div>
     @endif
 
-    {{-- Menu Content --}}
     <main class="container menu-main">
         <div id="menu">
             @if($menu)
@@ -304,6 +297,14 @@
                     <p>{{ $uiStrings['noResults'] ?? 'No menu available' }}</p>
                 </div>
             @endif
+
+            <div id="no-results" class="no-results" hidden>
+                <svg class="ui-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span>{{ $uiStrings['noResults'] ?? 'No results' }}</span>
+            </div>
         </div>
     </main>
 
@@ -312,23 +313,112 @@
         <p class="text-muted">{{ $uiStrings['powered'] }}</p>
     </footer>
 
-    {{-- Overlay --}}
     <div id="overlay" class="overlay"></div>
 
-    {{-- Item Detail Bottom Sheet --}}
     <div id="item-sheet" class="bottom-sheet" role="dialog" aria-modal="true">
         <div id="item-sheet-content"></div>
     </div>
 
-    {{-- Cart Bottom Sheet --}}
     <div id="cart-sheet" class="bottom-sheet cart-sheet" role="dialog" aria-modal="true">
         <div id="cart-sheet-content"></div>
     </div>
 
-    {{-- Cart FAB --}}
-    <button id="cart-fab" class="cart-fab" aria-label="Cart"></button>
+    <button id="cart-fab" class="cart-fab" aria-label="{{ $uiStrings['cart'] ?? 'Cart' }}">
+        <span class="cart-fab-label">{{ $uiStrings['cart'] ?? 'Cart' }}</span>
+        <span class="cart-fab-summary">
+            <span class="cart-fab-total"></span>
+            <span class="cart-fab-count"></span>
+        </span>
+    </button>
 
-    {{-- Data for JS interactivity --}}
+    <template id="tpl-item-sheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="sheet-visual">
+            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">&times;</button>
+            <img class="sheet-image" alt="" hidden onload="this.classList.add('loaded')">
+        </div>
+        <div class="sheet-body">
+            <h2 class="sheet-title"></h2>
+            <p class="sheet-desc" hidden></p>
+            <div class="sheet-variants" hidden>
+                <p class="sheet-variants-label">{{ $uiStrings['chooseVariant'] ?? 'Choose' }}</p>
+                <div class="variant-chips"></div>
+            </div>
+            <div class="sheet-options-container" hidden></div>
+        </div>
+        <div class="sheet-footer">
+            <div class="sheet-controls">
+                <div class="qty-control">
+                    <button class="qty-btn qty-minus" data-delta="-1">&minus;</button>
+                    <span class="qty-value">1</span>
+                    <button class="qty-btn qty-plus" data-delta="1">+</button>
+                </div>
+                <button class="add-to-cart-btn"></button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-variant-chip">
+        <button class="variant-chip"></button>
+    </template>
+
+    <template id="tpl-option-group">
+        <div class="sheet-option-group">
+            <div class="option-group-header">
+                <span class="option-group-name"></span>
+                <span class="option-tag"></span>
+            </div>
+            <div class="option-choices"></div>
+        </div>
+    </template>
+
+    <template id="tpl-option-choice">
+        <label class="option-choice">
+            <span class="option-choice-check"></span>
+            <span class="option-choice-name"></span>
+            <span class="option-choice-price" hidden></span>
+        </label>
+    </template>
+
+    <template id="tpl-cart-shell">
+        <div class="cart-header">
+            <h2 class="cart-title">{{ $uiStrings['cart'] ?? 'Cart' }}</h2>
+            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">&times;</button>
+        </div>
+        <div class="cart-items"></div>
+        <div class="cart-footer">
+            <div class="cart-total-row">
+                <span class="cart-total-label">{{ $uiStrings['total'] ?? 'Total' }}</span>
+                <span class="cart-total-value"></span>
+            </div>
+            <div class="cart-actions">
+                <button class="cart-clear">{{ $uiStrings['clearCart'] ?? 'Clear' }}</button>
+                <button class="cart-show-waiter">{{ $uiStrings['showWaiter'] ?? 'Show waiter' }}</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-cart-item">
+        <div class="cart-item">
+            <div class="cart-item-delete">{{ $uiStrings['deleteItem'] ?? 'Delete' }}</div>
+            <div class="cart-item-inner">
+                <div class="cart-item-info">
+                    <span class="cart-item-name"></span>
+                    <span class="cart-item-variant cart-item-variant--variant" hidden></span>
+                    <span class="cart-item-variant cart-item-variant--options" hidden></span>
+                </div>
+                <div class="cart-item-controls">
+                    <div class="qty-control qty-control-sm">
+                        <button class="qty-btn cart-qty-btn" data-delta="-1">&minus;</button>
+                        <span class="qty-value"></span>
+                        <button class="qty-btn cart-qty-btn" data-delta="1">+</button>
+                    </div>
+                    <span class="cart-item-total"></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
     @php
         $config = [
             'currency' => $currencySymbol,
@@ -353,8 +443,6 @@
         <script>{!! \App\Support\InlineAssets::viteJs('resources/js/menu.js') !!}</script>
     @endif
 
-    {{-- Live translation banner: shows up only when this request triggered a
-         pending translation. Subscribes to SSE; reloads on translation.completed. --}}
     @if(($translationPending ?? false) && $menu)
         <div id="translation-banner"
              class="translation-banner"

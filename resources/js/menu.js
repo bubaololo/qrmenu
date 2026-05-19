@@ -64,12 +64,12 @@ const App = {
   // ---- Lifecycle ----
 
   init() {
-    // Restore saved theme
+    // Restore saved theme. Both sun + moon SVGs live in DOM; CSS toggles which one
+    // shows by [data-theme]. JS only manages the attribute + theme-color meta.
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       document.documentElement.setAttribute('data-theme', savedTheme);
       if (savedTheme === 'dark') {
-        document.querySelector('#theme-toggle .ui-icon').outerHTML = '<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
         document.querySelector('meta[name="theme-color"]').content = '#171717';
       }
     }
@@ -130,26 +130,16 @@ const App = {
         const name = (item.name || '').toLowerCase();
         const desc = (item.description || '').toLowerCase();
         const match = (!q || name.includes(q) || desc.includes(q));
-        card.style.display = match ? '' : 'none';
+        card.classList.toggle('hidden-by-search', !match);
         if (match) sectionVisible++;
       });
-      section.style.display = sectionVisible ? '' : 'none';
+      section.classList.toggle('hidden-by-search', sectionVisible === 0);
       totalVisible += sectionVisible;
     });
 
-    let noResult = document.getElementById('no-results');
-    if (!totalVisible && q) {
-      if (!noResult) {
-        noResult = document.createElement('div');
-        noResult.id = 'no-results';
-        noResult.className = 'no-results';
-        document.getElementById('menu').appendChild(noResult);
-      }
-      noResult.innerHTML = '<svg class="ui-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>' + this.t('noResults') + '</span>';
-      noResult.style.display = '';
-    } else if (noResult) {
-      noResult.style.display = 'none';
-    }
+    // No-results placeholder is pre-rendered in Blade; JS only toggles `hidden`.
+    const noResult = document.getElementById('no-results');
+    if (noResult) noResult.hidden = !(!totalVisible && q);
   },
 
   // ---- Scroll To Category ----
@@ -220,9 +210,6 @@ const App = {
       });
     }
 
-    const name = item.name;
-    const desc = item.description;
-    const hasDesc = desc && desc.trim();
     const basePrice = item.variants
       ? item.variants[this._sheet.variantIndex].price
       : item.price;
@@ -230,80 +217,95 @@ const App = {
     const unitPrice = basePrice + optionsExtra;
     const totalPrice = unitPrice * this._sheet.qty;
 
-    // Image for sheet (no placeholder icon when item has no photo)
-    const iconHtml = item.image_url
-      ? '<img src="' + item.image_url + '" alt="" class="sheet-image" onload="this.classList.add(\'loaded\')">'
-      : '';
+    // Clone the parsed-once template \u2014 far cheaper than innerHTML string parse.
+    const fragment = document.getElementById('tpl-item-sheet').content.cloneNode(true);
 
-    let variantsHtml = '';
-    if (item.variants && item.variants.length) {
-      const hasDifferentPrices = new Set(item.variants.map(v => v.price)).size > 1;
-      variantsHtml = '<div class="sheet-variants">' +
-        '<p class="sheet-variants-label">' + this.t('chooseVariant') + '</p>' +
-        '<div class="variant-chips">' +
-        item.variants.map((v, i) =>
-          '<button class="variant-chip' + (i === this._sheet.variantIndex ? ' variant-chip-active' : '') + '" data-variant-index="' + i + '">' +
-          v.name + (hasDifferentPrices ? ' \u00B7 ' + this.formatPrice(v.price) : '') +
-          '</button>'
-        ).join('') +
-        '</div></div>';
+    const visualEl = fragment.querySelector('.sheet-visual');
+    const imgEl = fragment.querySelector('.sheet-image');
+    if (item.image_url) {
+      imgEl.src = item.image_url;
+      imgEl.hidden = false;
+    } else {
+      visualEl.classList.add('sheet-visual--empty');
     }
 
-    let optionsHtml = '';
+    fragment.querySelector('.sheet-title').textContent = item.name;
+    const desc = item.description;
+    if (desc && desc.trim()) {
+      const descEl = fragment.querySelector('.sheet-desc');
+      descEl.textContent = desc;
+      descEl.hidden = false;
+    }
+
+    if (item.variants && item.variants.length) {
+      const variantsBlock = fragment.querySelector('.sheet-variants');
+      const chipsContainer = fragment.querySelector('.variant-chips');
+      const chipTpl = document.getElementById('tpl-variant-chip');
+      const hasDifferentPrices = new Set(item.variants.map(v => v.price)).size > 1;
+      item.variants.forEach((v, i) => {
+        const chip = chipTpl.content.firstElementChild.cloneNode(true);
+        chip.textContent = v.name + (hasDifferentPrices ? ' \u00B7 ' + this.formatPrice(v.price) : '');
+        chip.dataset.variantIndex = i;
+        if (i === this._sheet.variantIndex) chip.classList.add('variant-chip-active');
+        chipsContainer.appendChild(chip);
+      });
+      variantsBlock.hidden = false;
+    }
+
     if (item.options && item.options.length) {
-      optionsHtml = item.options.map(group => {
-        const tag = group.required ? this.t('required') : this.t('optional');
-        const tagClass = group.required ? 'option-tag-required' : 'option-tag-optional';
+      const optionsContainer = fragment.querySelector('.sheet-options-container');
+      const groupTpl = document.getElementById('tpl-option-group');
+      const choiceTpl = document.getElementById('tpl-option-choice');
+      item.options.forEach(group => {
+        const grp = groupTpl.content.firstElementChild.cloneNode(true);
+        grp.dataset.optionGroup = group.id;
+        grp.dataset.optionType = group.type;
+        grp.dataset.optionMax = group.max || '';
+        if (group.required) grp.classList.add('sheet-option-required');
+
+        grp.querySelector('.option-group-name').textContent = group.name;
+
+        const tag = grp.querySelector('.option-tag');
         const maxHint = group.type === 'multiple' && group.max
           ? ' \u00B7 ' + this.t('maxChoices').replace('{n}', group.max)
           : '';
+        tag.textContent = (group.required ? this.t('required') : this.t('optional')) + maxHint;
+        tag.classList.add(group.required ? 'option-tag-required' : 'option-tag-optional');
+
+        const choicesEl = grp.querySelector('.option-choices');
         const selectedIds = this._sheet.options[group.id] || [];
-        return '<div class="sheet-option-group' + (group.required ? ' sheet-option-required' : '') + '" data-option-group="' + group.id + '" data-option-type="' + group.type + '" data-option-max="' + (group.max || '') + '">' +
-          '<div class="option-group-header">' +
-            '<span class="option-group-name">' + group.name + '</span>' +
-            '<span class="option-tag ' + tagClass + '">' + tag + maxHint + '</span>' +
-          '</div>' +
-          '<div class="option-choices">' +
-          group.choices.map(choice =>
-            '<label class="option-choice' + (selectedIds.includes(choice.id) ? ' option-choice-selected' : '') + '" data-option-group="' + group.id + '" data-choice-id="' + choice.id + '">' +
-              '<span class="option-choice-check">' +
-                (group.type === 'single' ? '<span class="option-radio"></span>' : '<span class="option-checkbox"></span>') +
-              '</span>' +
-              '<span class="option-choice-name">' + choice.name + '</span>' +
-              (choice.price > 0 ? '<span class="option-choice-price">+' + this.formatPrice(choice.price) + '</span>' : '') +
-            '</label>'
-          ).join('') +
-          '</div></div>';
-      }).join('');
+        group.choices.forEach(choice => {
+          const chc = choiceTpl.content.firstElementChild.cloneNode(true);
+          chc.dataset.optionGroup = group.id;
+          chc.dataset.choiceId = choice.id;
+          if (selectedIds.includes(choice.id)) chc.classList.add('option-choice-selected');
+
+          // Inner check marker: radio for single-select, checkbox for multi-select
+          chc.querySelector('.option-choice-check').classList.add(
+            group.type === 'single' ? 'option-radio' : 'option-checkbox'
+          );
+
+          chc.querySelector('.option-choice-name').textContent = choice.name;
+          if (choice.price > 0) {
+            const priceEl = chc.querySelector('.option-choice-price');
+            priceEl.textContent = '+' + this.formatPrice(choice.price);
+            priceEl.hidden = false;
+          }
+          choicesEl.appendChild(chc);
+        });
+        optionsContainer.appendChild(grp);
+      });
+      optionsContainer.hidden = false;
     }
 
-    const btnLabel = isEdit ? this.t('updateCart') : this.t('addToCart');
+    const btn = fragment.querySelector('.add-to-cart-btn');
+    btn.dataset.price = unitPrice;
+    btn.textContent = (isEdit ? this.t('updateCart') : this.t('addToCart')) + ' \u00B7 ' + this.formatPrice(totalPrice);
+
+    fragment.querySelector('.qty-value').textContent = this._sheet.qty;
 
     const content = document.getElementById('item-sheet-content');
-    content.innerHTML =
-      '<div class="bottom-sheet-handle"></div>' +
-      '<div class="sheet-visual' + (item.image_url ? '' : ' sheet-visual--empty') + '">' +
-        '<button class="bottom-sheet-close" aria-label="' + this.t('close') + '">&times;</button>' +
-        iconHtml +
-      '</div>' +
-      '<div class="sheet-body">' +
-        '<h2 class="sheet-title">' + name + '</h2>' +
-        (hasDesc ? '<p class="sheet-desc">' + desc + '</p>' : '') +
-        variantsHtml +
-        optionsHtml +
-      '</div>' +
-      '<div class="sheet-footer">' +
-        '<div class="sheet-controls">' +
-          '<div class="qty-control">' +
-            '<button class="qty-btn qty-minus" data-delta="-1">&minus;</button>' +
-            '<span class="qty-value">' + this._sheet.qty + '</span>' +
-            '<button class="qty-btn qty-plus" data-delta="1">+</button>' +
-          '</div>' +
-          '<button class="add-to-cart-btn" data-price="' + unitPrice + '">' +
-            btnLabel + ' \u00B7 ' + this.formatPrice(totalPrice) +
-          '</button>' +
-        '</div>' +
-      '</div>';
+    content.replaceChildren(fragment);
 
     document.getElementById('overlay').classList.add('visible');
     document.getElementById('item-sheet').classList.add('visible');
@@ -387,6 +389,7 @@ const App = {
     let currentY = 0;
     let dragging = false;
     let sheet = null;
+    let pendingRaf = null;
 
     const onStart = (e) => {
       sheet = e.target.closest('.bottom-sheet');
@@ -401,18 +404,28 @@ const App = {
       sheet.classList.add('dragging');
     };
 
+    // Throttle transform writes through rAF — keeps swipe smooth on slow CPUs
+    // by coalescing N touchmove events into one paint per frame.
     const onMove = (e) => {
       if (!dragging || !sheet) return;
       currentY = e.touches ? e.touches[0].clientY : e.clientY;
-      const dy = Math.max(0, currentY - startY);
-      sheet.style.transform = 'translateY(' + dy + 'px)';
-      const overlay = document.getElementById('overlay');
-      if (overlay) overlay.style.opacity = Math.max(0, 1 - dy / 300);
+      if (pendingRaf) return;
+      pendingRaf = requestAnimationFrame(() => {
+        const dy = Math.max(0, currentY - startY);
+        sheet.style.transform = 'translateY(' + dy + 'px)';
+        const overlay = document.getElementById('overlay');
+        if (overlay) overlay.style.opacity = Math.max(0, 1 - dy / 300);
+        pendingRaf = null;
+      });
     };
 
     const onEnd = () => {
       if (!dragging || !sheet) return;
       dragging = false;
+      if (pendingRaf) {
+        cancelAnimationFrame(pendingRaf);
+        pendingRaf = null;
+      }
       sheet.classList.remove('dragging');
       sheet.style.transform = '';
       const overlay = document.getElementById('overlay');
@@ -666,14 +679,15 @@ const App = {
     const fab = document.getElementById('cart-fab');
     if (!fab) return;
     const count = this.getCartCount();
+    const menu = document.getElementById('menu');
     if (count > 0) {
+      fab.querySelector('.cart-fab-total').textContent = this.formatPrice(this.getCartTotal());
+      fab.querySelector('.cart-fab-count').textContent = count;
       fab.classList.add('visible');
-      fab.innerHTML = '<span>' + this.t('cart') + '</span> <span>' + this.formatPrice(this.getCartTotal()) + ' <span class="cart-fab-count">' + count + '</span></span>';
-      document.getElementById('menu').classList.add('has-cart');
+      menu.classList.add('has-cart');
     } else {
       fab.classList.remove('visible');
-      fab.innerHTML = '';
-      document.getElementById('menu').classList.remove('has-cart');
+      menu.classList.remove('has-cart');
     }
     this._updateCardBadges();
     this._saveCart();
@@ -682,8 +696,7 @@ const App = {
   openCart() {
     if (this.getCartCount() === 0) return;
 
-    const content = document.getElementById('cart-sheet-content');
-    content.innerHTML = this._renderCartEditView();
+    this._renderCartEditView();
 
     document.getElementById('overlay').classList.add('visible');
     document.getElementById('cart-sheet').classList.add('visible');
@@ -693,60 +706,70 @@ const App = {
   },
 
   _renderCartEditView() {
+    const content = document.getElementById('cart-sheet-content');
+
+    // Clone the parsed-once shell — no HTML parsing, just DOM clone + textContent updates.
+    const fragment = document.getElementById('tpl-cart-shell').content.cloneNode(true);
+
     if (this.cart.length === 0) {
-      return '<div class="bottom-sheet-handle"></div>' +
-        '<div class="cart-header">' +
-          '<h2 class="cart-title">' + this.t('cart') + '</h2>' +
-          '<button class="bottom-sheet-close" aria-label="' + this.t('close') + '">&times;</button>' +
-        '</div>' +
-        '<div class="cart-empty"><p>' + this.t('orderEmpty') + '</p></div>';
+      // Empty state: drop the items container and footer, replace with simple message.
+      const itemsEl = fragment.querySelector('.cart-items');
+      itemsEl.classList.add('cart-empty');
+      const msg = document.createElement('p');
+      msg.textContent = this.t('orderEmpty');
+      itemsEl.replaceChildren(msg);
+      fragment.querySelector('.cart-footer').remove();
+      content.replaceChildren(fragment);
+      return;
     }
 
-    const itemsHtml = this.cart.map((entry, index) => {
+    const itemsContainer = fragment.querySelector('.cart-items');
+    const itemTpl = document.getElementById('tpl-cart-item');
+
+    this.cart.forEach((entry, index) => {
       const item = this._findItem(entry.itemId);
-      if (!item) return '';
-      const name = item.name;
+      if (!item) return;
+
+      const node = itemTpl.content.firstElementChild.cloneNode(true);
+      node.dataset.cartIndex = index;
+      node.querySelector('.cart-item-inner').dataset.swipeIndex = index;
+
+      const info = node.querySelector('.cart-item-info');
+      if (item.variants || (item.options && item.options.length)) {
+        info.classList.add('cart-item-editable');
+      }
+
+      node.querySelector('.cart-item-name').textContent = item.name;
+
       const variantName = item.variants && item.variants[entry.variantIndex]
         ? item.variants[entry.variantIndex].name
         : '';
+      if (variantName) {
+        const variantEl = node.querySelector('.cart-item-variant--variant');
+        variantEl.textContent = variantName;
+        variantEl.hidden = false;
+      }
+
       const optionNames = this._getCartOptionNames(item, entry.options);
-      const lineTotal = entry.unitPrice * entry.qty;
+      if (optionNames) {
+        const optionsEl = node.querySelector('.cart-item-variant--options');
+        optionsEl.textContent = optionNames;
+        optionsEl.hidden = false;
+      }
 
-      return '<div class="cart-item" data-cart-index="' + index + '">' +
-        '<div class="cart-item-delete">' + this.t('deleteItem') + '</div>' +
-        '<div class="cart-item-inner" data-swipe-index="' + index + '">' +
-          '<div class="cart-item-info' + ((item.variants || (item.options && item.options.length)) ? ' cart-item-editable' : '') + '">' +
-            '<span class="cart-item-name">' + name + '</span>' +
-            (variantName ? '<span class="cart-item-variant">' + variantName + '</span>' : '') +
-            (optionNames ? '<span class="cart-item-variant">' + optionNames + '</span>' : '') +
-          '</div>' +
-          '<div class="cart-item-controls">' +
-            '<div class="qty-control qty-control-sm">' +
-              '<button class="qty-btn cart-qty-btn" data-cart-index="' + index + '" data-delta="-1">&minus;</button>' +
-              '<span class="qty-value">' + entry.qty + '</span>' +
-              '<button class="qty-btn cart-qty-btn" data-cart-index="' + index + '" data-delta="1">+</button>' +
-            '</div>' +
-            '<span class="cart-item-total">' + this.formatPrice(lineTotal) + '</span>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+      node.querySelectorAll('.cart-qty-btn').forEach(btn => {
+        btn.dataset.cartIndex = index;
+      });
 
-    return '<div class="cart-header">' +
-        '<h2 class="cart-title">' + this.t('cart') + '</h2>' +
-        '<button class="bottom-sheet-close" aria-label="' + this.t('close') + '">&times;</button>' +
-      '</div>' +
-      '<div class="cart-items">' + itemsHtml + '</div>' +
-      '<div class="cart-footer">' +
-        '<div class="cart-total-row">' +
-          '<span class="cart-total-label">' + this.t('total') + '</span>' +
-          '<span class="cart-total-value">' + this.formatPrice(this.getCartTotal()) + '</span>' +
-        '</div>' +
-        '<div class="cart-actions">' +
-          '<button class="cart-clear">' + this.t('clearCart') + '</button>' +
-          '<button class="cart-show-waiter">' + this.t('showWaiter') + '</button>' +
-        '</div>' +
-      '</div>';
+      node.querySelector('.qty-value').textContent = entry.qty;
+      node.querySelector('.cart-item-total').textContent = this.formatPrice(entry.unitPrice * entry.qty);
+
+      itemsContainer.appendChild(node);
+    });
+
+    fragment.querySelector('.cart-total-value').textContent = this.formatPrice(this.getCartTotal());
+
+    content.replaceChildren(fragment);
   },
 
   closeCart() {
@@ -964,16 +987,15 @@ const App = {
 
   _setupDelegation() {
     document.addEventListener('click', (e) => {
-      // Dark mode toggle
+      // Dark mode toggle — icons live in DOM, CSS hides the inactive one.
+      // JS only flips the data-theme attribute + theme-color meta + storage.
       if (e.target.closest('#theme-toggle')) {
         const html = document.documentElement;
-        const isDark = html.getAttribute('data-theme') === 'dark';
-        html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        const sunSvg = '<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-        const moonSvg = '<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-        document.querySelector('#theme-toggle .ui-icon').outerHTML = isDark ? moonSvg : sunSvg;
-        document.querySelector('meta[name="theme-color"]').content = isDark ? '#f4e6d0' : '#171717';
-        localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', nextTheme);
+        document.querySelector('meta[name="theme-color"]').content =
+          nextTheme === 'dark' ? '#171717' : '#f4e6d0';
+        localStorage.setItem('theme', nextTheme);
         return;
       }
 
@@ -1215,42 +1237,62 @@ const App = {
       if (this.cart.length === 0) {
         this.closeCart();
       } else {
-        const content = document.getElementById('cart-sheet-content');
-        content.innerHTML = this._renderCartEditView();
-        this._setupCartSwipe();
+        this._renderCartEditView();
       }
     };
     cartItemEl.addEventListener('transitionend', onDone);
     setTimeout(onDone, 350);
   },
 
+  /**
+   * Delegated swipe handling for cart items.
+   *
+   * Listeners are attached ONCE to the cart-sheet container (idempotent via
+   * dataset flag) instead of per-item. Re-renders of the cart list don't
+   * re-bind anything — swipe just works on whatever .cart-item-inner is
+   * touched. Transform writes during touchmove are throttled through
+   * requestAnimationFrame to avoid jank on slow CPUs.
+   */
   _setupCartSwipe() {
-    const items = document.querySelectorAll('.cart-item-inner[data-swipe-index]');
-    items.forEach(inner => {
-      let startX = 0, currentX = 0, swiping = false;
-      inner.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        currentX = startX;
-        swiping = true;
-        inner.style.transition = 'none';
-      }, { passive: true });
-      inner.addEventListener('touchmove', (e) => {
-        if (!swiping) return;
-        currentX = e.touches[0].clientX;
+    const container = document.getElementById('cart-sheet-content');
+    if (!container || container.dataset.swipeBound) return;
+    container.dataset.swipeBound = '1';
+
+    let target = null;
+    let startX = 0;
+    let currentX = 0;
+    let pendingRaf = null;
+
+    container.addEventListener('touchstart', (e) => {
+      const inner = e.target.closest('.cart-item-inner');
+      if (!inner) return;
+      target = inner;
+      startX = e.touches[0].clientX;
+      currentX = startX;
+      target.style.transition = 'none';
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (!target) return;
+      currentX = e.touches[0].clientX;
+      if (pendingRaf) return;
+      pendingRaf = requestAnimationFrame(() => {
         const dx = Math.min(0, currentX - startX);
-        inner.style.transform = 'translateX(' + dx + 'px)';
-      }, { passive: true });
-      inner.addEventListener('touchend', () => {
-        if (!swiping) return;
-        swiping = false;
-        inner.style.transition = 'transform .2s ease';
-        const dx = currentX - startX;
-        if (dx < -60) {
-          inner.style.transform = 'translateX(-72px)';
-        } else {
-          inner.style.transform = '';
-        }
+        target.style.transform = 'translateX(' + dx + 'px)';
+        pendingRaf = null;
       });
+    }, { passive: true });
+
+    container.addEventListener('touchend', () => {
+      if (!target) return;
+      if (pendingRaf) {
+        cancelAnimationFrame(pendingRaf);
+        pendingRaf = null;
+      }
+      target.style.transition = 'transform .2s ease';
+      const dx = currentX - startX;
+      target.style.transform = dx < -60 ? 'translateX(-72px)' : '';
+      target = null;
     });
   }
 };
