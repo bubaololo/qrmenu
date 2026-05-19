@@ -90,8 +90,8 @@ Never leave a standalone block unassigned. Example: an "ADD ON" block in the bot
 === CATEGORY ICON ===
 For each section pick exactly ONE icon name from the closed list below, OR null if nothing reasonably fits. DO NOT invent names; use the spelling shown.
 
-Closed list (46):
-noodle-bowl, rice-bowl, dim-sum, sushi, mochi, pizza, spaghetti, burger, hotdog, wrap, french-fries, steak, chicken-leg, sausage, grill, fish, prawn, crab, shellfish, octopus, snail, soup-pot, baguette, croissant, pie, eggs, cheese, salad, healthy-food, cupcake, cake, donut, cookie, ice-cream, chocolate, iced-coffee, hot-coffee, tea, bubble-tea, soft-drink, soda-can, cocktail, milk, yogurt, chef-hat, extras
+Closed list ({icon_count}):
+{icon_list}
 
 === JSON SCHEMA ===
 {

@@ -118,6 +118,8 @@ class MenuSectionTest extends TestCase
     #[Test]
     public function test_store_resolves_icon_name_to_icon_id(): void
     {
+        Icon::firstOrCreate(['name' => 'noodle-bowl']);
+
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
@@ -177,6 +179,8 @@ class MenuSectionTest extends TestCase
     #[Test]
     public function test_update_replaces_icon_via_icon_name(): void
     {
+        Icon::firstOrCreate(['name' => 'pizza']);
+
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);

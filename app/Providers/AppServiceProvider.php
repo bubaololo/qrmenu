@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Icon;
 use App\Models\Menu;
 use App\Models\MenuOptionGroup;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\User;
+use App\Observers\IconObserver;
 use App\Observers\MenuObserver;
 use App\Observers\MenuOptionGroupObserver;
 use App\Observers\MenuSectionObserver;
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         MenuSection::observe(MenuSectionObserver::class);
         MenuOptionGroup::observe(MenuOptionGroupObserver::class);
         Translation::observe(TranslationObserver::class);
+        Icon::observe(IconObserver::class);
 
         $isAllowed = fn (?User $user) => app()->isLocal() || ($user?->isAdmin() ?? false);
 

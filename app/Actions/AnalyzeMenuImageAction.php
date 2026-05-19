@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Contracts\LlmProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\Prompt;
+use App\Support\FoodIcons;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Prism\Prism\Contracts\Message;
@@ -41,10 +42,18 @@ class AnalyzeMenuImageAction
             $this->validateImage($image, $disk);
         }
 
+        $iconList = FoodIcons::namesList();
+        $iconCount = $iconList === '' ? 0 : substr_count($iconList, ',') + 1;
+
         $messages = [];
 
         if ($prompt->system_prompt) {
-            $messages[] = new SystemMessage($prompt->system_prompt);
+            $systemPrompt = str_replace(
+                ['{icon_list}', '{icon_count}'],
+                [$iconList, (string) $iconCount],
+                $prompt->system_prompt,
+            );
+            $messages[] = new SystemMessage($systemPrompt);
         }
 
         $prismImages = array_map(

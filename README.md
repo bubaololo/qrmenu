@@ -44,6 +44,19 @@ docker compose exec app php artisan db:seed --class=PromptSeeder
 
 ---
 
+## Custom artisan commands
+
+| Command | Purpose |
+|---|---|
+| `menu:import-json {file} [--restaurant=] [--activate] [--dry-run]` | Import a menu from a JSON fixture (debugging the LLM pipeline). See *Debug: LLM Pipeline* below. |
+| `prompts:export` | Export all prompts from the DB to `database/prompts/*.json`. |
+| `prompts:import` | Import prompts from `database/prompts/` into the DB. |
+| `llm:benchmark [--only=] [--model=] [--skip=] [--dry-run]` | Benchmark all vision LLM providers against the three image packs. See *LLM Benchmark* below. |
+| `llm:bbox-test [--image=] [--model=] [--skip=] [--output=] [--max-dim=]` | Test bbox detection on one image via the LLM preflight model. |
+| `icons:sync` | Re-read `resources/img/menu/*.svg` and upsert each as an `icons.svg` row (cleaned to `<symbol id="…">`, ink themed to `currentColor`). Flushes Redis sprite caches. Run after adding or editing icon SVGs. Also wired into `DatabaseSeeder` so `migrate:fresh --seed` populates the table automatically. |
+
+---
+
 ## Tests
 
 Tests run against a separate `menu_test` PostgreSQL database.

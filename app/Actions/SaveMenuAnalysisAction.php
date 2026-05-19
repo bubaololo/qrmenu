@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\DB;
 
 class SaveMenuAnalysisAction
 {
+    /** @var list<string> */
+    private array $allowedIconNames = [];
+
     /**
      * Persist a decoded LLM menu structure as a new Menu version for the given restaurant.
      *
@@ -39,6 +42,8 @@ class SaveMenuAnalysisAction
      */
     public function createMenu(array $menuData, int $restaurantId, int $sourceImagesCount): Menu
     {
+        $this->allowedIconNames = Icon::query()->pluck('name')->all();
+
         return DB::transaction(fn (): Menu => Translation::withoutEvents(function () use ($menuData, $restaurantId, $sourceImagesCount): Menu {
             $restaurant = Restaurant::findOrFail($restaurantId);
             $this->fillRestaurantFromLlm($restaurant, $menuData);
@@ -79,6 +84,8 @@ class SaveMenuAnalysisAction
      */
     public function appendChunk(Menu $menu, array $chunkData, int $imageOffset): void
     {
+        $this->allowedIconNames = Icon::query()->pluck('name')->all();
+
         DB::transaction(fn () => Translation::withoutEvents(function () use ($menu, $chunkData, $imageOffset): void {
             $menu->loadMissing('restaurant');
             $this->enrichRestaurantIfEmpty($menu->restaurant, $chunkData);
@@ -357,7 +364,7 @@ class SaveMenuAnalysisAction
             return null;
         }
 
-        return in_array($raw, config('food_icons.allowed', []), true) ? $raw : null;
+        return in_array($raw, $this->allowedIconNames, true) ? $raw : null;
     }
 
     private function cleanBbox(mixed $raw, int $imageOffset = 0): ?array

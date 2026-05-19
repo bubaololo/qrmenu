@@ -2,12 +2,27 @@
 
 use App\Actions\AnalyzeMenuImageAction;
 use App\Http\Controllers\MenuPageController;
+use App\Support\FoodIcons;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/menu-sprite.svg', function (Request $request) {
+    $sprite = FoodIcons::sprite();
+
+    $response = response($sprite, 200, [
+        'Content-Type' => 'image/svg+xml; charset=utf-8',
+        'Cache-Control' => 'public, max-age=3600, must-revalidate',
+        'X-Content-Type-Options' => 'nosniff',
+    ])->setEtag(md5($sprite));
+
+    $response->isNotModified($request);
+
+    return $response;
+})->name('menu.sprite');
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 

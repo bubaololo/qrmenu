@@ -16,6 +16,7 @@
     "sections": [
         {
             "category_name": "TRADITIONAL CAFE",
+            "category_icon": "hot-coffee",
             "items": [
                 {
                     "name": "Black coffee",
@@ -221,6 +222,7 @@
         },
         {
             "category_name": "ITALIAN CAFE",
+            "category_icon": "hot-coffee",
             "items": [
                 {
                     "name": "Espresso",
@@ -526,6 +528,7 @@
         },
         {
             "category_name": "COLD BREW",
+            "category_icon": "iced-coffee",
             "items": [
                 {
                     "name": "Cold brew",
@@ -621,6 +624,7 @@
         },
         {
             "category_name": "MATCHA",
+            "category_icon": "hot-tea",
             "items": [
                 {
                     "name": "Matcha latte",
@@ -742,6 +746,7 @@
         },
         {
             "category_name": "CHOCOLATE",
+            "category_icon": "hot-chocolate",
             "items": [
                 {
                     "name": "Choco latte",
@@ -803,6 +808,7 @@
         },
         {
             "category_name": "FRUIT JUICE",
+            "category_icon": "juice-smoothie",
             "items": [
                 {
                     "name": "Lemon juice",
@@ -868,6 +874,7 @@
         },
         {
             "category_name": "FRESH TEA",
+            "category_icon": "hot-tea",
             "items": [
                 {
                     "name": "Hot lemon ginger tea",
@@ -1023,6 +1030,7 @@
         },
         {
             "category_name": "FRAPUCHINO - ICE BLENDED",
+            "category_icon": "iced-coffee",
             "items": [
                 {
                     "name": "Avocado coffee blended",
