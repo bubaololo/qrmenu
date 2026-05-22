@@ -45,5 +45,6 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('viewHorizon', $isAllowed);
         Gate::define('viewPulse', $isAllowed);
+        Gate::define('viewApiDocs', $isAllowed);
     }
 }
