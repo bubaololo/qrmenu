@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DiningTables\DiningTableController;
+use App\Http\Controllers\IconController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
 use App\Http\Controllers\Menus\MenuController;
@@ -53,6 +54,7 @@ Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void
     Route::get('/orders/{guestToken}', [PublicOrderController::class, 'show'])
         ->where('guestToken', '[0-9a-fA-F-]{36}')
         ->name('public.orders.show');
+    Route::get('/icons', [IconController::class, 'index'])->name('public.icons.index');
 });
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {

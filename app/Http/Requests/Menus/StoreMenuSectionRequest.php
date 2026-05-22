@@ -18,7 +18,6 @@ class StoreMenuSectionRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
-            'icon_id' => ['nullable', 'integer', 'exists:icons,id'],
             'icon_name' => ['nullable', 'string', 'max:100', Rule::exists('icons', 'name')],
             'is_active' => ['nullable', 'boolean'],
         ];

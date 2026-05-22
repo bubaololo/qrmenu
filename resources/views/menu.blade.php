@@ -95,6 +95,12 @@
                                        autocomplete="off" spellcheck="false">
                             </div>
                             <div id="lang-all-list" class="lang-all-list">
+                                <p class="lang-no-results" id="lang-no-results" hidden>{{ $uiStrings['langNoResults'] ?? 'No matches' }}</p>
+                            </div>
+                            {{-- Items live in a <template> until first dropdown open. <template> content is
+                                 inert — native names (Русский, 中文, ...) don't trigger unicode-range font fetches
+                                 until JS clones it into the live DOM on lang-toggle click. --}}
+                            <template id="tpl-lang-options">
                                 @foreach($locales as $loc)
                                     <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $loc['code']]) }}"
                                        data-code="{{ $loc['code'] }}"
@@ -113,41 +119,7 @@
                                         <span class="lang-code-tag">{{ strtoupper($loc['code']) }}</span>
                                     </a>
                                 @endforeach
-                                <p class="lang-no-results" id="lang-no-results" hidden>{{ $uiStrings['langNoResults'] ?? 'No matches' }}</p>
-                            </div>
-                            <script>
-                                (function () {
-                                    var input = document.getElementById('lang-search-input');
-                                    var list = document.getElementById('lang-all-list');
-                                    var emptyState = document.getElementById('lang-no-results');
-                                    if (!input || !list) return;
-                                    var items = Array.prototype.slice.call(list.querySelectorAll('a.lang-option'));
-
-                                    input.addEventListener('input', function () {
-                                        var q = input.value.trim().toLowerCase();
-                                        var visibleCount = 0;
-                                        for (var i = 0; i < items.length; i++) {
-                                            var a = items[i];
-                                            var hit = q === ''
-                                                || (a.dataset.label || '').indexOf(q) !== -1
-                                                || (a.dataset.native || '').indexOf(q) !== -1
-                                                || (a.dataset.code || '').indexOf(q) === 0;
-                                            a.hidden = !hit;
-                                            if (hit) visibleCount++;
-                                        }
-                                        if (emptyState) emptyState.hidden = visibleCount > 0;
-                                    });
-
-                                    // Don't let the dropdown's outside-click handler eat clicks inside the input.
-                                    input.addEventListener('click', function (e) { e.stopPropagation(); });
-                                    input.addEventListener('keydown', function (e) {
-                                        if (e.key === 'Escape') {
-                                            input.value = '';
-                                            input.dispatchEvent(new Event('input'));
-                                        }
-                                    });
-                                })();
-                            </script>
+                            </template>
                         @endif
                     </div>
                 </div>

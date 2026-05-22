@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Laravel",
-        "version": "0.1.0"
+        "version": "0.0.1"
     },
     "servers": [
         {
@@ -91,6 +91,335 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/restaurants/{restaurant}/bills": {
+            "get": {
+                "operationId": "bill.index",
+                "tags": [
+                    "Bill"
+                ],
+                "parameters": [
+                    {
+                        "name": "restaurant",
+                        "in": "path",
+                        "required": true,
+                        "description": "The restaurant ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `BillResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BillResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/bills/{bill}": {
+            "get": {
+                "operationId": "bill.show",
+                "tags": [
+                    "Bill"
+                ],
+                "parameters": [
+                    {
+                        "name": "bill",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bill ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BillResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BillResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/bills/{bill}/close": {
+            "post": {
+                "operationId": "bill.close",
+                "tags": [
+                    "Bill"
+                ],
+                "parameters": [
+                    {
+                        "name": "bill",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bill ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BillResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BillResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/bills/{bill}/split": {
+            "post": {
+                "operationId": "bill.split",
+                "tags": [
+                    "Bill"
+                ],
+                "parameters": [
+                    {
+                        "name": "bill",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bill ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SplitBillRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Array of `BillResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BillResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -456,6 +785,39 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/public/icons": {
+            "get": {
+                "operationId": "public.icons.index",
+                "description": "Returns the alphabetically-sorted set of icon names that the frontend\ncan reference via `<use href=\"/menu-sprite.svg#<name>\"/>`. Names are\nstable identifiers; clients should treat them as opaque strings.",
+                "summary": "List all renderable icons",
+                "tags": [
+                    "Icon"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -903,7 +1265,7 @@
         "/v1/restaurants/{restaurant}/menus": {
             "get": {
                 "operationId": "menu.index",
-                "summary": "List all menus for a restaurant",
+                "summary": "List the menu(s) for a restaurant. After the multi-menu collapse, every\nrestaurant has at most one menu \u2014 the response is a collection of 0 or 1",
                 "tags": [
                     "Menu"
                 ],
@@ -1015,7 +1377,7 @@
         "/v1/menus/{menu}": {
             "get": {
                 "operationId": "menu.full",
-                "summary": "Return a full menu tree: sections → items → option groups → options (with translations)",
+                "summary": "Return a full menu tree: sections \u2192 items \u2192 option groups \u2192 options (with translations)",
                 "tags": [
                     "Menu"
                 ],
@@ -1259,7 +1621,7 @@
         "/v1/menu-analyses": {
             "post": {
                 "operationId": "menuAnalysis.store",
-                "description": "Default is async: returns `202 Accepted` with `data.id = <uuid>` and\n`data.attributes.status = \"pending\"`. The caller then polls\n`GET /v1/menu-analyses/{uuid}` until the status reaches a terminal value —\nthere is no webhook or push channel.\n\nPass `sync=1` to run the analysis inline (useful for dev/testing) — the\nrequest blocks until the LLM cascade returns and responds `200` with the\nfull menu inline. Can take tens of seconds to minutes; not recommended\nfrom a UI.",
+                "description": "Default is async: returns `202 Accepted` with `data.id = <uuid>` and\n`data.attributes.status = \"pending\"`. The caller then polls\n`GET /v1/menu-analyses/{uuid}` until the status reaches a terminal value \u2014\nthere is no webhook or push channel.\n\nPass `sync=1` to run the analysis inline (useful for dev/testing) \u2014 the\nrequest blocks until the LLM cascade returns and responds `200` with the\nfull menu inline. Can take tens of seconds to minutes; not recommended\nfrom a UI.",
                 "summary": "Upload menu photos and start (or run inline) an analysis",
                 "tags": [
                     "MenuAnalysis"
@@ -1401,7 +1763,7 @@
         "/v1/menu-analyses/{uuid}": {
             "get": {
                 "operationId": "menuAnalysis.show",
-                "description": "Call this every 2–3 seconds after a 202 response from `POST /v1/menu-analyses`\nuntil `data.attributes.status` reaches a terminal value. There is no webhook or\npush channel — polling is the only mechanism to learn that the menu is ready.\n\nStatus lifecycle: `pending` → `processing` → `completed` | `failed`.\nOn `completed`: `attributes.menu`, `saved_menu_id`, `saved_restaurant_id`, `item_count`.\nOn `failed`: `attributes.error_message`.",
+                "description": "Call this every 2\u20133 seconds after a 202 response from `POST /v1/menu-analyses`\nuntil `data.attributes.status` reaches a terminal value. There is no webhook or\npush channel \u2014 polling is the only mechanism to learn that the menu is ready.\n\nStatus lifecycle: `pending` \u2192 `processing` \u2192 `completed` | `failed`.\nOn `completed`: `attributes.menu`, `saved_menu_id`, `saved_restaurant_id`, `item_count`.\nOn `failed`: `attributes.error_message`.",
                 "summary": "Poll an async menu analysis by UUID",
                 "tags": [
                     "MenuAnalysis"
@@ -2576,6 +2938,374 @@
                 }
             }
         },
+        "/v1/restaurants/{restaurant}/orders": {
+            "get": {
+                "operationId": "order.index",
+                "tags": [
+                    "Order"
+                ],
+                "parameters": [
+                    {
+                        "name": "restaurant",
+                        "in": "path",
+                        "required": true,
+                        "description": "The restaurant ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `OrderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/OrderResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/orders/{order}": {
+            "get": {
+                "operationId": "order.show",
+                "tags": [
+                    "Order"
+                ],
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`OrderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OrderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "order.update",
+                "tags": [
+                    "Order"
+                ],
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateOrderRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`OrderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OrderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "order.destroy",
+                "tags": [
+                    "Order"
+                ],
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/order-items/{orderItem}": {
+            "patch": {
+                "operationId": "orderItem.update",
+                "tags": [
+                    "OrderItem"
+                ],
+                "parameters": [
+                    {
+                        "name": "orderItem",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order item ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateOrderItemKitchenStatusRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`OrderItemResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OrderItemResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/user/password": {
             "put": {
                 "operationId": "user-password.update",
@@ -2630,6 +3360,88 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/public/orders": {
+            "post": {
+                "operationId": "public.orders.store",
+                "tags": [
+                    "PublicOrder"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorePublicOrderRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`OrderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/OrderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/public/orders/{guestToken}": {
+            "get": {
+                "operationId": "public.orders.show",
+                "tags": [
+                    "PublicOrder"
+                ],
+                "parameters": [
+                    {
+                        "name": "guestToken",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `OrderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/OrderResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2750,7 +3562,7 @@
         "/v1/restaurants/active-menus": {
             "get": {
                 "operationId": "restaurant.activeMenus",
-                "summary": "Active menus with sections and items for all owned restaurants",
+                "summary": "Menus (one per restaurant) with sections and items for all owned restaurants",
                 "tags": [
                     "Restaurant"
                 ],
@@ -2954,6 +3766,147 @@
                                 "schema": {
                                     "type": "string",
                                     "const": "public, max-age=86400"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/menus/{menu}/translations/{locale}/events": {
+            "get": {
+                "operationId": "menu-translations.events",
+                "description": "Intentionally public \u2014 anonymous QR-scanning users on the public menu\npage need to know when translations land so the page can refresh.\nTopic content is harmless (chunk counts, no menu data).",
+                "summary": "Stream events for a translation run (`menu-translation.{menuId}.{locale}` topic)",
+                "tags": [
+                    "SseEvents"
+                ],
+                "parameters": [
+                    {
+                        "name": "menu",
+                        "in": "path",
+                        "required": true,
+                        "description": "The menu ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "locale",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/v1/menu-analyses/{uuid}/events": {
+            "get": {
+                "operationId": "menu-analyses.events",
+                "description": "Per-pack progress: started \u2192 chunk-complete (\u00d7N) \u2192 completed/failed.",
+                "summary": "Stream events for a menu analysis (`menu-analysis.{uuid}` topic)",
+                "tags": [
+                    "SseEvents"
+                ],
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/restaurants/{restaurant}/orders/events": {
+            "get": {
+                "operationId": "restaurant-orders.events",
+                "description": "Long-lived stream; never terminates on its own (kitchen/waiter dashboards\nstay subscribed for the whole shift). Disconnect happens when the client\nnavigates away or the idle cap kicks in.",
+                "summary": "Stream order events for a restaurant (`restaurant-orders.{id}` topic)",
+                "tags": [
+                    "SseEvents"
+                ],
+                "parameters": [
+                    {
+                        "name": "restaurant",
+                        "in": "path",
+                        "required": true,
+                        "description": "The restaurant ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
                                 }
                             }
                         }
@@ -3217,596 +4170,6 @@
                     }
                 }
             }
-        },
-        "/v1/public/orders": {
-            "post": {
-                "operationId": "public.orders.store",
-                "summary": "Place an order from public menu (no auth)",
-                "description": "Anonymous guests submit cart from the QR-scanned menu. Server snapshots prices from menu_items (anti-tamper). Sets guest_token cookie for follow-up queries.",
-                "tags": [
-                    "PublicOrders"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StorePublicOrderRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Order created.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/OrderResource"
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "headers": {
-                            "Set-Cookie": {
-                                "schema": {
-                                    "type": "string",
-                                    "example": "guest_token=550e8400-e29b-41d4-a716-446655440000; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "429": {
-                        "description": "Throttled."
-                    }
-                }
-            }
-        },
-        "/v1/public/orders/{guestToken}": {
-            "get": {
-                "operationId": "public.orders.show",
-                "summary": "List orders for a guest token",
-                "tags": [
-                    "PublicOrders"
-                ],
-                "parameters": [
-                    {
-                        "name": "guestToken",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/OrderResource"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/restaurants/{restaurant}/orders": {
-            "get": {
-                "operationId": "restaurants.orders.index",
-                "summary": "List orders for a restaurant",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "restaurant",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "pending",
-                                "in_progress",
-                                "completed",
-                                "cancelled"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "dining_table_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "bill_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 50
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/OrderResource"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    }
-                }
-            }
-        },
-        "/v1/restaurants/{restaurant}/orders/events": {
-            "get": {
-                "operationId": "restaurants.orders.events",
-                "summary": "Subscribe to SSE stream of order events",
-                "description": "Long-lived `text/event-stream` connection. Events: `order.placed`, `order.status-changed`, `order-item.kitchen-status-changed`, `bill.closed`, `bill.split`. Supports `Last-Event-ID` for resume.",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "restaurant",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "Last-Event-ID",
-                        "in": "header",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Event stream.",
-                        "content": {
-                            "text/event-stream": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    }
-                }
-            }
-        },
-        "/v1/orders/{order}": {
-            "get": {
-                "operationId": "orders.show",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "order",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/OrderResource"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            },
-            "patch": {
-                "operationId": "orders.update",
-                "summary": "Update order status (transitions enforced).",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "order",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateOrderRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/OrderResource"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "orders.destroy",
-                "summary": "Soft-cancel order (sets status=cancelled).",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "order",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Cancelled."
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/order-items/{orderItem}": {
-            "patch": {
-                "operationId": "orderItems.update",
-                "summary": "Update kitchen status for an order item.",
-                "tags": [
-                    "Orders"
-                ],
-                "parameters": [
-                    {
-                        "name": "orderItem",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateOrderItemKitchenStatusRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/OrderItemResource"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    }
-                }
-            }
-        },
-        "/v1/restaurants/{restaurant}/bills": {
-            "get": {
-                "operationId": "restaurants.bills.index",
-                "tags": [
-                    "Bills"
-                ],
-                "parameters": [
-                    {
-                        "name": "restaurant",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "open",
-                                "closed"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "dining_table_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/BillResource"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    }
-                }
-            }
-        },
-        "/v1/bills/{bill}": {
-            "get": {
-                "operationId": "bills.show",
-                "tags": [
-                    "Bills"
-                ],
-                "parameters": [
-                    {
-                        "name": "bill",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/BillResource"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/bills/{bill}/close": {
-            "post": {
-                "operationId": "bills.close",
-                "summary": "Close a bill — recalculates total_amount, sets closed_at.",
-                "tags": [
-                    "Bills"
-                ],
-                "parameters": [
-                    {
-                        "name": "bill",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/BillResource"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/v1/bills/{bill}/split": {
-            "post": {
-                "operationId": "bills.split",
-                "summary": "Split bill into multiple closed bills.",
-                "tags": [
-                    "Bills"
-                ],
-                "parameters": [
-                    {
-                        "name": "bill",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SplitBillRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/BillResource"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
         }
     },
     "components": {
@@ -3862,6 +4225,81 @@
                     "item_ids"
                 ],
                 "title": "AttachDetachItemsRequest"
+            },
+            "BillResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "dining_table_id": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/BillStatus"
+                    },
+                    "total_amount": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "opened_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "closed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "closed_by_user_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "dining_table_id",
+                    "status",
+                    "total_amount",
+                    "currency",
+                    "opened_at",
+                    "closed_at",
+                    "closed_by_user_id",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "BillResource"
+            },
+            "BillStatus": {
+                "type": "string",
+                "enum": [
+                    "open",
+                    "closed"
+                ],
+                "title": "BillStatus"
             },
             "DiningTableResource": {
                 "type": "object",
@@ -3995,9 +4433,6 @@
                     "detected_date": {
                         "type": "string"
                     },
-                    "is_active": {
-                        "type": "boolean"
-                    },
                     "locales": {
                         "type": "array",
                         "items": {
@@ -4034,27 +4469,8 @@
                                         "null"
                                     ]
                                 },
-                                "icon": {
-                                    "type": [
-                                        "object",
-                                        "null"
-                                    ],
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "svg": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "id",
-                                        "name",
-                                        "svg"
-                                    ]
+                                "icon_name": {
+                                    "type": "string"
                                 },
                                 "is_active": {
                                     "type": "boolean"
@@ -4224,7 +4640,8 @@
                                             "name",
                                             "description",
                                             "starred",
-                                            "is_active",
+                                            "is_visible",
+                                            "is_orderable",
                                             "price_type",
                                             "price_value",
                                             "price_min",
@@ -4243,7 +4660,7 @@
                             "required": [
                                 "id",
                                 "name",
-                                "icon",
+                                "icon_name",
                                 "is_active",
                                 "sort_order",
                                 "items"
@@ -4257,7 +4674,6 @@
                     "source_locale",
                     "locale",
                     "detected_date",
-                    "is_active",
                     "locales",
                     "sections"
                 ],
@@ -4355,10 +4771,10 @@
                         ],
                         "format": "date-time"
                     },
-                    "is_visible": {
+                    "is_orderable": {
                         "type": "boolean"
                     },
-                    "is_orderable": {
+                    "is_visible": {
                         "type": "boolean"
                     },
                     "name": {
@@ -4389,8 +4805,8 @@
                     "sort_order",
                     "created_at",
                     "updated_at",
-                    "is_visible",
                     "is_orderable",
+                    "is_visible",
                     "name",
                     "description",
                     "image_url",
@@ -4611,6 +5027,9 @@
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "icon_name": {
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -4621,9 +5040,212 @@
                     "updated_at",
                     "icon_id",
                     "is_active",
-                    "name"
+                    "name",
+                    "icon_name"
                 ],
                 "title": "MenuSectionResource"
+            },
+            "OrderItemKitchenStatus": {
+                "type": "string",
+                "enum": [
+                    "waiting",
+                    "cooking",
+                    "ready",
+                    "served",
+                    "cancelled"
+                ],
+                "title": "OrderItemKitchenStatus"
+            },
+            "OrderItemResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "order_id": {
+                        "type": "integer"
+                    },
+                    "menu_item_id": {
+                        "type": "integer"
+                    },
+                    "variation_option_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "unit_price": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "selected_options": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {}
+                    },
+                    "kitchen_status": {
+                        "$ref": "#/components/schemas/OrderItemKitchenStatus"
+                    },
+                    "started_cooking_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ready_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "served_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "order_id",
+                    "menu_item_id",
+                    "variation_option_id",
+                    "quantity",
+                    "unit_price",
+                    "currency",
+                    "selected_options",
+                    "kitchen_status",
+                    "started_cooking_at",
+                    "ready_at",
+                    "served_at",
+                    "note",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "OrderItemResource"
+            },
+            "OrderResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "bill_id": {
+                        "type": "integer"
+                    },
+                    "guest_token": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/OrderStatus"
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "placed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "started_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "completed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cancelled_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cancelled_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "bill_id",
+                    "guest_token",
+                    "status",
+                    "note",
+                    "placed_at",
+                    "started_at",
+                    "completed_at",
+                    "cancelled_at",
+                    "cancelled_reason",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "OrderResource"
+            },
+            "OrderStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                ],
+                "title": "OrderStatus"
             },
             "PriceType": {
                 "type": "string",
@@ -4802,6 +5424,34 @@
                 ],
                 "title": "SendPasswordResetLinkRequest"
             },
+            "SplitBillRequest": {
+                "type": "object",
+                "properties": {
+                    "splits": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "order_item_ids": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer"
+                                    },
+                                    "minItems": 1
+                                }
+                            },
+                            "required": [
+                                "order_item_ids"
+                            ]
+                        },
+                        "minItems": 2
+                    }
+                },
+                "required": [
+                    "splits"
+                ],
+                "title": "SplitBillRequest"
+            },
             "StoreDiningTableRequest": {
                 "type": "object",
                 "properties": {
@@ -4929,15 +5579,13 @@
                         "type": [
                             "boolean",
                             "null"
-                        ],
-                        "description": "Whether the item is shown in the public menu. Default true."
+                        ]
                     },
                     "is_orderable": {
                         "type": [
                             "boolean",
                             "null"
-                        ],
-                        "description": "Whether the item can be added to a cart / ordered. Default true. `is_visible=true` + `is_orderable=false` is the \"shown but out of stock\" state."
+                        ]
                     }
                 },
                 "required": [
@@ -5049,12 +5697,6 @@
                             "null"
                         ],
                         "format": "date-time"
-                    },
-                    "is_active": {
-                        "type": [
-                            "boolean",
-                            "null"
-                        ]
                     }
                 },
                 "required": [
@@ -5076,11 +5718,12 @@
                         ],
                         "minimum": 0
                     },
-                    "icon_id": {
+                    "icon_name": {
                         "type": [
-                            "integer",
+                            "string",
                             "null"
-                        ]
+                        ],
+                        "maxLength": 100
                     },
                     "is_active": {
                         "type": [
@@ -5093,6 +5736,94 @@
                     "name"
                 ],
                 "title": "StoreMenuSectionRequest"
+            },
+            "StorePublicOrderRequest": {
+                "type": "object",
+                "properties": {
+                    "restaurant_uniqid": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 32
+                    },
+                    "table_uniqid": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 32
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "menu_item_id": {
+                                    "type": "integer"
+                                },
+                                "variation_option_id": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 99
+                                },
+                                "note": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 255
+                                },
+                                "selected_options": {
+                                    "type": [
+                                        "array",
+                                        "null"
+                                    ],
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "group_id": {
+                                                "type": "integer"
+                                            },
+                                            "option_ids": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer"
+                                                },
+                                                "minItems": 1
+                                            }
+                                        },
+                                        "required": [
+                                            "group_id",
+                                            "option_ids"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "menu_item_id",
+                                "quantity"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 100
+                    }
+                },
+                "required": [
+                    "restaurant_uniqid",
+                    "table_uniqid",
+                    "items"
+                ],
+                "title": "StorePublicOrderRequest"
             },
             "StoreRestaurantRequest": {
                 "type": "object",
@@ -5345,12 +6076,10 @@
                         "minimum": 0
                     },
                     "is_visible": {
-                        "type": "boolean",
-                        "description": "Whether the item is shown in the public menu."
+                        "type": "boolean"
                     },
                     "is_orderable": {
-                        "type": "boolean",
-                        "description": "Whether the item can be added to a cart / ordered."
+                        "type": "boolean"
                     }
                 },
                 "title": "UpdateMenuItemRequest"
@@ -5432,9 +6161,6 @@
                             "null"
                         ],
                         "format": "date-time"
-                    },
-                    "is_active": {
-                        "type": "boolean"
                     }
                 },
                 "title": "UpdateMenuRequest"
@@ -5450,17 +6176,49 @@
                         "type": "integer",
                         "minimum": 0
                     },
-                    "icon_id": {
+                    "icon_name": {
                         "type": [
-                            "integer",
+                            "string",
                             "null"
-                        ]
+                        ],
+                        "maxLength": 100
                     },
                     "is_active": {
                         "type": "boolean"
                     }
                 },
                 "title": "UpdateMenuSectionRequest"
+            },
+            "UpdateOrderItemKitchenStatusRequest": {
+                "type": "object",
+                "properties": {
+                    "kitchen_status": {
+                        "$ref": "#/components/schemas/OrderItemKitchenStatus"
+                    }
+                },
+                "required": [
+                    "kitchen_status"
+                ],
+                "title": "UpdateOrderItemKitchenStatusRequest"
+            },
+            "UpdateOrderRequest": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/OrderStatus"
+                    },
+                    "cancelled_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "status"
+                ],
+                "title": "UpdateOrderRequest"
             },
             "UpdateRestaurantRequest": {
                 "type": "object",
@@ -5660,338 +6418,6 @@
                     "thumb_url"
                 ],
                 "title": "ZoneResource"
-            },
-            "StorePublicOrderRequest": {
-                "type": "object",
-                "required": [
-                    "restaurant_uniqid",
-                    "table_uniqid",
-                    "items"
-                ],
-                "properties": {
-                    "restaurant_uniqid": {
-                        "type": "string",
-                        "minLength": 8,
-                        "maxLength": 32
-                    },
-                    "table_uniqid": {
-                        "type": "string",
-                        "minLength": 8,
-                        "maxLength": 32
-                    },
-                    "note": {
-                        "type": "string",
-                        "maxLength": 500,
-                        "nullable": true
-                    },
-                    "items": {
-                        "type": "array",
-                        "minItems": 1,
-                        "maxItems": 100,
-                        "items": {
-                            "type": "object",
-                            "required": [
-                                "menu_item_id",
-                                "quantity"
-                            ],
-                            "properties": {
-                                "menu_item_id": {
-                                    "type": "integer"
-                                },
-                                "variation_option_id": {
-                                    "type": "integer",
-                                    "nullable": true
-                                },
-                                "quantity": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 99
-                                },
-                                "note": {
-                                    "type": "string",
-                                    "maxLength": 255,
-                                    "nullable": true
-                                },
-                                "selected_options": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "group_id",
-                                            "option_ids"
-                                        ],
-                                        "properties": {
-                                            "group_id": {
-                                                "type": "integer"
-                                            },
-                                            "option_ids": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "integer"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "UpdateOrderRequest": {
-                "type": "object",
-                "required": [
-                    "status"
-                ],
-                "properties": {
-                    "status": {
-                        "type": "string",
-                        "enum": [
-                            "pending",
-                            "in_progress",
-                            "completed",
-                            "cancelled"
-                        ]
-                    },
-                    "cancelled_reason": {
-                        "type": "string",
-                        "maxLength": 255,
-                        "nullable": true
-                    }
-                }
-            },
-            "UpdateOrderItemKitchenStatusRequest": {
-                "type": "object",
-                "required": [
-                    "kitchen_status"
-                ],
-                "properties": {
-                    "kitchen_status": {
-                        "type": "string",
-                        "enum": [
-                            "waiting",
-                            "cooking",
-                            "ready",
-                            "served",
-                            "cancelled"
-                        ]
-                    }
-                }
-            },
-            "SplitBillRequest": {
-                "type": "object",
-                "required": [
-                    "splits"
-                ],
-                "properties": {
-                    "splits": {
-                        "type": "array",
-                        "minItems": 2,
-                        "items": {
-                            "type": "object",
-                            "required": [
-                                "order_item_ids"
-                            ],
-                            "properties": {
-                                "order_item_ids": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {
-                                        "type": "integer"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "OrderItemResource": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string",
-                        "const": "order_items"
-                    },
-                    "attributes": {
-                        "type": "object",
-                        "properties": {
-                            "menu_item_id": {
-                                "type": "integer"
-                            },
-                            "variation_option_id": {
-                                "type": "integer",
-                                "nullable": true
-                            },
-                            "quantity": {
-                                "type": "integer"
-                            },
-                            "unit_price": {
-                                "type": "string"
-                            },
-                            "currency": {
-                                "type": "string"
-                            },
-                            "selected_options": {
-                                "nullable": true
-                            },
-                            "kitchen_status": {
-                                "type": "string",
-                                "enum": [
-                                    "waiting",
-                                    "cooking",
-                                    "ready",
-                                    "served",
-                                    "cancelled"
-                                ]
-                            },
-                            "started_cooking_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "ready_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "served_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "note": {
-                                "type": "string",
-                                "nullable": true
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        }
-                    }
-                }
-            },
-            "OrderResource": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string",
-                        "const": "orders"
-                    },
-                    "attributes": {
-                        "type": "object",
-                        "properties": {
-                            "bill_id": {
-                                "type": "integer",
-                                "nullable": true
-                            },
-                            "guest_token": {
-                                "type": "string",
-                                "format": "uuid"
-                            },
-                            "status": {
-                                "type": "string",
-                                "enum": [
-                                    "pending",
-                                    "in_progress",
-                                    "completed",
-                                    "cancelled"
-                                ]
-                            },
-                            "note": {
-                                "type": "string",
-                                "nullable": true
-                            },
-                            "placed_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "started_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "completed_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "cancelled_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "cancelled_reason": {
-                                "type": "string",
-                                "nullable": true
-                            }
-                        }
-                    },
-                    "relationships": {
-                        "type": "object",
-                        "properties": {
-                            "items": {
-                                "type": "object"
-                            },
-                            "bill": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                }
-            },
-            "BillResource": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string",
-                        "const": "bills"
-                    },
-                    "attributes": {
-                        "type": "object",
-                        "properties": {
-                            "dining_table_id": {
-                                "type": "integer"
-                            },
-                            "status": {
-                                "type": "string",
-                                "enum": [
-                                    "open",
-                                    "closed"
-                                ]
-                            },
-                            "total_amount": {
-                                "type": "string",
-                                "nullable": true
-                            },
-                            "currency": {
-                                "type": "string"
-                            },
-                            "opened_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "closed_at": {
-                                "type": "string",
-                                "format": "date-time",
-                                "nullable": true
-                            },
-                            "closed_by_user_id": {
-                                "type": "integer",
-                                "nullable": true
-                            }
-                        }
-                    }
-                }
             }
         },
         "responses": {
@@ -6044,8 +6470,8 @@
                     }
                 }
             },
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "ModelNotFoundException": {
+                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -6063,8 +6489,8 @@
                     }
                 }
             },
-            "ModelNotFoundException": {
-                "description": "Not found",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {

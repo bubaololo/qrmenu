@@ -18,7 +18,7 @@ class MenuSection extends Model
     use HasTranslations;
 
     /** @var array<int, string> */
-    protected $appends = ['name'];
+    protected $appends = ['name', 'icon_name'];
 
     protected $fillable = [
         'menu_id',
@@ -67,6 +67,21 @@ class MenuSection extends Model
     public function icon(): BelongsTo
     {
         return $this->belongsTo(Icon::class);
+    }
+
+    /**
+     * String name of the linked icon (e.g. "pizza") so the API can expose a
+     * stable identifier without leaking the FK id. JsonApiResource appends
+     * this via $appends; eager-load the icon relation in queries to avoid
+     * a LazyLoadingViolation (preventLazyLoading is on in non-prod envs).
+     */
+    public function getIconNameAttribute(): ?string
+    {
+        if (! $this->relationLoaded('icon')) {
+            return null;
+        }
+
+        return $this->icon?->name;
     }
 
     public function items(): HasMany

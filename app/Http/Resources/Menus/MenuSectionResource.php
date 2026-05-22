@@ -14,7 +14,7 @@ class MenuSectionResource extends JsonApiResource
     public $attributes = [
         'name',
         'sort_order',
-        'icon_id',
+        'icon_name',
         'is_active',
     ];
 
