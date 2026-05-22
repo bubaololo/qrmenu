@@ -982,6 +982,54 @@ const App = {
   },
 
   // ============================================================
+  // Lang dropdown — lazy populate
+  // ============================================================
+
+  /**
+   * Populate #lang-all-list from #tpl-lang-options on first open.
+   * Until this runs, native language names live inside an inert <template>
+   * — browsers don't trigger unicode-range font fetches for that content,
+   * so the page's initial paint only fetches subsets needed for visible text.
+   */
+  _lazyInitLangDropdown() {
+    const list = document.getElementById('lang-all-list');
+    const tpl = document.getElementById('tpl-lang-options');
+    if (!list || !tpl || list.dataset.populated) return;
+
+    list.insertBefore(tpl.content.cloneNode(true), list.firstChild);
+    list.dataset.populated = '1';
+
+    const input = document.getElementById('lang-search-input');
+    const emptyState = document.getElementById('lang-no-results');
+    if (!input) return;
+
+    const items = Array.prototype.slice.call(list.querySelectorAll('a.lang-option'));
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      let visibleCount = 0;
+      for (const a of items) {
+        const hit = q === ''
+          || (a.dataset.label || '').indexOf(q) !== -1
+          || (a.dataset.native || '').indexOf(q) !== -1
+          || (a.dataset.code || '').indexOf(q) === 0;
+        a.hidden = !hit;
+        if (hit) visibleCount++;
+      }
+      if (emptyState) emptyState.hidden = visibleCount > 0;
+    });
+
+    // Don't let the dropdown's outside-click handler eat clicks inside the input.
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        input.dispatchEvent(new Event('input'));
+      }
+    });
+  },
+
+  // ============================================================
   // Event Delegation
   // ============================================================
 
@@ -1002,6 +1050,7 @@ const App = {
       // Language dropdown toggle
       if (e.target.closest('#lang-toggle')) {
         const dropdown = document.getElementById('lang-switcher');
+        this._lazyInitLangDropdown();
         dropdown.classList.toggle('open');
         e.stopPropagation();
         return;

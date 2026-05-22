@@ -27,19 +27,18 @@ class MenuSectionController extends Controller
         Gate::authorize('update', $menu);
 
         $validated = $request->validated();
-        $iconId = $this->resolveIconId($validated);
 
         $section = MenuSection::create([
             'menu_id' => $menu->id,
             'sort_order' => $validated['sort_order'] ?? 0,
-            'icon_id' => $iconId,
+            'icon_id' => $this->iconIdByName($validated['icon_name'] ?? null),
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
         $sourceLocale = $menu->source_locale ?? 'und';
         $section->setTranslation('name', $sourceLocale, $validated['name'], isInitial: true);
 
-        return (new MenuSectionResource($section->fresh()))
+        return (new MenuSectionResource($section->fresh('icon')))
             ->response()
             ->setStatusCode(201);
     }
@@ -54,9 +53,9 @@ class MenuSectionController extends Controller
         $validated = $request->validated();
 
         if (array_key_exists('icon_name', $validated)) {
-            $validated['icon_id'] = $this->resolveIconId($validated);
+            $validated['icon_id'] = $this->iconIdByName($validated['icon_name']);
+            unset($validated['icon_name']);
         }
-        unset($validated['icon_name']);
 
         if (isset($validated['name'])) {
             $sourceLocale = $menuSection->menu->source_locale ?? 'und';
@@ -65,11 +64,11 @@ class MenuSectionController extends Controller
             unset($validated['name']);
         }
 
-        if (! empty($validated) || array_key_exists('icon_id', $validated)) {
+        if (! empty($validated)) {
             $menuSection->update($validated);
         }
 
-        return new MenuSectionResource($menuSection->fresh());
+        return new MenuSectionResource($menuSection->fresh('icon'));
     }
 
     /**
@@ -99,33 +98,22 @@ class MenuSectionController extends Controller
             }
         }
 
-        return MenuSectionResource::collection($menu->sections()->orderBy('sort_order')->get());
+        return MenuSectionResource::collection(
+            $menu->sections()->with('icon')->orderBy('sort_order')->get(),
+        );
     }
 
     /**
-     * Resolve the icon id from validated input.
-     *
-     * Callers may pass `icon_id` (FK) directly, or `icon_name` to be looked up
-     * via firstOrCreate — matching the pattern in SaveMenuAnalysisAction.
-     * Explicit null on either key clears the icon.
-     *
-     * @param  array<string, mixed>  $validated
+     * Resolve icon row id by name. Null or empty name clears the icon.
+     * Name is already validated via Rule::exists('icons','name') in the request,
+     * so a non-empty string is guaranteed to resolve.
      */
-    private function resolveIconId(array $validated): ?int
+    private function iconIdByName(?string $name): ?int
     {
-        if (array_key_exists('icon_id', $validated)) {
-            return $validated['icon_id'] !== null ? (int) $validated['icon_id'] : null;
+        if ($name === null || $name === '') {
+            return null;
         }
 
-        if (array_key_exists('icon_name', $validated)) {
-            $name = $validated['icon_name'];
-            if ($name === null || $name === '') {
-                return null;
-            }
-
-            return Icon::firstOrCreate(['name' => $name])->id;
-        }
-
-        return null;
+        return Icon::where('name', $name)->value('id');
     }
 }

@@ -726,6 +726,13 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 .lang-current:hover { border-color: var(--border-strong); }
 .lang-current:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+/* Explicit emoji-font stack for flag spans — browsers don't always fall through
+   the inherited stack to the OS emoji font reliably, especially when content is
+   cloned from a <template> on demand. */
+.lang-flag {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+               "Twemoji Mozilla", "EmojiOne Color", emoji, system-ui, sans-serif;
+}
 .lang-current .lang-flag { font-size: 16px; line-height: 1; }
 .lang-current .lang-code { color: var(--foreground); }
 .lang-current .lang-arrow { color: var(--muted-foreground); transition: transform var(--dur) var(--ease); flex-shrink: 0; }

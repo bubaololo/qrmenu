@@ -223,7 +223,7 @@ class SaveMenuAnalysisAction
         $iconName = $this->validateIconName($sectionData['category_icon'] ?? null);
         $section = $menu->sections()->create([
             'sort_order' => $sortOrder,
-            'icon_id' => $iconName !== null ? Icon::firstOrCreate(['name' => $iconName])->id : null,
+            'icon_id' => $iconName !== null ? Icon::where('name', $iconName)->value('id') : null,
         ]);
 
         $locale = $sourceLocale ?? 'und';
