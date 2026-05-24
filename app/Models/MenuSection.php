@@ -33,8 +33,8 @@ class MenuSection extends Model
     protected static function booted(): void
     {
         static::saved(function (MenuSection $section) {
-            $locale = $section->menu?->source_locale ?? 'und';
-            if ($section->pendingName !== null && $locale && $locale !== 'mixed') {
+            $locale = $section->menu?->source_locale;
+            if ($section->pendingName !== null && $locale !== null && $locale !== 'mixed') {
                 $section->setTranslation('name', $locale, $section->pendingName, true);
                 $section->pendingName = null;
             }

@@ -144,6 +144,8 @@ class SaveMenuAnalysisAction
         }
 
         $updates = array_filter([
+            'name' => MenuJson::extractText($r['name'] ?? null),
+            'address' => MenuJson::extractText($r['address'] ?? null),
             'city' => isset($r['city']) ? (string) $r['city'] : null,
             'country' => isset($r['country']) ? (string) $r['country'] : null,
             'phone' => isset($r['phone']) ? (string) $r['phone'] : null,
@@ -156,20 +158,6 @@ class SaveMenuAnalysisAction
 
         if (! empty($updates)) {
             $restaurant->update($updates);
-        }
-
-        $locale = is_string($r['primary_language'] ?? null) && ($r['primary_language'] ?? '') !== ''
-            ? (string) $r['primary_language']
-            : 'und';
-
-        $name = MenuJson::extractText($r['name'] ?? null);
-        if ($name !== null) {
-            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
-        }
-
-        $address = MenuJson::extractText($r['address'] ?? null);
-        if ($address !== null) {
-            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
         }
     }
 
@@ -196,22 +184,19 @@ class SaveMenuAnalysisAction
         if (isset($r['opening_hours']) && is_array($r['opening_hours']) && $restaurant->opening_hours === null) {
             $updates['opening_hours'] = $r['opening_hours'];
         }
-        if (! empty($updates)) {
-            $restaurant->update($updates);
-        }
-
-        $locale = is_string($r['primary_language'] ?? null) && $r['primary_language'] !== ''
-            ? (string) $r['primary_language']
-            : ($restaurant->primary_language ?? 'und');
 
         $name = MenuJson::extractText($r['name'] ?? null);
-        if ($name !== null && $restaurant->initialText('name') === null) {
-            $restaurant->setTranslation('name', $locale, $name, isInitial: true);
+        if ($name !== null && empty($restaurant->name)) {
+            $updates['name'] = $name;
         }
 
         $address = MenuJson::extractText($r['address'] ?? null);
-        if ($address !== null && $restaurant->initialText('address') === null) {
-            $restaurant->setTranslation('address', $locale, $address, isInitial: true);
+        if ($address !== null && empty($restaurant->address)) {
+            $updates['address'] = $address;
+        }
+
+        if (! empty($updates)) {
+            $restaurant->update($updates);
         }
     }
 
@@ -226,9 +211,13 @@ class SaveMenuAnalysisAction
             'icon_id' => $iconName !== null ? Icon::where('name', $iconName)->value('id') : null,
         ]);
 
-        $locale = $sourceLocale ?? 'und';
+        // Initial translations require a concrete source locale; mixed-language
+        // menus and OCR results without a detected language leave items
+        // untranslated until the user edits them.
+        $locale = ($sourceLocale !== null && $sourceLocale !== 'mixed') ? $sourceLocale : null;
+
         $name = MenuJson::extractText($sectionData['category_name'] ?? null);
-        if ($name !== null) {
+        if ($name !== null && $locale !== null) {
             $section->setTranslation('name', $locale, $name, isInitial: true);
         }
 
@@ -251,7 +240,7 @@ class SaveMenuAnalysisAction
     /**
      * @param  array<string, mixed>  $itemData
      */
-    private function createItem(MenuSection $section, array $itemData, int $index, string $locale, int $imageOffset): MenuItem
+    private function createItem(MenuSection $section, array $itemData, int $index, ?string $locale, int $imageOffset): MenuItem
     {
         $price = is_array($itemData['price'] ?? null) ? $itemData['price'] : [];
 
@@ -275,12 +264,12 @@ class SaveMenuAnalysisAction
         ]);
 
         $name = MenuJson::extractText($itemData['name'] ?? null);
-        if ($name !== null) {
+        if ($name !== null && $locale !== null) {
             $item->setTranslation('name', $locale, $name, isInitial: true);
         }
 
         $description = MenuJson::extractText($itemData['description'] ?? null);
-        if ($description !== null) {
+        if ($description !== null && $locale !== null) {
             $item->setTranslation('description', $locale, $description, isInitial: true);
         }
 
@@ -293,7 +282,7 @@ class SaveMenuAnalysisAction
      *
      * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}>  $itemEntries
      */
-    private function deduplicateAndAttachGroups(MenuSection $section, array $itemEntries, string $locale): void
+    private function deduplicateAndAttachGroups(MenuSection $section, array $itemEntries, ?string $locale): void
     {
         // registry: key => ['data' => groupData, 'isVariation' => bool, 'itemIds' => int[], 'sortOrder' => int]
         $registry = [];
@@ -338,7 +327,7 @@ class SaveMenuAnalysisAction
             ]);
 
             $groupName = MenuJson::extractText($groupData['group_name'] ?? $groupData['name'] ?? null);
-            if ($groupName !== null) {
+            if ($groupName !== null && $locale !== null) {
                 $group->setTranslation('name', $locale, $groupName, isInitial: true);
             }
 
@@ -349,7 +338,7 @@ class SaveMenuAnalysisAction
                     'sort_order' => $optIndex,
                 ]);
                 $optName = MenuJson::extractText($optData['name'] ?? null);
-                if ($optName !== null) {
+                if ($optName !== null && $locale !== null) {
                     $option->setTranslation('name', $locale, $optName, isInitial: true);
                 }
             }

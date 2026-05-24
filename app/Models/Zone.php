@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasTranslations;
 use Database\Factories\ZoneFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,30 +14,17 @@ class Zone extends Model
     /** @use HasFactory<ZoneFactory> */
     use HasFactory;
 
-    use HasTranslations;
-
     /** @var array<int, string> */
-    protected $appends = ['name', 'image_url', 'thumb_url'];
+    protected $appends = ['image_url', 'thumb_url'];
 
     protected $fillable = [
         'restaurant_id',
+        'name',
         'color',
         'sort_order',
         'is_active',
         'image',
     ];
-
-    protected ?string $pendingName = null;
-
-    protected static function booted(): void
-    {
-        static::saved(function (Zone $zone) {
-            if ($zone->pendingName !== null) {
-                $zone->setTranslation('name', 'und', $zone->pendingName, true);
-                $zone->pendingName = null;
-            }
-        });
-    }
 
     protected function casts(): array
     {
@@ -46,11 +32,6 @@ class Zone extends Model
             'sort_order' => 'integer',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function getNameAttribute(): ?string
-    {
-        return $this->localizedText('name');
     }
 
     public function getImageUrlAttribute(): ?string
@@ -70,11 +51,6 @@ class Zone extends Model
         $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
 
         return Storage::disk(config('image.disk'))->url($thumb);
-    }
-
-    public function setNameAttribute(?string $value): void
-    {
-        $this->pendingName = $value;
     }
 
     public function restaurant(): BelongsTo

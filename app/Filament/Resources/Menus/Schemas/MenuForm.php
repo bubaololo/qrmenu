@@ -18,7 +18,7 @@ class MenuForm
                     ->options(fn () => Restaurant::query()
                         ->orderBy('id')
                         ->get()
-                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id ".($r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}")])
+                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id ".($r->name ?? "Restaurant #{$r->id}")])
                         ->toArray()
                     )
                     ->searchable()

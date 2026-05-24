@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 class MenuOptionGroupOptionController extends Controller
 {
     use ResolvesLocale;
+
     /**
      * Create an option in a group.
      */
@@ -24,6 +25,8 @@ class MenuOptionGroupOptionController extends Controller
 
         $validated = $request->validated();
 
+        [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
+
         $option = MenuOptionGroupOption::create([
             'group_id' => $menuOptionGroup->id,
             'price_adjust' => $validated['price_adjust'] ?? 0,
@@ -31,8 +34,6 @@ class MenuOptionGroupOptionController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        $sourceLocale = $menuOptionGroup->section->menu->source_locale ?? 'und';
-        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
         $option->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupOptionResource($option->fresh()))
@@ -50,8 +51,7 @@ class MenuOptionGroupOptionController extends Controller
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            $sourceLocale = $menuOptionGroupOption->group->section->menu->source_locale ?? 'und';
-            [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroupOption->group->section->menu);
             $menuOptionGroupOption->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }

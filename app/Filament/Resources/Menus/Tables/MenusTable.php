@@ -21,7 +21,7 @@ class MenusTable
                 TextColumn::make('restaurant_name')
                     ->label('Restaurant')
                     ->placeholder('—')
-                    ->state(fn ($record) => $record->restaurant?->translate('name', $record->restaurant->primary_language ?? 'und') ?? "Restaurant #{$record->restaurant_id}"),
+                    ->state(fn ($record) => $record->restaurant?->name ?? "Restaurant #{$record->restaurant_id}"),
 
                 TextColumn::make('detected_date')
                     ->label('Date')
@@ -44,7 +44,7 @@ class MenusTable
                     ->options(fn () => Restaurant::query()
                         ->orderBy('id')
                         ->get()
-                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id ".($r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}")])
+                        ->mapWithKeys(fn ($r) => [$r->id => "#$r->id ".($r->name ?? "Restaurant #{$r->id}")])
                         ->toArray()
                     ),
             ])

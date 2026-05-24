@@ -15,10 +15,7 @@ class ActiveMenuResource extends JsonResource
     {
         return [
             'restaurant_id' => $this->restaurant_id,
-            'restaurant_name' => $this->restaurant?->translate(
-                'name',
-                $this->restaurant->primary_language ?? 'und'
-            ) ?? "Restaurant #{$this->restaurant_id}",
+            'restaurant_name' => $this->restaurant?->name ?? "Restaurant #{$this->restaurant_id}",
             'menu_id' => $this->id,
             'source_locale' => $this->source_locale,
             'detected_date' => $this->detected_date?->toDateString(),

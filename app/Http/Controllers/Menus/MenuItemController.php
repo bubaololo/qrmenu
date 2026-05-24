@@ -25,6 +25,8 @@ class MenuItemController extends Controller
     {
         Gate::authorize('update', $menuSection->menu);
 
+        $this->assertLocaleAllowed($menuSection->menu);
+
         $validated = $request->validated();
 
         $item = MenuItem::create([
@@ -41,11 +43,11 @@ class MenuItemController extends Controller
             'is_orderable' => $validated['is_orderable'] ?? true,
         ]);
 
-        $sourceLocale = $menuSection->menu->source_locale ?? 'und';
-        $item->setTranslation('name', $sourceLocale, $validated['name'], isInitial: true);
+        [$locale, $isInitial] = $this->resolveLocale($menuSection->menu);
+        $item->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         if (isset($validated['description']) && $validated['description'] !== null) {
-            $item->setTranslation('description', $sourceLocale, $validated['description'], isInitial: true);
+            $item->setTranslation('description', $locale, $validated['description'], isInitial: $isInitial);
         }
 
         return (new MenuItemResource($item->fresh()))
@@ -62,8 +64,7 @@ class MenuItemController extends Controller
 
         $validated = $request->validated();
 
-        $sourceLocale = $menuItem->section->menu->source_locale ?? 'und';
-        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+        [$locale, $isInitial] = $this->resolveLocale($menuItem->section->menu);
 
         if (isset($validated['name'])) {
             $menuItem->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);

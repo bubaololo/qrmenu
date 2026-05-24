@@ -8,7 +8,6 @@ use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
 use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
-use App\Models\Restaurant;
 use App\Models\Translation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +75,6 @@ class TranslationObserver
             $owner instanceof MenuSection => $owner->loadMissing('menu')->menu,
             $owner instanceof MenuOptionGroup => $owner->loadMissing('section.menu')->section?->menu,
             $owner instanceof MenuOptionGroupOption => $owner->loadMissing('group.section.menu')->group?->section?->menu,
-            $owner instanceof Restaurant => $owner->loadMissing('menu')->menu,
             default => null,
         };
 

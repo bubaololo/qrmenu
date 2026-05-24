@@ -88,7 +88,7 @@ class MenuTranslationTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
 
         $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => ''])
+            ->getJson("/api/v1/menus/{$menu->id}", ['X-Locale' => ''])
             ->assertStatus(200)
             ->assertJsonPath('data.locale', 'vi');
     }
@@ -101,7 +101,7 @@ class MenuTranslationTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
 
         $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'en'])
+            ->getJson("/api/v1/menus/{$menu->id}", ['X-Locale' => 'en'])
             ->assertStatus(200)
             ->assertJsonPath('data.locale', 'en');
     }
@@ -138,7 +138,7 @@ class MenuTranslationTest extends TestCase
         $item->setTranslation('name', 'en', 'Beef Pho', isInitial: false);
 
         $response = $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'en'])
+            ->getJson("/api/v1/menus/{$menu->id}", ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $name = $response->json('data.sections.0.items.0.name');
@@ -158,7 +158,7 @@ class MenuTranslationTest extends TestCase
         // No French translation exists
 
         $response = $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'fr'])
+            ->getJson("/api/v1/menus/{$menu->id}", ['X-Locale' => 'fr'])
             ->assertStatus(200);
 
         $name = $response->json('data.sections.0.items.0.name');
@@ -168,7 +168,7 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_then_read_translation(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
@@ -179,13 +179,13 @@ class MenuTranslationTest extends TestCase
             ->putJson(
                 "/api/v1/menu-items/{$item->id}",
                 ['name' => 'Beef Noodle Soup', 'description' => 'Classic dish'],
-                ['Accept-Language' => 'en']
+                ['X-Locale' => 'en']
             )
             ->assertStatus(200);
 
         // Read back in English
         $response = $this->actingAs($user)
-            ->getJson("/api/v1/menus/{$menu->id}", ['Accept-Language' => 'en'])
+            ->getJson("/api/v1/menus/{$menu->id}", ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $this->assertEquals('Beef Noodle Soup', $response->json('data.sections.0.items.0.name'));
@@ -242,13 +242,13 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_section_translation(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-sections/{$section->id}", ['name' => 'Starters'], ['Accept-Language' => 'en'])
+            ->putJson("/api/v1/menu-sections/{$section->id}", ['name' => 'Starters'], ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
@@ -264,7 +264,7 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_item_translation(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
@@ -274,7 +274,7 @@ class MenuTranslationTest extends TestCase
             ->putJson(
                 "/api/v1/menu-items/{$item->id}",
                 ['name' => 'Beef Pho', 'description' => 'Classic Vietnamese noodle soup'],
-                ['Accept-Language' => 'en']
+                ['X-Locale' => 'en']
             )
             ->assertStatus(200);
 
@@ -290,14 +290,14 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_option_group_translation(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-option-groups/{$group->id}", ['name' => 'Toppings'], ['Accept-Language' => 'en'])
+            ->putJson("/api/v1/menu-option-groups/{$group->id}", ['name' => 'Toppings'], ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
@@ -312,7 +312,7 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_option_translation(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
@@ -323,7 +323,7 @@ class MenuTranslationTest extends TestCase
             ->putJson(
                 "/api/v1/menu-option-group-options/{$option->id}",
                 ['name' => 'Extra Spicy'],
-                ['Accept-Language' => 'en']
+                ['X-Locale' => 'en']
             )
             ->assertStatus(200);
 
@@ -346,7 +346,7 @@ class MenuTranslationTest extends TestCase
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Phở bò'], ['Accept-Language' => ''])
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Phở bò'], ['X-Locale' => ''])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
@@ -369,7 +369,7 @@ class MenuTranslationTest extends TestCase
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Phở bò'], ['Accept-Language' => 'vi'])
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Phở bò'], ['X-Locale' => 'vi'])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
@@ -385,14 +385,14 @@ class MenuTranslationTest extends TestCase
     #[Test]
     public function test_update_with_non_source_locale_sets_is_initial_false(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Beef Pho'], ['Accept-Language' => 'en'])
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Beef Pho'], ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
@@ -406,18 +406,21 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_store_ignores_accept_language_header(): void
+    public function test_store_writes_to_accept_language_locale(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
 
+        // Store, like update, writes to the locale resolved from Accept-Language
+        // (which must be in availableLocales). en is available here via the
+        // restaurant's primary_language.
         $this->actingAs($user)
             ->postJson(
                 "/api/v1/menu-sections/{$section->id}/items",
-                ['name' => 'Phở bò', 'price_type' => 'fixed', 'price_value' => 0],
-                ['Accept-Language' => 'en']
+                ['name' => 'Beef Pho', 'price_type' => 'fixed', 'price_value' => 0],
+                ['X-Locale' => 'en']
             )
             ->assertStatus(201);
 
@@ -426,11 +429,27 @@ class MenuTranslationTest extends TestCase
         $this->assertDatabaseHas('translations', [
             'translatable_type' => MenuItem::class,
             'translatable_id' => $item->id,
-            'locale' => 'vi',
+            'locale' => 'en',
             'field_id' => TranslationField::where('name', 'name')->value('id'),
-            'value' => 'Phở bò',
-            'is_initial' => true,
+            'value' => 'Beef Pho',
+            'is_initial' => false,
         ]);
+    }
+
+    #[Test]
+    public function test_update_rejects_locale_not_in_available_locales(): void
+    {
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        // ja is a valid ISO-639-1 code but not in availableLocales — must 422
+        // (the client should add the language via POST /menus/{id}/translations/ja first).
+        $this->actingAs($user)
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'X'], ['X-Locale' => 'ja'])
+            ->assertStatus(422);
     }
 
     #[Test]
@@ -445,7 +464,7 @@ class MenuTranslationTest extends TestCase
         // Invalid Accept-Language header — middleware silently ignores it,
         // so the update proceeds against source_locale (is_initial: true). 200 is expected.
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Test'], ['Accept-Language' => 'xx'])
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Test'], ['X-Locale' => 'xx'])
             ->assertStatus(200);
     }
 
@@ -457,7 +476,7 @@ class MenuTranslationTest extends TestCase
         $stranger = User::factory()->create();
 
         $this->actingAs($stranger)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Test'], ['Accept-Language' => 'en'])
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Test'], ['X-Locale' => 'en'])
             ->assertStatus(403);
     }
 }

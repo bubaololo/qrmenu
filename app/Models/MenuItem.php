@@ -47,8 +47,8 @@ class MenuItem extends Model
     protected static function booted(): void
     {
         static::saved(function (MenuItem $item) {
-            $locale = $item->section?->menu?->source_locale ?? 'und';
-            $usable = $locale && $locale !== 'mixed';
+            $locale = $item->section?->menu?->source_locale;
+            $usable = $locale !== null && $locale !== 'mixed';
 
             if ($item->pendingName !== null && $usable) {
                 $item->setTranslation('name', $locale, $item->pendingName, true);

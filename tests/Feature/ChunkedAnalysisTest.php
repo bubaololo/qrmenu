@@ -143,8 +143,8 @@ class ChunkedAnalysisTest extends TestCase
     #[Test]
     public function test_restaurant_metadata_enriched_only_when_empty(): void
     {
-        // Start with empty phone; keep currency (NOT NULL) as-is.
-        $this->restaurant->update(['phone' => null]);
+        // Start with empty phone and empty name; keep currency (NOT NULL) as-is.
+        $this->restaurant->update(['phone' => null, 'name' => null]);
 
         $this->analysis = $this->makeAnalysis(imageCount: 12);
 
@@ -183,8 +183,8 @@ class ChunkedAnalysisTest extends TestCase
         $this->assertSame('+33 1 23', $this->restaurant->phone);
         // Currency was already set by factory ('VND'). Chunk 1's EUR and chunk 2's USD are ignored.
         $this->assertSame('VND', $this->restaurant->currency);
-        // Name is stored as a translation; initial value comes from chunk 1 and is not overwritten by chunk 2.
-        $this->assertSame('Amélie', $this->restaurant->initialText('name'));
+        // Name comes from chunk 1 and is not overwritten by chunk 2 (enrichRestaurantIfEmpty).
+        $this->assertSame('Amélie', $this->restaurant->name);
     }
 
     #[Test]

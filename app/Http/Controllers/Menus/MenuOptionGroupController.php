@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Gate;
 class MenuOptionGroupController extends Controller
 {
     use ResolvesLocale;
+
     /**
      * Create an option group in a section.
      */
@@ -24,6 +25,8 @@ class MenuOptionGroupController extends Controller
         Gate::authorize('update', $menuSection->menu);
 
         $validated = $request->validated();
+
+        [$locale, $isInitial] = $this->resolveLocale($menuSection->menu);
 
         $group = MenuOptionGroup::create([
             'section_id' => $menuSection->id,
@@ -36,8 +39,6 @@ class MenuOptionGroupController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        $sourceLocale = $menuSection->menu->source_locale ?? 'und';
-        [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
         $group->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupResource($group->fresh()))
@@ -55,8 +56,7 @@ class MenuOptionGroupController extends Controller
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            $sourceLocale = $menuOptionGroup->section->menu->source_locale ?? 'und';
-            [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
             $menuOptionGroup->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }

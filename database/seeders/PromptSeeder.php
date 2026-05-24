@@ -186,7 +186,6 @@ Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 - V|id(s)|variation option name (comma-separated IDs share same text)
 - G|id(s)|option group name
 - O|id(s)|option name
-- R|field|value (restaurant field)
 
 === TRANSLATION RULES ===
 

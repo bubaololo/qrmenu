@@ -104,7 +104,6 @@ class CascadeDeleteFilesTest extends TestCase
         $item->setTranslation('name', 'en', 'Pho', true);
         $group->setTranslation('name', 'en', 'Size', true);
         $option->setTranslation('name', 'en', 'Large', true);
-        $zone->setTranslation('name', 'en', 'Patio', true);
 
         $bill = Bill::factory()->create(['dining_table_id' => $table->id]);
         $order = Order::factory()->create(['bill_id' => $bill->id]);

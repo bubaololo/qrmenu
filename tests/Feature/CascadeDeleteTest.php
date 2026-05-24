@@ -42,14 +42,16 @@ class CascadeDeleteTest extends TestCase
     {
         parent::setUp();
 
-        $this->restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
-        $this->restaurant->setTranslation('name', 'en', 'Test Resto', true);
-        $this->restaurant->setTranslation('name', 'fr', 'Resto Test');
+        $this->restaurant = Restaurant::factory()->create([
+            'primary_language' => 'en',
+            'name' => 'Test Resto',
+        ]);
 
         foreach (range(1, 2) as $z) {
-            $zone = Zone::factory()->create(['restaurant_id' => $this->restaurant->id]);
-            $zone->setTranslation('name', 'en', "Zone $z", true);
-            $this->zones[] = $zone;
+            $this->zones[] = Zone::factory()->create([
+                'restaurant_id' => $this->restaurant->id,
+                'name' => "Zone $z",
+            ]);
         }
 
         $this->menu = Menu::factory()->create([

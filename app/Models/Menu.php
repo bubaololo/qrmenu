@@ -77,6 +77,10 @@ class Menu extends Model
             }
         }
 
+        // 'mixed' is a menu-level attribute, not a locale anyone can translate
+        // into. Drop it from the picker so the UI never offers it.
+        $locales = $locales->reject(fn (string $code) => $code === 'mixed')->values();
+
         $iso = new ISO639;
 
         return $locales->map(fn (string $code) => [

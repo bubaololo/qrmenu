@@ -28,6 +28,8 @@ class MenuSectionController extends Controller
 
         $validated = $request->validated();
 
+        [$locale, $isInitial] = $this->resolveLocale($menu);
+
         $section = MenuSection::create([
             'menu_id' => $menu->id,
             'sort_order' => $validated['sort_order'] ?? 0,
@@ -35,8 +37,7 @@ class MenuSectionController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
-        $sourceLocale = $menu->source_locale ?? 'und';
-        $section->setTranslation('name', $sourceLocale, $validated['name'], isInitial: true);
+        $section->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuSectionResource($section->fresh('icon')))
             ->response()
@@ -58,8 +59,7 @@ class MenuSectionController extends Controller
         }
 
         if (isset($validated['name'])) {
-            $sourceLocale = $menuSection->menu->source_locale ?? 'und';
-            [$locale, $isInitial] = $this->resolveLocale($sourceLocale);
+            [$locale, $isInitial] = $this->resolveLocale($menuSection->menu);
             $menuSection->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }

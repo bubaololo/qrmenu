@@ -31,8 +31,8 @@ class MenuOptionGroupOption extends Model
     protected static function booted(): void
     {
         static::saved(function (MenuOptionGroupOption $option) {
-            $locale = $option->group?->section?->menu?->source_locale ?? 'und';
-            if ($option->pendingName !== null && $locale && $locale !== 'mixed') {
+            $locale = $option->group?->section?->menu?->source_locale;
+            if ($option->pendingName !== null && $locale !== null && $locale !== 'mixed') {
                 $option->setTranslation('name', $locale, $option->pendingName, true);
                 $option->pendingName = null;
             }

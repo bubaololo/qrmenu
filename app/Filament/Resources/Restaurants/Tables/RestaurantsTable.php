@@ -21,7 +21,7 @@ class RestaurantsTable
                 TextColumn::make('name')
                     ->label('Name')
                     ->placeholder('—')
-                    ->state(fn ($record) => $record->translate('name', $record->primary_language ?? 'und') ?? "Restaurant #{$record->id}"),
+                    ->state(fn ($record) => $record->name ?? "Restaurant #{$record->id}"),
 
                 TextColumn::make('creator.name')
                     ->label('Owner')

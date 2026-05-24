@@ -108,6 +108,15 @@ trait HasTranslations
      */
     public function setTranslation(string $field, string $locale, string $value, bool $isInitial = false): void
     {
+        // 'mixed' is an attribute of menus.source_locale (multi-language source),
+        // never a locale for a concrete translation row. Reject early so the bug
+        // surfaces at the call site instead of corrupting translations data.
+        if ($locale === 'mixed') {
+            throw new \InvalidArgumentException(
+                "Cannot store translation with locale='mixed'. 'mixed' marks a multi-language source menu, not a translation target."
+            );
+        }
+
         $fieldId = static::resolveFieldId($field);
 
         if (! $isInitial) {

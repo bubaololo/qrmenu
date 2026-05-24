@@ -10,15 +10,12 @@ class StoreZoneAction
 {
     public function __invoke(Restaurant $restaurant, ZoneData $data): Zone
     {
-        $zone = Zone::create([
+        return Zone::create([
             'restaurant_id' => $restaurant->id,
+            'name' => $data->name,
             'color' => $data->color,
             'sort_order' => $data->sort_order,
             'is_active' => $data->is_active,
         ]);
-
-        $zone->setTranslation('name', 'und', $data->name, isInitial: true);
-
-        return $zone->fresh();
     }
 }

@@ -75,8 +75,17 @@ class TranslateEntityJob implements ShouldQueue
         }
 
         $menu = $this->resolveMenu();
-        $restaurant = $menu?->restaurant ?? $this->resolveRestaurant();
-        $sourceLocale = $menu?->source_locale ?? $restaurant?->primary_language ?? 'und';
+        $restaurant = $menu?->restaurant;
+        $sourceLocale = $menu?->source_locale ?? $restaurant?->primary_language;
+
+        if ($sourceLocale === null) {
+            Log::channel('llm')->warning('Entity translation aborted: no source locale', [
+                'entity_type' => $this->entity->getMorphClass(),
+                'entity_id' => $this->entity->getKey(),
+            ]);
+
+            return;
+        }
 
         $iso = new ISO639;
         $sourceDescription = $sourceLocale === 'mixed'
@@ -188,11 +197,6 @@ class TranslateEntityJob implements ShouldQueue
                 $entity->getKey(),
                 (string) $entity->initialText('name'),
             ),
-            $entity instanceof Restaurant => sprintf(
-                'R|%s|%s',
-                $this->field,
-                (string) $entity->initialText($this->field),
-            ),
             default => null,
         };
     }
@@ -251,20 +255,6 @@ class TranslateEntityJob implements ShouldQueue
                         }
                     }
                     break;
-
-                case 'R':
-                    $field = $parts[1] ?? '';
-                    if ($field !== $this->field) {
-                        break;
-                    }
-                    if (! in_array($field, ['name', 'address'], true)) {
-                        break;
-                    }
-                    $value = $parts[2] ?? '';
-                    if ($value !== '') {
-                        $this->entity->setTranslation($field, $locale, $value, isInitial: false);
-                    }
-                    break;
             }
         }
     }
@@ -276,17 +266,7 @@ class TranslateEntityJob implements ShouldQueue
             $this->entity instanceof MenuSection => $this->entity->menu,
             $this->entity instanceof MenuOptionGroup => $this->entity->section?->menu,
             $this->entity instanceof MenuOptionGroupOption => $this->entity->group?->section?->menu,
-            $this->entity instanceof Restaurant => $this->entity->menu,
             default => null,
         };
-    }
-
-    private function resolveRestaurant(): ?Restaurant
-    {
-        if ($this->entity instanceof Restaurant) {
-            return $this->entity;
-        }
-
-        return $this->resolveMenu()?->restaurant;
     }
 }

@@ -19,7 +19,13 @@ class FullMenuResource extends JsonResource
 
     public function toArray(Request $request): array
     {
-        $locale = $request->attributes->get('locale_from_header') ?? ($this->source_locale ?? 'und');
+        // Final fallback is 'en' rather than a pseudo-locale — translate()
+        // falls back to is_initial=true when this locale has no row, so 'en'
+        // here just means "no explicit preference, give me the source text".
+        $locale = $request->attributes->get('locale_from_header')
+            ?? $this->source_locale
+            ?? $this->restaurant?->primary_language
+            ?? 'en';
 
         return [
             'id' => $this->id,

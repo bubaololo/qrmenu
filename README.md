@@ -170,54 +170,69 @@ if (xsrf) {
 
 ## Translation System
 
-Переводы хранятся в таблице `translations` и подключаются к любой модели через трейт `HasTranslations`.
+Переводимые сущности — только содержимое меню: `MenuSection.name`, `MenuItem.name|description`, `MenuOptionGroup.name`, `MenuOptionGroupOption.name`. Подключены через трейт `HasTranslations` (`app/Models/Concerns/HasTranslations.php`).
 
-**`translations`** — полиморфная таблица:
+`Restaurant.name|address` и `Zone.name` — обычные колонки, не переводятся (имена ресторанов/зон собственные).
 
-| Колонка | Тип | Описание |
-|---------|-----|----------|
-| `translatable_type` | string | Класс модели (`App\Models\MenuItem`) |
-| `translatable_id` | bigint | ID записи |
-| `locale` | varchar(10) | ISO 639-1 (`vi`, `en`, `und`) |
-| `field` | varchar(100) | Поле (`name`, `description`, `address`) |
-| `value` | text | Текст |
-| `is_initial` | bool | `true` = оригинал, `false` = перевод |
+### Хранение
 
-Уникальный индекс: `(translatable_type, translatable_id, locale, field)`.
+Полиморфная таблица `translations`:
 
-**Модели с переводами:** `Restaurant` (name, address), `MenuSection` (name), `MenuItem` (name, description), `MenuOptionGroup` (name), `MenuOptionGroupOption` (name).
+| Колонка | Описание |
+|---|---|
+| `translatable_type` + `translatable_id` | морф-указатель на сущность |
+| `field_id` → `translation_fields` | справочник полей (`name`, `description`) |
+| `locale` | ISO 639-1 (`en`, `vi`, …) |
+| `value` | текст |
+| `is_initial` | `true` = исходник, `false` = машинный перевод |
+
+Инварианты на уровне БД:
+- `unique(translatable_type, translatable_id, locale, field_id)` — один перевод на (сущность + поле + локаль)
+- `unique(translatable_type, translatable_id, field_id) WHERE is_initial = true` — **ровно один initial** на (сущность + поле), независимо от языка
 
 ### Ключевые концепции
 
-**`is_initial`** — `true` означает исходный текст (введён пользователем или распознан LLM). На каждое поле один `is_initial`. Переводы от `TranslateMenuJob` имеют `is_initial = false`.
+**`is_initial`** — универсальный исходник смысла. Каждое поле имеет ровно одну initial-запись. Все остальные локали — машинные переводы. При смене source_locale меню старый initial удаляется автоматически в `HasTranslations::setTranslation()`.
 
-**`source_locale`** — язык оригинала меню, определяется LLM при анализе фото. Хранится на уровне меню (не ресторана), т.к. у одного заведения могут быть меню на разных языках.
+**`menus.source_locale`** — язык, на котором меню было распознано из фото. Хранится на уровне меню (у одного ресторана может быть много меню на разных языках).
 
-**`und`** — код BCP-47 для неопределённого языка. Используется при ручном вводе без указания локали.
+**`menus.source_locale = 'mixed'`** — спец-значение для меню, где OCR увидел несколько языков одновременно (например, английские названия + вьетнамские описания). В таком случае initial-переводы для items не сохраняются вообще: пользователь правит их через API, а `TranslateMenuJob` переводит всё на конкретный target locale.
 
-### Accept-Language
+**`Menu::availableLocales()`** — список локалей, доступных для редактирования: `source_locale` + `restaurant.primary_language` + все локали с реальными переводами для items этого меню. `'mixed'` отфильтровано.
 
-Все эндпоинты чтения и записи учитывают заголовок `Accept-Language`:
+### Заголовок `X-Locale`
 
-- **Чтение** — возвращает перевод для локали, fallback на source text
-- **Запись** — `PUT` сохраняет текст как перевод для указанной локали (`is_initial: false`), если локаль = `source_locale` — обновляет оригинал (`is_initial: true`)
+Фронт указывает активную локаль редактора через **`X-Locale`** (не `Accept-Language`, чтобы браузерный `en-US,en;q=0.9` не триггерил валидацию). `Accept-Language` остался как fallback-подсказка для read-only публичных страниц.
 
-```js
-// Установить глобально при смене языка
-axios.defaults.headers.common['Accept-Language'] = selectedLocale;
-```
+**Запись (PUT/POST на переводимые сущности):**
 
-### Флоу перевода
+| `X-Locale` | Поведение |
+|---|---|
+| не передан | пишем в `source_locale` как `is_initial = true` |
+| = `source_locale` | то же — `is_initial = true` |
+| есть в `availableLocales` | пишем как `is_initial = false` |
+| **нет в `availableLocales`** | **422** — добавить язык можно только через `POST /menus/{id}/translations/{locale}` |
+| `mixed` | **422** — это атрибут source_locale, не локаль перевода |
+
+Реализация валидации: `ResolvesLocale::resolveLocale(Menu)` (`app/Http/Controllers/Menus/Concerns/ResolvesLocale.php`), вызывается из всех 4 контроллеров переводимых сущностей.
+
+**Чтение** — `translate($field, $locale)` ищет запись на нужную локаль, fallback на `is_initial = true`. `localizedText($field)` использует `request()->attributes->get('locale_from_header')`.
+
+### Реактивный перевод
+
+`TranslationObserver` (`app/Observers/TranslationObserver.php`) подписан на `Translation::saved`. При изменении initial-записи диспатчит `TranslateEntityJob` на все локали из `availableLocales` (кроме source). Non-initial записи игнорируются, чтобы не было цикла.
+
+### Флоу добавления нового языка
 
 ```
 POST /api/v1/menus/{id}/translations/{locale}
-  → TranslateMenuJob (queue)
-  → buildTsvPayload()  — собирает is_initial тексты всего меню
-  → DeepSeek API
-  → parseTsvAndSave()  — setTranslation(is_initial=false) для target_locale
+  → TranslateMenuJob (queue, разбивает на чанки по 80 строк)
+  → Bus::batch[ TranslateChunkJob × N ] (DeepSeek API)
+  → setTranslation(is_initial=false) для каждого item/section/option
+  → новый язык появляется в availableLocales автоматически
 ```
 
-Промпт передаёт полное название языка (`"Kongo (kg)"`) чтобы LLM не путал ISO 639-1 коды с кодами стран.
+После завершения job'а фронт может слать `X-Locale: <newLocale>` и редактировать переводы вручную.
 
 ---
 

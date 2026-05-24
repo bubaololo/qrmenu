@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Casts\PointCast;
 use App\Enums\RestaurantUserRole;
-use App\Models\Concerns\HasTranslations;
 use Database\Factories\RestaurantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,8 +19,6 @@ class Restaurant extends Model
     /** @use HasFactory<RestaurantFactory> */
     use HasFactory;
 
-    use HasTranslations;
-
     public static function boot(): void
     {
         parent::boot();
@@ -34,10 +31,12 @@ class Restaurant extends Model
     }
 
     /** @var array<int, string> */
-    protected $appends = ['name', 'address', 'image_url', 'thumb_url', 'logo_url', 'logo_thumb_url'];
+    protected $appends = ['image_url', 'thumb_url', 'logo_url', 'logo_thumb_url'];
 
     protected $fillable = [
         'created_by_user_id',
+        'name',
+        'address',
         'city',
         'country',
         'phone',
@@ -49,16 +48,6 @@ class Restaurant extends Model
         'google_maps_url',
         'coordinates',
     ];
-
-    public function getNameAttribute(): ?string
-    {
-        return $this->localizedText('name');
-    }
-
-    public function getAddressAttribute(): ?string
-    {
-        return $this->localizedText('address');
-    }
 
     public function getImageUrlAttribute(): ?string
     {

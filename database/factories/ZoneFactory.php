@@ -15,6 +15,7 @@ class ZoneFactory extends Factory
     {
         return [
             'restaurant_id' => Restaurant::factory(),
+            'name' => fake()->words(2, true),
             'color' => fake()->hexColor(),
             'sort_order' => fake()->numberBetween(0, 10),
             'is_active' => true,

@@ -65,7 +65,17 @@ class TranslateChunkJob implements ShouldQueue
         $idMap = $this->buildIdMap();
 
         $restaurant = $this->menu->restaurant;
-        $sourceLocale = $this->menu->source_locale ?? $restaurant->primary_language ?? 'und';
+        $sourceLocale = $this->menu->source_locale ?? $restaurant->primary_language;
+
+        if ($sourceLocale === null) {
+            Log::channel('llm')->warning('Chunk translation aborted: no source locale', [
+                'menu_id' => $this->menu->id,
+                'target_locale' => $this->targetLocale,
+                'chunk_index' => $this->chunkIndex + 1,
+            ]);
+
+            return;
+        }
 
         $iso = new ISO639;
         $targetLocaleName = $iso->languageByCode1($this->targetLocale) ?: $this->targetLocale;
@@ -179,7 +189,6 @@ class TranslateChunkJob implements ShouldQueue
         $text = preg_replace('/\s*```\s*$/', '', $text) ?? $text;
 
         $count = 0;
-        $restaurant = $this->menu->restaurant;
 
         foreach (explode("\n", trim($text)) as $line) {
             $line = trim($line);
@@ -233,15 +242,6 @@ class TranslateChunkJob implements ShouldQueue
                     $opt = $idMap['options'][$id] ?? null;
                     if ($opt && $name !== '') {
                         $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
-                        $count++;
-                    }
-                    break;
-
-                case 'R':
-                    $field = $parts[1] ?? '';
-                    $value = $parts[2] ?? '';
-                    if (in_array($field, ['name', 'address']) && $value !== '') {
-                        $restaurant->setTranslation($field, $this->targetLocale, $value, isInitial: false);
                         $count++;
                     }
                     break;

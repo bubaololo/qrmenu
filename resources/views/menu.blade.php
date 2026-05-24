@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     @php
-        $restaurantName = $restaurant->translate('name', $lang) ?? $restaurant->name ?? 'Menu';
+        $restaurantName = $restaurant->name ?? 'Menu';
         $usedIcons = $menu
             ? $menu->sections->map(fn($s) => $s->icon?->name)->filter()->unique()->values()->all()
             : [];

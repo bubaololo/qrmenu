@@ -45,11 +45,11 @@ class MenuPageController extends Controller
             $lang = $primaryLang;
         }
 
-        // Scope translation eager-loads to (a) the requested locale, (b) the menu's
-        // source_locale where MenuItem/Section/etc. initials live, and (c) the
-        // restaurant's primary_language where Restaurant/Zone initials live. This
-        // is a superset that guarantees translate()'s initial-fallback always finds
-        // its source row in the loaded collection.
+        // Scope translation eager-loads to (a) the requested locale and (b) the
+        // menu's source_locale where MenuItem/Section/etc. initials live. This
+        // guarantees translate()'s initial-fallback always finds its source row
+        // in the loaded collection. Restaurant and Zone names are plain columns
+        // and don't need eager-loading.
         $sourceLocale = $menu?->source_locale ?? $primaryLang;
         $locales = array_values(array_unique(array_filter([$lang, $sourceLocale, $primaryLang])));
         $scope = fn ($q) => $q->whereIn('locale', $locales);
@@ -58,7 +58,6 @@ class MenuPageController extends Controller
         $visibleItem = fn ($q) => $q->where('is_visible', true);
 
         $restaurant->load([
-            'translations' => $scope,
             'menu.sections' => $activeSection,
             'menu.sections.icon',
             'menu.sections.translations' => $scope,

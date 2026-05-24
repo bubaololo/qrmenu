@@ -173,13 +173,6 @@ class TranslateMenuJob implements ShouldQueue
             }
         }
 
-        $restName = $this->menu->restaurant->initialText('name') ?? '';
-        $restAddr = $this->menu->restaurant->initialText('address') ?? '';
-        $lines[] = "R|name|{$restName}";
-        if ($restAddr !== '') {
-            $lines[] = "R|address|{$restAddr}";
-        }
-
         return $lines;
     }
 }

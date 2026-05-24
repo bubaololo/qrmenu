@@ -20,6 +20,7 @@ class RestaurantFactory extends Factory
     {
         return [
             'created_by_user_id' => User::factory(),
+            'name' => $this->faker->company(),
             'currency' => 'VND',
             'primary_language' => 'vi',
             'city' => $this->faker->city(),

@@ -206,35 +206,6 @@ class AutoTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_restaurant_field_change_uses_active_menu_locales(): void
-    {
-        Bus::fake([TranslateEntityJob::class]);
-
-        $menu = $this->makeTranslatedMenu();
-        $restaurant = $menu->restaurant->fresh();
-
-        $restaurant->setTranslation('name', 'vi', 'Quán Phở', isInitial: true);
-
-        Bus::assertDispatched(
-            TranslateEntityJob::class,
-            fn (TranslateEntityJob $job) => $job->entity instanceof Restaurant
-                && $job->field === 'name'
-                && $job->targetLocales === ['en'],
-        );
-    }
-
-    #[Test]
-    public function test_restaurant_without_active_menu_does_not_dispatch(): void
-    {
-        Bus::fake([TranslateEntityJob::class]);
-
-        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
-        $restaurant->setTranslation('name', 'vi', 'Quán mới', isInitial: true);
-
-        Bus::assertNotDispatched(TranslateEntityJob::class);
-    }
-
-    #[Test]
     public function test_non_initial_translate_chunk_writes_do_not_dispatch_entity_job(): void
     {
         Bus::fake([TranslateEntityJob::class]);

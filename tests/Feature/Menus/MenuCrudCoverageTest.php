@@ -147,9 +147,9 @@ class MenuCrudCoverageTest extends TestCase
     }
 
     #[Test]
-    public function test_update_item_translates_using_accept_language(): void
+    public function test_update_item_translates_using_x_locale_header(): void
     {
-        $restaurant = Restaurant::factory()->create();
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'fr']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'en']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
@@ -157,7 +157,7 @@ class MenuCrudCoverageTest extends TestCase
         $item->setTranslation('name', 'en', 'English', isInitial: true);
 
         $this->actingAs($user)
-            ->withHeaders(['Accept-Language' => 'fr'])
+            ->withHeaders(['X-Locale' => 'fr'])
             ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Français'])
             ->assertStatus(200);
 
@@ -250,9 +250,9 @@ class MenuCrudCoverageTest extends TestCase
             ->assertJsonPath('data.sections.0.name', 'Drinks')
             ->assertJsonPath('data.sections.0.items.0.name', 'Tea');
 
-        // Accept-Language: fr
+        // X-Locale: fr (frontend signals an explicit locale switch).
         $this->actingAs($user)
-            ->withHeaders(['Accept-Language' => 'fr'])
+            ->withHeaders(['X-Locale' => 'fr'])
             ->getJson("/api/v1/menus/{$menu->id}")
             ->assertStatus(200)
             ->assertJsonPath('data.sections.0.name', 'Boissons')

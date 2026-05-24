@@ -24,7 +24,7 @@ class OrdersTable
 
                 TextColumn::make('restaurant_name')
                     ->label('Restaurant')
-                    ->state(fn (Order $r) => $r->restaurant?->translate('name', $r->restaurant->primary_language ?? 'und') ?? "Restaurant #{$r->restaurant_id}"),
+                    ->state(fn (Order $r) => $r->restaurant?->name ?? "Restaurant #{$r->restaurant_id}"),
 
                 TextColumn::make('diningTable.number')
                     ->label('Table')
@@ -62,7 +62,7 @@ class OrdersTable
                     ->options(fn () => Restaurant::query()
                         ->orderBy('id')
                         ->get()
-                        ->mapWithKeys(fn ($r) => [$r->id => "#{$r->id} ".($r->translate('name', $r->primary_language ?? 'und') ?? "Restaurant #{$r->id}")])
+                        ->mapWithKeys(fn ($r) => [$r->id => "#{$r->id} ".($r->name ?? "Restaurant #{$r->id}")])
                         ->toArray()
                     ),
             ])
