@@ -11,7 +11,7 @@
         $iconSprite = \App\Support\FoodIcons::sprite($usedIcons);
     @endphp
     <title>{{ $restaurantName }} — Menu</title>
-    <meta name="theme-color" content="#f4e6d0">
+    <meta name="theme-color" content="#ffffff">
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,8 +25,6 @@
 <body>
 
     {!! $iconSprite !!}
-
-    <div class="grain" aria-hidden="true"></div>
 
     @php
         // Reuse the identifier the user came in with — if they hit /17/...
@@ -233,14 +231,6 @@
                                                  onload="this.classList.add('loaded')"
                                                  onerror="this.classList.add('loaded')">
                                         </div>
-                                    @else
-                                        <div class="menu-card-visual menu-card-visual--empty" aria-hidden="true">
-                                            @if($section->icon?->name)
-                                                <svg class="menu-card-icon-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
-                                            @else
-                                                <span class="menu-card-monogram font-display">{{ mb_substr($itemName, 0, 1) }}</span>
-                                            @endif
-                                        </div>
                                     @endif
                                     <div class="menu-card-body">
                                         <h3 class="menu-card-name">{{ $itemName }}</h3>
@@ -279,11 +269,6 @@
             </div>
         </div>
     </main>
-
-    <footer id="footer" class="container menu-footer">
-        <div class="footer-ornament" aria-hidden="true"></div>
-        <p class="text-muted">{{ $uiStrings['powered'] }}</p>
-    </footer>
 
     <div id="overlay" class="overlay"></div>
 
