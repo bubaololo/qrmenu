@@ -343,9 +343,9 @@ a.meta-loc:hover { color: var(--foreground); }
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  height: 40px;
-  padding: 0 1rem;
-  font-size: 13.5px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--foreground);
   background: var(--card);
@@ -418,6 +418,72 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 
 /* ============================================================
+   Paper-menu rows — sections where no item has a photo.
+   Same card markup, restyled: name · dotted leader · price.
+   ============================================================ */
+.menu-grid--list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.menu-grid--list .menu-card {
+  flex-direction: row;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+.menu-grid--list .menu-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+.menu-grid--list .menu-card:active {
+  transform: none;
+  background: var(--muted);
+}
+.menu-grid--list .menu-card:focus-visible {
+  box-shadow: 0 0 0 3px var(--ring);
+}
+[data-theme="dark"] .menu-grid--list .menu-card,
+[data-theme="dark"] .menu-grid--list .menu-card:hover { box-shadow: none; }
+
+/* extra .menu-card level outweighs the later .menu-card--noimage tile rule */
+.menu-grid--list .menu-card .menu-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name price"
+    "desc desc";
+  align-items: baseline;
+  column-gap: 0.625rem;
+  row-gap: 3px;
+  padding: 0.75rem 2px;
+  min-height: 0;
+}
+.menu-grid--list .menu-card-name {
+  grid-area: name;
+  font-size: 14px;
+  /* flex replaces the grid-tile line clamp; the ::after filler draws the leader */
+  display: flex;
+  align-items: baseline;
+}
+.menu-grid--list .menu-card-name::after {
+  content: '';
+  flex: 1;
+  min-width: 1.25rem;
+  margin: 0 0 0.22em 0.5rem;
+  border-bottom: 2px dotted var(--border);
+}
+.menu-grid--list .menu-card-desc { grid-area: desc; max-width: 46ch; }
+.menu-grid--list .menu-card-foot {
+  grid-area: price;
+  margin-top: 0;
+  padding-top: 0;
+  gap: 0.375rem;
+}
+.menu-grid--list .menu-card-price { font-size: 14px; }
+
+/* ============================================================
    Menu card — bento tile
    ============================================================ */
 .menu-card {
@@ -441,7 +507,12 @@ a.meta-loc:hover { color: var(--foreground); }
   box-shadow: var(--shadow-md);
   border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
 }
-.menu-card:active { transform: translateY(0); }
+.menu-card:active { transform: scale(0.98); }
+.menu-card:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
 [data-theme="dark"] .menu-card { border-color: var(--border); box-shadow: 0 1px 0 oklch(1 0 0 / 0.03); }
 [data-theme="dark"] .menu-card:hover { box-shadow: 0 18px 40px -22px oklch(0 0 0 / 0.75); }
 
@@ -501,12 +572,19 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 .menu-card-foot {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 0.375rem;
 }
+.menu-card-chevron {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  opacity: 0.55;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.menu-card:hover .menu-card-chevron { opacity: 1; transform: translateX(2px); }
 .menu-card-price {
   font-size: 14.5px;
   font-weight: 700;
@@ -522,62 +600,6 @@ a.meta-loc:hover { color: var(--foreground); }
   font-weight: 500;
   color: color-mix(in oklch, var(--primary) 70%, var(--foreground));
   margin-left: 2px;
-}
-.menu-card-hint {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary);
-  background: var(--primary-soft);
-  flex-shrink: 0;
-  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
-}
-.menu-card:hover .menu-card-hint { background: var(--primary); color: var(--primary-foreground); transform: rotate(90deg); }
-
-/* per-card add button (from JS) */
-.menu-card-add {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: color-mix(in oklch, var(--card) 90%, transparent);
-  color: var(--foreground);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
-}
-.menu-card-add:hover { background: var(--card); transform: scale(1.05); }
-.menu-card-add:active { transform: scale(0.88); }
-.menu-card-add-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-size: 10.5px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-  line-height: 1;
-  box-shadow: var(--shadow-sm);
 }
 
 /* badges */
@@ -894,25 +916,21 @@ a.meta-loc:hover { color: var(--foreground); }
 .sheet-visual { position: relative; margin: 0 1rem; flex-shrink: 0; }
 .sheet-visual .bottom-sheet-close { position: absolute; top: 0.5rem; right: 0.5rem; }
 .sheet-image {
-  width: 100%;
-  height: 240px;
-  object-fit: cover;
+  /* follow the photo's own aspect ratio; cap height so portrait shots
+     don't push the controls off-screen. Box shrinks to the image, so the
+     radius always hugs the visible picture. */
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 44vh;
+  max-height: 44dvh;
+  margin: 0 auto;
   display: block;
   border-radius: var(--radius-xl);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 .sheet-image.loaded { opacity: 1; }
-.sheet-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 140px;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-}
-.sheet-icon .food-icon { width: 56px; height: 56px; color: var(--primary); opacity: 0.6; }
 .sheet-visual--empty { min-height: auto; padding: 0.75rem; margin-bottom: 0; background: transparent; }
 .sheet-visual--empty .bottom-sheet-close { position: static; margin-left: auto; }
 
@@ -1450,74 +1468,6 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 
 /* ============================================================
-   Helpers retained for JS injection
-   ============================================================ */
-.card {
-  background: var(--card);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-.card-body { padding: 0.875rem 1.125rem; }
-.card-image { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 0.875rem;
-  font-size: 13.5px;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--card);
-  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
-  white-space: nowrap;
-}
-.btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
-.btn-primary:hover { background: color-mix(in oklch, var(--primary) 92%, black); }
-.btn-ghost { background: transparent; border-color: transparent; color: var(--muted-foreground); }
-.btn-ghost:hover { background: color-mix(in oklch, var(--muted) 60%, transparent); color: var(--foreground); }
-.btn-sm { height: 32px; font-size: 12.5px; padding: 0 0.625rem; }
-
-.input {
-  width: 100%;
-  height: 40px;
-  padding: 0 0.75rem;
-  font-size: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--foreground);
-  outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.input::placeholder { color: var(--muted-foreground); }
-.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
-.input-solid { background: var(--surface); border-color: transparent; }
-.input-solid:focus { background: var(--card); border-color: var(--primary); }
-
-/* filter chips */
-.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 0.5rem; }
-.filter-chip {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted-foreground);
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
-  white-space: nowrap;
-}
-.filter-chip:hover { border-color: var(--border-strong); color: var(--foreground); }
-.filter-chip-active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
-
-/* ============================================================
    Small phones (< 360px) — single column grid, roomier
    ============================================================ */
 @media (max-width: 359px) {
@@ -1546,7 +1496,7 @@ a.meta-loc:hover { color: var(--foreground); }
   .category-title { font-size: 1.75rem; }
   .category-section { margin-bottom: 2.75rem; }
   .bottom-sheet, .cart-fab { max-width: 520px; }
-  .sheet-image { height: 320px; }
+  .sheet-image { max-height: 420px; }
 }
 
 /* Large desktop (≥ 1280px) — 5 cols, wider hero */

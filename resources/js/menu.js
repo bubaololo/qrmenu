@@ -11,7 +11,6 @@
 
 const App = {
   activeCategory: null,
-  activeFilter: null,
   _searchTimer: null,
   _observer: null,
 
@@ -32,7 +31,7 @@ const App = {
   },
 
   formatPrice(price) {
-    const formatted = price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const formatted = price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     return formatted + (window.__CONFIG__ || {}).currency;
   },
 
@@ -114,22 +113,31 @@ const App = {
 
   // ---- Search Filter ----
 
+  // Build a one-time {id: {name, desc}} index so search doesn't re-parse each
+  // card's extras JSON on every keystroke.
+  _buildSearchIndex() {
+    this._searchIndex = {};
+    document.querySelectorAll('.menu-card').forEach(card => {
+      const item = this._findItem(Number(card.dataset.itemId));
+      if (!item) return;
+      this._searchIndex[card.dataset.itemId] = {
+        name: (item.name || '').toLowerCase(),
+        desc: (item.description || '').toLowerCase(),
+      };
+    });
+  },
+
   filterBySearch(query) {
     const q = (query || '').toLowerCase().trim();
-    const filter = this.activeFilter;
+    if (!this._searchIndex) this._buildSearchIndex();
     const sections = document.querySelectorAll('.category-section');
     let totalVisible = 0;
 
     sections.forEach(section => {
-      const cards = section.querySelectorAll('.menu-card');
       let sectionVisible = 0;
-      cards.forEach(card => {
-        const id = Number(card.dataset.itemId);
-        const item = this._findItem(id);
-        if (!item) return;
-        const name = (item.name || '').toLowerCase();
-        const desc = (item.description || '').toLowerCase();
-        const match = (!q || name.includes(q) || desc.includes(q));
+      section.querySelectorAll('.menu-card').forEach(card => {
+        const idx = this._searchIndex[card.dataset.itemId];
+        const match = !q || (idx && (idx.name.includes(q) || idx.desc.includes(q)));
         card.classList.toggle('hidden-by-search', !match);
         if (match) sectionVisible++;
       });
@@ -210,11 +218,7 @@ const App = {
       });
     }
 
-    const basePrice = item.variants
-      ? item.variants[this._sheet.variantIndex].price
-      : item.price;
-    const optionsExtra = this._getOptionsExtra(item);
-    const unitPrice = basePrice + optionsExtra;
+    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.options);
     const totalPrice = unitPrice * this._sheet.qty;
 
     // Clone the parsed-once template \u2014 far cheaper than innerHTML string parse.
@@ -323,11 +327,11 @@ const App = {
     }
   },
 
-  _getOptionsExtra(item) {
-    if (!item.options) return 0;
+  _getOptionsExtra(item, opts) {
+    if (!item.options || !opts) return 0;
     let extra = 0;
     item.options.forEach(group => {
-      const selected = this._sheet.options[group.id] || [];
+      const selected = opts[group.id] || [];
       group.choices.forEach(choice => {
         if (selected.includes(choice.id)) extra += choice.price;
       });
@@ -335,15 +339,16 @@ const App = {
     return extra;
   },
 
+  _computeUnitPrice(item, variantIndex, opts) {
+    const basePrice = item.variants ? item.variants[variantIndex].price : item.price;
+    return basePrice + this._getOptionsExtra(item, opts);
+  },
+
   _updateSheetPrice() {
     const item = this._findItem(this._sheet.itemId);
     if (!item) return;
 
-    const basePrice = item.variants
-      ? item.variants[this._sheet.variantIndex].price
-      : item.price;
-    const optionsExtra = this._getOptionsExtra(item);
-    const unitPrice = basePrice + optionsExtra;
+    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.options);
     const totalPrice = unitPrice * this._sheet.qty;
 
     const btn = document.querySelector('.add-to-cart-btn');
@@ -396,7 +401,7 @@ const App = {
       if (!sheet || !sheet.classList.contains('visible')) return;
       const t = e.target;
       const isHandle = t.closest('.bottom-sheet-handle');
-      const isImage = t.closest('.sheet-image') || t.closest('.sheet-icon');
+      const isImage = t.closest('.sheet-image');
       if (!isHandle && !isImage) return;
       dragging = true;
       startY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -511,49 +516,12 @@ const App = {
     return groups.length ? '<div class="waiter-opts">' + groups.join('') + '</div>' : '';
   },
 
-  _getCartCountForItem(itemId) {
-    return this.cart.filter(c => c.itemId === itemId).reduce((sum, c) => sum + c.qty, 0);
-  },
-
-  _updateCardBadges() {
-    document.querySelectorAll('.menu-card-add').forEach(btn => {
-      const itemId = Number(btn.dataset.quickAdd);
-      const count = this._getCartCountForItem(itemId);
-      const existing = btn.querySelector('.menu-card-add-count');
-      if (count > 0) {
-        if (existing) {
-          existing.textContent = count;
-        } else {
-          const badge = document.createElement('span');
-          badge.className = 'menu-card-add-count';
-          badge.textContent = count;
-          btn.appendChild(badge);
-        }
-      } else if (existing) {
-        existing.remove();
-      }
-    });
-  },
-
   addToCart(itemId, variantIndex, qty, selectedOptions) {
     const item = this._findItem(itemId);
     if (!item) return;
 
-    const basePrice = item.variants
-      ? item.variants[variantIndex].price
-      : item.price;
-
-    let optionsExtra = 0;
     const opts = selectedOptions || {};
-    if (item.options) {
-      item.options.forEach(group => {
-        const sel = opts[group.id] || [];
-        group.choices.forEach(choice => {
-          if (sel.includes(choice.id)) optionsExtra += choice.price;
-        });
-      });
-    }
-    const unitPrice = basePrice + optionsExtra;
+    const unitPrice = this._computeUnitPrice(item, variantIndex, opts);
 
     const optKey = JSON.stringify(opts);
     const existing = this.cart.find(c =>
@@ -576,24 +544,10 @@ const App = {
     const item = this._findItem(entry.itemId);
     if (!item) return;
 
-    const basePrice = item.variants
-      ? item.variants[this._sheet.variantIndex].price
-      : item.price;
-
-    let optionsExtra = 0;
     const opts = this._sheet.options || {};
-    if (item.options) {
-      item.options.forEach(group => {
-        const sel = opts[group.id] || [];
-        group.choices.forEach(choice => {
-          if (sel.includes(choice.id)) optionsExtra += choice.price;
-        });
-      });
-    }
-
     entry.variantIndex = this._sheet.variantIndex;
     entry.qty = this._sheet.qty;
-    entry.unitPrice = basePrice + optionsExtra;
+    entry.unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, opts);
     entry.options = opts;
 
     this.updateCartFab();
@@ -679,17 +633,13 @@ const App = {
     const fab = document.getElementById('cart-fab');
     if (!fab) return;
     const count = this.getCartCount();
-    const menu = document.getElementById('menu');
     if (count > 0) {
       fab.querySelector('.cart-fab-total').textContent = this.formatPrice(this.getCartTotal());
       fab.querySelector('.cart-fab-count').textContent = count;
       fab.classList.add('visible');
-      menu.classList.add('has-cart');
     } else {
       fab.classList.remove('visible');
-      menu.classList.remove('has-cart');
     }
-    this._updateCardBadges();
     this._saveCart();
   },
 
@@ -1042,7 +992,7 @@ const App = {
         const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', nextTheme);
         document.querySelector('meta[name="theme-color"]').content =
-          nextTheme === 'dark' ? '#171717' : '#f4e6d0';
+          nextTheme === 'dark' ? '#171717' : '#ffffff';
         localStorage.setItem('theme', nextTheme);
         return;
       }
@@ -1144,7 +1094,7 @@ const App = {
           this._updateCartEntry(this._sheet.editCartIndex);
           this.closeBottomSheet();
           if (document.getElementById('cart-sheet').classList.contains('visible')) {
-            document.getElementById('cart-sheet-content').innerHTML = this._renderCartEditView();
+            this._renderCartEditView();
           }
         } else {
           this.addToCart(this._sheet.itemId, this._sheet.variantIndex, this._sheet.qty, this._sheet.options);
@@ -1218,26 +1168,7 @@ const App = {
 
       // Waiter view back button
       if (e.target.closest('.waiter-view-back')) {
-        const content = document.getElementById('cart-sheet-content');
-        content.innerHTML = this._renderCartEditView();
-        return;
-      }
-
-      // Quick add button on card
-      const quickAdd = e.target.closest('[data-quick-add]');
-      if (quickAdd) {
-        e.stopPropagation();
-        const itemId = Number(quickAdd.dataset.quickAdd);
-        const hasVariants = quickAdd.dataset.hasVariants === 'true';
-        const hasOptions = quickAdd.dataset.hasOptions === 'true';
-        if (hasVariants || hasOptions) {
-          this.openBottomSheet(itemId);
-        } else {
-          this._haptic('medium');
-          this.addToCart(itemId, 0, 1);
-          const item = this._findItem(itemId);
-          if (item) this._showAddedFeedback(item.name, quickAdd);
-        }
+        this._renderCartEditView();
         return;
       }
 
@@ -1248,6 +1179,15 @@ const App = {
         this.openBottomSheet(itemId);
         return;
       }
+    });
+
+    // Keyboard activation for focusable cards (Enter / Space)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.menu-card');
+      if (!card) return;
+      e.preventDefault();
+      this.openBottomSheet(Number(card.dataset.itemId));
     });
 
     // Cart item delete

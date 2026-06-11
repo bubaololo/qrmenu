@@ -149,6 +149,8 @@
                 @foreach($menu->sections as $section)
                     @php
                         $sectionName = $section->translate('name', $lang) ?? $section->name ?? '';
+                        // Sections with zero photos render as classic paper-menu rows
+                        $sectionHasPhotos = $section->items->contains(fn ($i) => $i->image);
                     @endphp
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <header class="category-header">
@@ -159,7 +161,7 @@
                                 <span>{{ $sectionName }}</span>
                             </h2>
                         </header>
-                        <div class="menu-grid">
+                        <div class="menu-grid{{ $sectionHasPhotos ? '' : ' menu-grid--list' }}">
                             @foreach($section->items as $item)
                                 @php
                                     $sourceLocale = $menu->source_locale ?? 'und';
@@ -221,7 +223,7 @@
 
                                     $shouldEmbedExtras = $hasVariants || $hasOptions || isset($extras['description']);
                                 @endphp
-                                <article class="menu-card{{ $item->image ? ' menu-card--image' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}">
+                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}" role="button" tabindex="0">
                                     @if($item->image)
                                         <div class="menu-card-visual">
                                             <img src="{{ $item->thumb_url }}"
@@ -239,11 +241,7 @@
                                         @endif
                                         <div class="menu-card-foot">
                                             <span class="menu-card-price tabular">{{ number_format($displayPrice, 0, '', ' ') }}<span class="menu-card-currency">{{ $currencySymbol }}</span></span>
-                                            @if($hasVariants || $hasOptions)
-                                                <span class="menu-card-hint" aria-hidden="true">
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                                                </span>
-                                            @endif
+                                            <svg class="menu-card-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
                                         </div>
                                     </div>
                                     @if($shouldEmbedExtras)
@@ -452,15 +450,5 @@
             })();
         </script>
     @endif
-    <script>
-        (function () {
-            var hero = document.querySelector('.hero');
-            if (!hero || !('IntersectionObserver' in window)) return;
-            var io = new IntersectionObserver(function (entries) {
-                document.body.classList.toggle('scrolled', !entries[0].isIntersecting);
-            }, { rootMargin: '-24px 0px 0px 0px', threshold: 0 });
-            io.observe(hero);
-        })();
-    </script>
 </body>
 </html>
