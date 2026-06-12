@@ -52,7 +52,7 @@ class Restaurant extends Model
     public function getImageUrlAttribute(): ?string
     {
         return $this->image
-            ? Storage::disk(config('image.disk'))->url($this->image)
+            ? Storage::disk(config('image.disk'))->url($this->image).$this->cacheBust()
             : null;
     }
 
@@ -65,13 +65,13 @@ class Restaurant extends Model
         $ext = pathinfo($this->image, PATHINFO_EXTENSION);
         $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
 
-        return Storage::disk(config('image.disk'))->url($thumb);
+        return Storage::disk(config('image.disk'))->url($thumb).$this->cacheBust();
     }
 
     public function getLogoUrlAttribute(): ?string
     {
         return $this->logo
-            ? Storage::disk(config('image.disk'))->url($this->logo)
+            ? Storage::disk(config('image.disk'))->url($this->logo).$this->cacheBust()
             : null;
     }
 
@@ -84,7 +84,16 @@ class Restaurant extends Model
         $ext = pathinfo($this->logo, PATHINFO_EXTENSION);
         $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->logo);
 
-        return Storage::disk(config('image.disk'))->url($thumb);
+        return Storage::disk(config('image.disk'))->url($thumb).$this->cacheBust();
+    }
+
+    /**
+     * Versioned query string so the nginx `immutable` cache invalidates
+     * the moment an admin re-uploads a logo or hero image.
+     */
+    private function cacheBust(): string
+    {
+        return $this->updated_at ? '?v='.$this->updated_at->timestamp : '';
     }
 
     protected function casts(): array

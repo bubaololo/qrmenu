@@ -100,7 +100,7 @@ class MenuItem extends Model
     public function getImageUrlAttribute(): ?string
     {
         return $this->image
-            ? Storage::disk(config('image.disk'))->url($this->image)
+            ? Storage::disk(config('image.disk'))->url($this->image).$this->cacheBust()
             : null;
     }
 
@@ -113,7 +113,16 @@ class MenuItem extends Model
         $ext = pathinfo($this->image, PATHINFO_EXTENSION);
         $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
 
-        return Storage::disk(config('image.disk'))->url($thumb);
+        return Storage::disk(config('image.disk'))->url($thumb).$this->cacheBust();
+    }
+
+    /**
+     * Versioned query string so the nginx `immutable` cache invalidates
+     * when re-analysis rewrites a deterministic `item_{id}.webp` path in place.
+     */
+    private function cacheBust(): string
+    {
+        return $this->updated_at ? '?v='.$this->updated_at->timestamp : '';
     }
 
     public function section(): BelongsTo

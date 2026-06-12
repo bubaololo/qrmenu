@@ -37,7 +37,7 @@ class Zone extends Model
     public function getImageUrlAttribute(): ?string
     {
         return $this->image
-            ? Storage::disk(config('image.disk'))->url($this->image)
+            ? Storage::disk(config('image.disk'))->url($this->image).$this->cacheBust()
             : null;
     }
 
@@ -50,7 +50,16 @@ class Zone extends Model
         $ext = pathinfo($this->image, PATHINFO_EXTENSION);
         $thumb = preg_replace('/\.'.$ext.'$/', '_thumb.'.$ext, $this->image);
 
-        return Storage::disk(config('image.disk'))->url($thumb);
+        return Storage::disk(config('image.disk'))->url($thumb).$this->cacheBust();
+    }
+
+    /**
+     * Versioned query string to invalidate the nginx `immutable` cache
+     * when a zone image is replaced.
+     */
+    private function cacheBust(): string
+    {
+        return $this->updated_at ? '?v='.$this->updated_at->timestamp : '';
     }
 
     public function restaurant(): BelongsTo
