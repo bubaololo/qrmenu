@@ -149,8 +149,10 @@
                 @foreach($menu->sections as $section)
                     @php
                         $sectionName = $section->translate('name', $lang) ?? $section->name ?? '';
-                        // Sections with zero photos render as classic paper-menu rows
-                        $sectionHasPhotos = $section->items->contains(fn ($i) => $i->image);
+                        // Layout by photo share: bento grid when at least half the items
+                        // have photos; paper-menu rows otherwise (stray photos become thumbs)
+                        $photoCount = $section->items->filter(fn ($i) => $i->image)->count();
+                        $useBento = $photoCount > 0 && $photoCount * 2 >= $section->items->count();
                     @endphp
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <header class="category-header">
@@ -161,7 +163,7 @@
                                 <span>{{ $sectionName }}</span>
                             </h2>
                         </header>
-                        <div class="menu-grid{{ $sectionHasPhotos ? '' : ' menu-grid--list' }}">
+                        <div class="menu-grid{{ $useBento ? '' : ' menu-grid--list' }}">
                             @foreach($section->items as $item)
                                 @php
                                     $sourceLocale = $menu->source_locale ?? 'und';
@@ -289,7 +291,9 @@
     <template id="tpl-item-sheet">
         <div class="bottom-sheet-handle"></div>
         <div class="sheet-visual">
-            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">&times;</button>
+            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
             <img class="sheet-image" alt="" hidden onload="this.classList.add('loaded')">
         </div>
         <div class="sheet-body">
@@ -338,7 +342,9 @@
     <template id="tpl-cart-shell">
         <div class="cart-header">
             <h2 class="cart-title">{{ $uiStrings['cart'] ?? 'Cart' }}</h2>
-            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">&times;</button>
+            <button class="bottom-sheet-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
         </div>
         <div class="cart-items"></div>
         <div class="cart-footer">

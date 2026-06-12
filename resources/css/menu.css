@@ -428,10 +428,23 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 .menu-grid--list .menu-card {
   flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
   background: transparent;
   border: 0;
   border-radius: var(--radius-md);
   box-shadow: none;
+}
+
+/* stray photo in a list section — small square thumb before the name.
+   Vertical margin keeps consecutive thumbs from touching: the 56px thumb
+   is taller than the text row, so it defines the card height. */
+.menu-grid--list .menu-card-visual {
+  width: 56px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  margin: 0.375rem 0;
 }
 .menu-grid--list .menu-card:hover {
   transform: none;
@@ -475,7 +488,7 @@ a.meta-loc:hover { color: var(--foreground); }
   border-bottom: 2px dotted var(--border);
 }
 .menu-grid--list .menu-card-desc { grid-area: desc; max-width: 46ch; }
-.menu-grid--list .menu-card-foot {
+.menu-grid--list .menu-card .menu-card-foot {
   grid-area: price;
   margin-top: 0;
   padding-top: 0;
@@ -545,11 +558,15 @@ a.meta-loc:hover { color: var(--foreground); }
   min-width: 0;
 }
 
-/* no-photo cards are a compact text tile — no visual zone, roomier body */
+/* no-photo cards are a compact text tile — no visual zone, roomier body.
+   In a bento grid next to photo cards the cell stretches; centre the text
+   cluster instead of leaving a hollow gap between name and price. */
 .menu-card--noimage .menu-card-body {
   padding: 0.75rem 0.875rem;
   min-height: 5.5rem;
+  justify-content: center;
 }
+.menu-card--noimage .menu-card-foot { margin-top: 0.375rem; }
 .menu-card-name {
   font-size: 13.5px;
   font-weight: 600;
@@ -895,22 +912,24 @@ a.meta-loc:hover { color: var(--foreground); }
   background: var(--border-strong);
 }
 .bottom-sheet-close {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--card);
-  color: var(--muted-foreground);
-  font-size: 17px;
+  /* frosted glass — sits on top of the dish photo */
+  background: color-mix(in oklch, var(--card) 72%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  color: var(--foreground);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
-  line-height: 1;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
-.bottom-sheet-close:hover { color: var(--foreground); }
+.bottom-sheet-close:hover { background: var(--card); }
+.bottom-sheet-close:active { transform: scale(0.9); }
 
 /* sheet image/icon */
 .sheet-visual { position: relative; margin: 0 1rem; flex-shrink: 0; }
