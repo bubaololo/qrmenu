@@ -70,10 +70,18 @@ class MenuPageController extends Controller
 
         $menu = $restaurant->menu;
 
-        // On-demand translation: if locale not initial and no translations exist, trigger LLM
+        // On-demand translation: if locale not initial and no translations exist, trigger LLM.
+        // For mixed-source menus, initials are persisted under the restaurant's
+        // primary_language (see SaveMenuAnalysisAction::createSection), so the
+        // effective source locale for the comparison is primary_language — not the
+        // 'mixed' marker. Otherwise opening the menu in its primary_language would
+        // loop the translator forever (no non-initial rows ever land).
+        $effectiveSource = ($menu?->source_locale === null || $menu->source_locale === 'mixed')
+            ? $primaryLang
+            : $menu->source_locale;
         $translationPending = false;
         $requestedLang = $lang;
-        if ($menu && $lang !== ($menu->source_locale ?? $primaryLang)) {
+        if ($menu && $lang !== $effectiveSource) {
             $translationPending = $this->ensureTranslations($restaurant, $menu, $lang);
             $menu = $restaurant->menu; // refresh after potential translation
         }

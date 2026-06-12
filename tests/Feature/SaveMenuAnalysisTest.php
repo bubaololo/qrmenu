@@ -183,6 +183,44 @@ class SaveMenuAnalysisTest extends TestCase
     }
 
     #[Test]
+    public function test_mixed_source_falls_back_to_restaurant_primary_language_for_initial_translations(): void
+    {
+        $this->restaurant->update(['primary_language' => 'en']);
+
+        $data = [
+            'restaurant' => ['currency' => 'USD', 'primary_language' => 'mixed'],
+            'sections' => [
+                [
+                    'category_name' => 'Hotpots',
+                    'items' => [
+                        ['name' => 'Phở bò', 'price' => ['original_text' => '10']],
+                    ],
+                ],
+            ],
+        ];
+
+        $menu = (new SaveMenuAnalysisAction)->handle($data, $this->restaurant->id, 1);
+
+        // Menu retains 'mixed' as informational marker for the translation pipeline
+        $this->assertSame('mixed', $menu->source_locale);
+
+        // Initial translations must still land — under the restaurant's primary_language
+        $nameFieldId = TranslationField::where('name', 'name')->value('id');
+        $this->assertDatabaseHas('translations', [
+            'field_id' => $nameFieldId,
+            'locale' => 'en',
+            'value' => 'Hotpots',
+            'is_initial' => true,
+        ]);
+        $this->assertDatabaseHas('translations', [
+            'field_id' => $nameFieldId,
+            'locale' => 'en',
+            'value' => 'Phở bò',
+            'is_initial' => true,
+        ]);
+    }
+
+    #[Test]
     public function test_throws_when_menu_has_no_items(): void
     {
         $this->expectException(\RuntimeException::class);

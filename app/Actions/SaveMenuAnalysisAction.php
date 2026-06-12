@@ -150,7 +150,12 @@ class SaveMenuAnalysisAction
             'country' => isset($r['country']) ? (string) $r['country'] : null,
             'phone' => isset($r['phone']) ? (string) $r['phone'] : null,
             'currency' => isset($r['currency']) ? (string) $r['currency'] : null,
-            'primary_language' => isset($r['primary_language']) ? (string) $r['primary_language'] : null,
+            // 'mixed' is a valid LLM source-locale signal for a menu, but never a
+            // sensible value for the restaurant's primary_language column — it
+            // breaks the initial-translation fallback in createSection. Drop it.
+            'primary_language' => isset($r['primary_language']) && $r['primary_language'] !== 'mixed'
+                ? (string) $r['primary_language']
+                : null,
             'opening_hours' => isset($r['opening_hours']) && is_array($r['opening_hours'])
                 ? $r['opening_hours']
                 : null,
@@ -177,6 +182,11 @@ class SaveMenuAnalysisAction
         $updates = [];
         foreach (['city', 'country', 'phone', 'currency', 'primary_language'] as $field) {
             $value = isset($r[$field]) ? (string) $r[$field] : '';
+            // See fillRestaurantFromLlm: 'mixed' is a menu source-locale marker,
+            // not a real language for restaurant.primary_language.
+            if ($field === 'primary_language' && $value === 'mixed') {
+                continue;
+            }
             if ($value !== '' && empty($restaurant->{$field})) {
                 $updates[$field] = $value;
             }
@@ -211,10 +221,13 @@ class SaveMenuAnalysisAction
             'icon_id' => $iconName !== null ? Icon::where('name', $iconName)->value('id') : null,
         ]);
 
-        // Initial translations require a concrete source locale; mixed-language
-        // menus and OCR results without a detected language leave items
-        // untranslated until the user edits them.
-        $locale = ($sourceLocale !== null && $sourceLocale !== 'mixed') ? $sourceLocale : null;
+        // Initial translations require a concrete source locale. For mixed-language
+        // menus (or when OCR couldn't detect one), fall back to the restaurant's
+        // primary_language so the captured OCR text is still persisted and the
+        // translation pipeline has something to work from.
+        $locale = ($sourceLocale !== null && $sourceLocale !== 'mixed')
+            ? $sourceLocale
+            : ($menu->restaurant?->primary_language ?? null);
 
         $name = MenuJson::extractText($sectionData['category_name'] ?? null);
         if ($name !== null && $locale !== null) {

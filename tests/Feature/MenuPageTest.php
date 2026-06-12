@@ -92,6 +92,23 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
+    public function test_does_not_trigger_translation_when_mixed_source_lang_matches_primary_language(): void
+    {
+        // Reproduce production scenario: LLM marks menu as 'mixed', restaurant
+        // primary_language is the language initials were persisted under. Opening
+        // the menu in that language must not retrigger the translator (otherwise
+        // SSE 'translation.completed' replays loop the page on every reload).
+        $this->restaurant->update(['primary_language' => 'en']);
+        $this->restaurant->menu->update(['source_locale' => 'mixed']);
+
+        $response = $this->get("/{$this->restaurant->id}/en")->assertStatus(200);
+
+        // The banner only renders when translationPending=true; its sentinel id
+        // is unambiguous. Absence means we correctly skipped the translator.
+        $response->assertDontSee('id="translation-banner"', false);
+    }
+
+    #[Test]
     public function test_handles_restaurant_with_no_active_menu(): void
     {
         $empty = Restaurant::factory()->create();
