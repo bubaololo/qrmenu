@@ -433,7 +433,7 @@ a.meta-loc:hover { color: var(--foreground); }
 .menu-grid--media .menu-card {
   flex-direction: row;
   gap: 0.875rem;
-  padding: 0.75rem 2px;
+  padding: 1rem 2px;
   border-radius: var(--radius-lg);
   transition: background var(--dur) var(--ease);
 }
@@ -452,12 +452,11 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 .menu-grid--media .menu-card .menu-card-body {
   padding: 0;
-  min-height: 104px;
   gap: 0.25rem;
 }
-.menu-grid--media .menu-card-name { font-size: 15px; }
-.menu-grid--media .menu-card-desc { font-size: 12.5px; }
-.menu-grid--media .menu-card-price { font-size: 15px; }
+/* photo defines the row height only when a photo is actually there;
+   text-only rows in a media section stay compact */
+.menu-grid--media .menu-card-visual + .menu-card-body { min-height: 104px; }
 /* text cluster packs to the top, Grab-style */
 .menu-grid--media .menu-card .menu-card-foot {
   margin-top: 0.125rem;
@@ -515,12 +514,11 @@ a.meta-loc:hover { color: var(--foreground); }
   align-items: baseline;
   column-gap: 0.625rem;
   row-gap: 3px;
-  padding: 0.75rem 2px;
+  padding: 0.5rem 2px;
   min-height: 0;
 }
 .menu-grid--list .menu-card-name {
   grid-area: name;
-  font-size: 14px;
   /* flex replaces the grid-tile line clamp; the ::after filler draws the leader */
   display: flex;
   align-items: baseline;
@@ -539,7 +537,6 @@ a.meta-loc:hover { color: var(--foreground); }
   padding-top: 0;
   gap: 0.375rem;
 }
-.menu-grid--list .menu-card-price { font-size: 14px; }
 
 /* ============================================================
    Menu card — borderless row; layout comes from the grid modifier
@@ -586,7 +583,7 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 
 .menu-card-name {
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
   color: var(--foreground);
@@ -597,7 +594,7 @@ a.meta-loc:hover { color: var(--foreground); }
   letter-spacing: -0.01em;
 }
 .menu-card-desc {
-  font-size: 11.75px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--muted-foreground);
   display: -webkit-box;
@@ -621,7 +618,7 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 .menu-card:hover .menu-card-chevron { opacity: 1; transform: translateX(2px); }
 .menu-card-price {
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--primary);
   letter-spacing: -0.012em;
