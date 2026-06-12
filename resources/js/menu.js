@@ -93,22 +93,27 @@ const App = {
     }
   },
 
-  // ---- Tabs ----
+  // ---- Category chip + sheet ----
 
   updateActiveTab() {
-    const container = document.getElementById('tabs');
-    if (!container) return;
-    const tabs = container.querySelectorAll('.tab');
-    tabs.forEach(t => {
-      const cat = t.dataset.cat;
+    const label = document.getElementById('cat-chip-label');
+    let activeName = null;
+    document.querySelectorAll('.cat-option').forEach(opt => {
+      const cat = opt.dataset.cat;
       const isActive = (this.activeCategory === null && cat === 'all')
         || (this.activeCategory !== null && cat === String(this.activeCategory));
-      t.classList.toggle('tab-active', isActive);
-      if (isActive) {
-        const offset = t.offsetLeft - container.offsetLeft - (container.clientWidth / 2) + (t.offsetWidth / 2);
-        container.scrollTo({ left: offset, behavior: 'smooth' });
-      }
+      opt.classList.toggle('cat-option-active', isActive);
+      if (isActive) activeName = opt.textContent.trim();
     });
+    if (label && activeName) label.textContent = activeName;
+  },
+
+  openCatSheet() {
+    const sheet = document.getElementById('cat-sheet');
+    if (!sheet) return;
+    document.getElementById('overlay').classList.add('visible');
+    sheet.classList.add('visible');
+    document.body.style.overflow = 'hidden';
   },
 
   // ---- Search Filter ----
@@ -903,6 +908,8 @@ const App = {
     document.getElementById('overlay').classList.remove('visible');
     document.getElementById('item-sheet').classList.remove('visible');
     document.getElementById('cart-sheet').classList.remove('visible');
+    const catSheet = document.getElementById('cat-sheet');
+    if (catSheet) catSheet.classList.remove('visible');
     document.body.style.overflow = 'auto';
   },
 
@@ -1012,9 +1019,35 @@ const App = {
         langDropdown.classList.remove('open');
       }
 
-      // Category tabs
+      // Category chip -> open category sheet
+      if (e.target.closest('#cat-chip')) {
+        this.openCatSheet();
+        return;
+      }
+
+      // Search morph: magnifier expands the field, cross collapses + clears
+      if (e.target.closest('#search-open')) {
+        document.querySelector('.topbar').classList.add('topbar-searching');
+        const input = document.getElementById('search-input');
+        if (input) input.focus();
+        return;
+      }
+      if (e.target.closest('#search-close')) {
+        const input = document.getElementById('search-input');
+        if (input && input.value) {
+          input.value = '';
+          this.filterBySearch('');
+        }
+        document.querySelector('.topbar').classList.remove('topbar-searching');
+        return;
+      }
+
+      // Category option (in the sheet)
       const tabBtn = e.target.closest('[data-cat]');
-      if (tabBtn) return this.scrollToCategory(tabBtn.dataset.cat);
+      if (tabBtn) {
+        if (tabBtn.closest('#cat-sheet')) this._closeAllSheets();
+        return this.scrollToCategory(tabBtn.dataset.cat);
+      }
 
       // Overlay click -> close all
       if (e.target.id === 'overlay') {

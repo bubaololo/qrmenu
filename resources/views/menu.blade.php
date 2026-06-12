@@ -70,12 +70,23 @@
 
     <header class="topbar topbar-sticky" aria-label="Main navigation">
         <div class="container topbar-mainrow">
+            <button class="cat-chip" id="cat-chip" aria-haspopup="dialog"
+                    @if(! ($menu && $menu->sections->isNotEmpty())) hidden @endif>
+                <span class="cat-chip-label" id="cat-chip-label">{{ $uiStrings['all'] }}</span>
+                <svg class="cat-chip-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
+            </button>
             <div id="search" class="search-field">
                 <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="search-input" class="search-input" placeholder="{{ $uiStrings['search'] }}">
+                <button class="search-cancel" id="search-close" aria-label="{{ $uiStrings['close'] ?? 'Close' }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
             </div>
             <div class="topbar-ctrls">
-                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <button class="icon-btn" id="search-open" aria-label="{{ $uiStrings['search'] }}">
+                    <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <button class="theme-toggle icon-btn" id="theme-toggle" aria-label="Toggle dark mode">
                     <svg class="ui-icon ui-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                     <svg class="ui-icon ui-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </button>
@@ -125,34 +136,16 @@
         </div>
     </header>
 
-    @if($menu && $menu->sections->isNotEmpty())
-        <div class="tabs-wrapper tabs-sticky">
-            <div class="container">
-                <div id="tabs" class="tabs" role="tablist">
-                    <button class="tab tab-active" data-cat="all">{{ $uiStrings['all'] }}</button>
-                    @foreach($menu->sections as $section)
-                        <button class="tab" data-cat="{{ $section->id }}">
-                            @if($section->icon?->name)
-                                <svg class="tab-icon" width="16" height="16" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
-                            @endif
-                            <span>{{ $section->translate('name', $lang) ?? $section->name ?? '' }}</span>
-                        </button>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
-
     <main class="container menu-main">
         <div id="menu">
             @if($menu)
                 @foreach($menu->sections as $section)
                     @php
                         $sectionName = $section->translate('name', $lang) ?? $section->name ?? '';
-                        // Layout by photo share: bento grid when at least half the items
-                        // have photos; paper-menu rows otherwise (stray photos become thumbs)
+                        // Layout by photo share: Grab-style media rows when at least half the
+                        // items have photos; paper-menu rows otherwise (stray photos = thumbs)
                         $photoCount = $section->items->filter(fn ($i) => $i->image)->count();
-                        $useBento = $photoCount > 0 && $photoCount * 2 >= $section->items->count();
+                        $useMedia = $photoCount > 0 && $photoCount * 2 >= $section->items->count();
                     @endphp
                     <section class="category-section" id="cat-{{ $section->id }}" data-cat-id="{{ $section->id }}">
                         <header class="category-header">
@@ -163,7 +156,7 @@
                                 <span>{{ $sectionName }}</span>
                             </h2>
                         </header>
-                        <div class="menu-grid{{ $useBento ? '' : ' menu-grid--list' }}">
+                        <div class="menu-grid{{ $useMedia ? ' menu-grid--media' : ' menu-grid--list' }}">
                             @foreach($section->items as $item)
                                 @php
                                     $sourceLocale = $menu->source_locale ?? 'und';
@@ -279,6 +272,25 @@
     <div id="cart-sheet" class="bottom-sheet cart-sheet" role="dialog" aria-modal="true">
         <div id="cart-sheet-content"></div>
     </div>
+
+    @if($menu && $menu->sections->isNotEmpty())
+        <div id="cat-sheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-label="{{ $uiStrings['all'] }}">
+            <div class="bottom-sheet-handle"></div>
+            <nav class="cat-list">
+                <button class="cat-option cat-option-active" data-cat="all">
+                    <span class="cat-option-name">{{ $uiStrings['all'] }}</span>
+                </button>
+                @foreach($menu->sections as $section)
+                    <button class="cat-option" data-cat="{{ $section->id }}">
+                        @if($section->icon?->name)
+                            <svg class="cat-option-icon" width="18" height="18" aria-hidden="true"><use href="#{{ $section->icon->name }}"></use></svg>
+                        @endif
+                        <span class="cat-option-name">{{ $section->translate('name', $lang) ?? $section->name ?? '' }}</span>
+                    </button>
+                @endforeach
+            </nav>
+        </div>
+    @endif
 
     <button id="cart-fab" class="cart-fab" aria-label="{{ $uiStrings['cart'] ?? 'Cart' }}">
         <span class="cart-fab-label">{{ $uiStrings['cart'] ?? 'Cart' }}</span>

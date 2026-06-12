@@ -57,8 +57,7 @@
   --dur-slow:     450ms;
 
   /* layout */
-  --topbar-h:     56px;   /* sticky topbar = search row only */
-  --tabs-h:       54px;
+  --topbar-h:     56px;   /* sticky topbar — single control row */
 }
 
 [data-theme="dark"] {
@@ -239,14 +238,11 @@ a.meta-loc:hover { color: var(--foreground); }
 .topbar-mainrow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.625rem;
   min-height: var(--topbar-h);
   padding-top: 0.375rem;
   padding-bottom: 0.5rem;
-}
-.topbar-mainrow .search-field {
-  flex: 1;
-  min-width: 0;
 }
 .topbar-ctrls {
   display: flex;
@@ -254,6 +250,70 @@ a.meta-loc:hover { color: var(--foreground); }
   gap: 6px;
   flex-shrink: 0;
 }
+
+/* generic 40px square control (search / theme toggle) */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+  flex-shrink: 0;
+  font-size: 0;
+}
+.icon-btn .ui-icon { width: 18px; height: 18px; }
+.icon-btn:hover { color: var(--foreground); border-color: var(--border-strong); }
+.icon-btn:active { transform: scale(0.92); }
+
+/* category chip — opens the category sheet; label follows scroll position */
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 0.875rem;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.cat-chip:hover { border-color: var(--border-strong); }
+.cat-chip:active { transform: scale(0.97); }
+.cat-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cat-chip-arrow { flex-shrink: 0; color: var(--muted-foreground); }
+
+/* search morph — field is hidden until the magnifier is tapped,
+   then it takes the whole row (Grab-style) */
+.topbar .search-field { display: none; position: relative; }
+.topbar.topbar-searching .search-field { display: flex; flex: 1; min-width: 0; }
+.topbar.topbar-searching .cat-chip,
+.topbar.topbar-searching .topbar-ctrls { display: none; }
+.search-cancel {
+  position: absolute;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.search-cancel:hover { color: var(--foreground); background: var(--muted); }
 
 /* ============================================================
    Search field
@@ -274,7 +334,7 @@ a.meta-loc:hover { color: var(--foreground); }
 .search-input {
   width: 100%;
   height: 40px;
-  padding: 0 1rem 0 2.375rem;
+  padding: 0 2.5rem 0 2.375rem;
   font-size: 15px;
   font-family: inherit;
   color: var(--foreground);
@@ -296,89 +356,38 @@ a.meta-loc:hover { color: var(--foreground); }
 [data-theme="dark"] .search-input:focus { background: var(--card); }
 
 /* ============================================================
-   Tabs
+   Category sheet — bottom sheet with the section list
    ============================================================ */
-.tabs-wrapper {
-  background: color-mix(in oklch, var(--background) 90%, transparent);
-  backdrop-filter: saturate(150%) blur(14px);
-  -webkit-backdrop-filter: saturate(150%) blur(14px);
-  border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  position: relative;
-}
-.tabs-wrapper .container { padding-left: 0; padding-right: 0; }
-.tabs-sticky {
-  position: sticky;
-  top: var(--topbar-h);
-  z-index: 30;
-  transition: top var(--dur) var(--ease);
-}
-.tabs-wrapper::before,
-.tabs-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2rem;
-  z-index: 2;
-  pointer-events: none;
-}
-.tabs-wrapper::before { left: 0; background: linear-gradient(to right, var(--background), transparent); }
-.tabs-wrapper::after { right: 0; background: linear-gradient(to left, var(--background), transparent); }
-
-.tabs {
+.cat-list {
+  padding: 0.5rem 0.75rem 1.25rem;
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
+  flex-direction: column;
+  overflow-y: auto;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 0.375rem 1.25rem;
-  touch-action: pan-x;
-  overscroll-behavior-x: contain;
 }
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  flex-shrink: 0;
-  display: inline-flex;
+.cat-option {
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  height: 32px;
-  padding: 0 12px;
-  font-size: 13px;
+  gap: 0.75rem;
+  padding: 0.875rem 0.75rem;
+  font-size: 15px;
   font-weight: 500;
   color: var(--foreground);
-  background: var(--card);
-  border: 1px solid var(--border);
+  text-align: left;
   border-radius: var(--radius-lg);
+  transition: background var(--dur) var(--ease);
+}
+.cat-option:active { background: var(--muted); }
+.cat-option-icon { flex-shrink: 0; color: var(--muted-foreground); }
+.cat-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
-  transition: background var(--dur) var(--ease),
-              color var(--dur) var(--ease),
-              border-color var(--dur) var(--ease),
-              box-shadow var(--dur) var(--ease);
 }
-.tab:hover {
-  border-color: var(--border-strong);
-  background: var(--card);
-}
-.tab-active {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
-  box-shadow: var(--shadow-warm);
-}
-.tab-active:hover {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--primary-foreground);
-}
-.tab-icon {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  color: currentColor;
-}
+.cat-option-active { background: var(--primary-soft); font-weight: 600; }
+.cat-option-active .cat-option-icon { color: var(--foreground); }
 
 /* ============================================================
    Menu main
@@ -388,7 +397,7 @@ a.meta-loc:hover { color: var(--foreground); }
 /* ============================================================
    Category section
    ============================================================ */
-.category-section { margin-bottom: 2.25rem; scroll-margin-top: calc(var(--topbar-h) + var(--tabs-h) + 12px); }
+.category-section { margin-bottom: 2.25rem; scroll-margin-top: calc(var(--topbar-h) + 12px); }
 .category-header {
   display: flex;
   flex-direction: column;
@@ -409,12 +418,62 @@ a.meta-loc:hover { color: var(--foreground); }
 .category-icon { width: 1.25em; height: 1.25em; flex-shrink: 0; color: var(--primary); opacity: 0.85; }
 
 /* ============================================================
-   Menu grid — mobile-first 2-column bento
+   Menu grid — vertical lists; modifier picks the row style
    ============================================================ */
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.625rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   Media rows — photo-heavy sections (Grab-style):
+   square photo left, name/desc/price right.
+   ============================================================ */
+.menu-grid--media { gap: 0; }
+.menu-grid--media .menu-card {
+  flex-direction: row;
+  gap: 0.875rem;
+  padding: 0.75rem 2px;
+  border-radius: var(--radius-lg);
+  transition: background var(--dur) var(--ease);
+}
+/* light hairline between rows, Grab-style */
+.menu-grid--media .menu-card:not(:last-child) {
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.menu-grid--media .menu-card:active { background: var(--muted); }
+.menu-grid--media .menu-card-visual {
+  width: 104px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  align-self: flex-start;
+  border-radius: var(--radius-lg);
+}
+.menu-grid--media .menu-card .menu-card-body {
+  padding: 0;
+  min-height: 104px;
+  gap: 0.25rem;
+}
+.menu-grid--media .menu-card-name { font-size: 15px; }
+.menu-grid--media .menu-card-desc { font-size: 12.5px; }
+.menu-grid--media .menu-card-price { font-size: 15px; }
+/* text cluster packs to the top, Grab-style */
+.menu-grid--media .menu-card .menu-card-foot {
+  margin-top: 0.125rem;
+  padding-top: 0;
+}
+/* chevron leaves the text flow — vertically centred in the row,
+   independent of whether the item has a description */
+.menu-grid--media .menu-card .menu-card-body { padding-right: 1.5rem; }
+.menu-grid--media .menu-card-chevron {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.menu-grid--media .menu-card:hover .menu-card-chevron {
+  transform: translateY(-50%) translateX(2px);
 }
 
 /* ============================================================
@@ -430,10 +489,8 @@ a.meta-loc:hover { color: var(--foreground); }
   flex-direction: row;
   align-items: center;
   gap: 0.75rem;
-  background: transparent;
-  border: 0;
   border-radius: var(--radius-md);
-  box-shadow: none;
+  transition: background var(--dur) var(--ease);
 }
 
 /* stray photo in a list section — small square thumb before the name.
@@ -446,19 +503,7 @@ a.meta-loc:hover { color: var(--foreground); }
   border-radius: var(--radius-md);
   margin: 0.375rem 0;
 }
-.menu-grid--list .menu-card:hover {
-  transform: none;
-  box-shadow: none;
-}
-.menu-grid--list .menu-card:active {
-  transform: none;
-  background: var(--muted);
-}
-.menu-grid--list .menu-card:focus-visible {
-  box-shadow: 0 0 0 3px var(--ring);
-}
-[data-theme="dark"] .menu-grid--list .menu-card,
-[data-theme="dark"] .menu-grid--list .menu-card:hover { box-shadow: none; }
+.menu-grid--list .menu-card:active { background: var(--muted); }
 
 /* extra .menu-card level outweighs the later .menu-card--noimage tile rule */
 .menu-grid--list .menu-card .menu-card-body {
@@ -497,37 +542,19 @@ a.meta-loc:hover { color: var(--foreground); }
 .menu-grid--list .menu-card-price { font-size: 14px; }
 
 /* ============================================================
-   Menu card — bento tile
+   Menu card — borderless row; layout comes from the grid modifier
    ============================================================ */
 .menu-card {
   position: relative;
   display: flex;
-  flex-direction: column;
   overflow: hidden;
-  background: var(--card);
   color: var(--card-foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--dur) var(--ease),
-              box-shadow var(--dur) var(--ease),
-              border-color var(--dur) var(--ease);
   cursor: pointer;
-  isolation: isolate;
 }
-.menu-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
-}
-.menu-card:active { transform: scale(0.98); }
 .menu-card:focus-visible {
   outline: none;
-  border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--ring);
 }
-[data-theme="dark"] .menu-card { border-color: var(--border); box-shadow: 0 1px 0 oklch(1 0 0 / 0.03); }
-[data-theme="dark"] .menu-card:hover { box-shadow: 0 18px 40px -22px oklch(0 0 0 / 0.75); }
 
 /* visual — only present on cards that have a photo */
 .menu-card-visual {
@@ -558,15 +585,6 @@ a.meta-loc:hover { color: var(--foreground); }
   min-width: 0;
 }
 
-/* no-photo cards are a compact text tile — no visual zone, roomier body.
-   In a bento grid next to photo cards the cell stretches; centre the text
-   cluster instead of leaving a hollow gap between name and price. */
-.menu-card--noimage .menu-card-body {
-  padding: 0.75rem 0.875rem;
-  min-height: 5.5rem;
-  justify-content: center;
-}
-.menu-card--noimage .menu-card-foot { margin-top: 0.375rem; }
 .menu-card-name {
   font-size: 13.5px;
   font-weight: 600;
@@ -831,24 +849,8 @@ a.meta-loc:hover { color: var(--foreground); }
 /* ============================================================
    Theme toggle
    ============================================================ */
-.theme-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted-foreground);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
-  flex-shrink: 0;
-  font-size: 0;
-}
-.theme-toggle .ui-icon { width: 18px; height: 18px; }
-.theme-toggle:hover { color: var(--foreground); border-color: var(--border-strong); }
-.theme-toggle:active { transform: scale(0.92); }
-/* Both icons live in the DOM; we hide the inactive one with CSS so the JS
+/* theme toggle inherits .icon-btn chrome.
+   Both icons live in the DOM; we hide the inactive one with CSS so the JS
    toggle just flips data-theme on <html> — no innerHTML manipulation. */
 .theme-toggle .ui-icon-sun { display: none; }
 [data-theme="dark"] .theme-toggle .ui-icon-moon { display: none; }
@@ -1487,39 +1489,29 @@ a.meta-loc:hover { color: var(--foreground); }
 }
 
 /* ============================================================
-   Small phones (< 360px) — single column grid, roomier
-   ============================================================ */
-@media (max-width: 359px) {
-  .menu-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-  .menu-card { flex-direction: row; }
-  .menu-card-visual { width: 120px; aspect-ratio: 1 / 1; flex-shrink: 0; }
-  .menu-card-body { padding: 0.75rem 0.875rem; }
-}
-
-/* ============================================================
    Tablet (≥ 640px) — roomier layout
    ============================================================ */
 @media (min-width: 640px) {
   .container { max-width: 640px; padding-left: 1.25rem; padding-right: 1.25rem; }
-  .menu-grid { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-  .menu-card-body { padding: 0.75rem 0.875rem 0.875rem; }
-  .menu-card-name { font-size: 14px; }
   .category-title { font-size: 1.625rem; }
   .bottom-sheet, .cart-fab { max-width: 640px; }
 }
 
-/* Desktop (≥ 1024px) — centered, 4 cols */
+/* Desktop (≥ 1024px) — media rows in two columns */
 @media (min-width: 1024px) {
   .container { max-width: 980px; padding-left: 1.5rem; padding-right: 1.5rem; }
-  .menu-grid { grid-template-columns: repeat(4, 1fr); gap: 0.875rem; }
+  .menu-grid--media {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.375rem 2.5rem;
+  }
   .category-title { font-size: 1.75rem; }
   .category-section { margin-bottom: 2.75rem; }
   .bottom-sheet, .cart-fab { max-width: 520px; }
   .sheet-image { max-height: 420px; }
 }
 
-/* Large desktop (≥ 1280px) — 5 cols, wider hero */
+/* Large desktop (≥ 1280px) */
 @media (min-width: 1280px) {
   .container { max-width: 1120px; }
-  .menu-grid { grid-template-columns: repeat(5, 1fr); }
 }
