@@ -495,6 +495,7 @@ class MenuPageController extends Controller
                 'submitOrder' => 'Gửi đơn hàng', 'placingOrder' => 'Đang gửi đơn',
                 'orderPlaced' => 'Đã đặt đơn', 'orderNumber' => 'Đơn',
                 'orderFailed' => 'Đặt đơn thất bại', 'orderRequiresTable' => 'Vui lòng quét mã QR trên bàn để đặt đơn',
+                'recommended' => 'Đề xuất',
             ],
             'en' => [
                 'search' => 'Search menu...', 'all' => 'All', 'powered' => 'Powered by QR Menu',
@@ -510,6 +511,7 @@ class MenuPageController extends Controller
                 'submitOrder' => 'Submit order', 'placingOrder' => 'Sending order',
                 'orderPlaced' => 'Order placed', 'orderNumber' => 'Order',
                 'orderFailed' => 'Order failed', 'orderRequiresTable' => 'Scan the table QR code to order',
+                'recommended' => 'Recommended',
             ],
             'ru' => [
                 'search' => 'Поиск по меню...', 'all' => 'Все', 'powered' => 'Powered by QR Menu',
@@ -525,6 +527,7 @@ class MenuPageController extends Controller
                 'submitOrder' => 'Отправить заказ', 'placingOrder' => 'Отправляем заказ',
                 'orderPlaced' => 'Заказ принят', 'orderNumber' => 'Заказ',
                 'orderFailed' => 'Не удалось отправить заказ', 'orderRequiresTable' => 'Отсканируйте QR на столе, чтобы заказать',
+                'recommended' => 'Рекомендуем',
             ],
             'kk' => [
                 'search' => 'Мәзірден іздеу...', 'all' => 'Барлығы', 'powered' => 'Powered by QR Menu',
@@ -540,6 +543,7 @@ class MenuPageController extends Controller
                 'submitOrder' => 'Тапсырысты жіберу', 'placingOrder' => 'Жіберілуде',
                 'orderPlaced' => 'Тапсырыс қабылданды', 'orderNumber' => 'Тапсырыс',
                 'orderFailed' => 'Жіберу сәтсіз', 'orderRequiresTable' => 'Тапсырыс беру үшін үстелдегі QR кодты сканерлеңіз',
+                'recommended' => 'Ұсынамыз',
             ],
         ];
 

@@ -4,14 +4,14 @@ namespace App\Filament\Resources\Restaurants\Schemas;
 
 use App\Services\ImageProcessor;
 use Filament\Forms\Components\FileUpload;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Matriphe\ISO639\ISO639;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Matriphe\ISO639\ISO639;
 
 class RestaurantForm
 {
@@ -20,7 +20,7 @@ class RestaurantForm
         return $schema
             ->components([
                 FileUpload::make('image')
-                    ->label('Logo / Cover Image')
+                    ->label('Cover image (banner)')
                     ->image()
                     ->disk(config('image.disk'))
                     ->maxSize(10240)
@@ -35,8 +35,43 @@ class RestaurantForm
 
                         [$mainPath] = $processor->processAndStore(
                             $file->getRealPath(),
-                            'restaurants',
+                            config('image.paths.restaurants'),
                             Str::uuid()->toString(),
+                            'banner',
+                        );
+
+                        return $mainPath;
+                    })
+                    ->deleteUploadedFileUsing(function (?string $file) {
+                        if (! $file) {
+                            return;
+                        }
+                        $processor = app(ImageProcessor::class);
+                        $disk = config('image.disk');
+                        Storage::disk($disk)->delete($file);
+                        Storage::disk($disk)->delete($processor->thumbPath($file));
+                    })
+                    ->columnSpanFull(),
+
+                FileUpload::make('logo')
+                    ->label('Logo')
+                    ->image()
+                    ->disk(config('image.disk'))
+                    ->maxSize(10240)
+                    ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record): string {
+                        $processor = app(ImageProcessor::class);
+                        $disk = config('image.disk');
+
+                        if ($record?->logo) {
+                            Storage::disk($disk)->delete($record->logo);
+                            Storage::disk($disk)->delete($processor->thumbPath($record->logo));
+                        }
+
+                        [$mainPath] = $processor->processAndStore(
+                            $file->getRealPath(),
+                            config('image.paths.logos'),
+                            Str::uuid()->toString(),
+                            'logo',
                         );
 
                         return $mainPath;

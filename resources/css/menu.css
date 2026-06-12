@@ -147,8 +147,49 @@ h1, h2, h3, h4 { letter-spacing: -0.015em; font-weight: 600; }
 
 
 /* ============================================================
-   Navbar
+   Hero — restaurant banner + logo (both optional)
    ============================================================ */
+.hero-banner {
+  width: 100%;
+  height: clamp(140px, 30vw, 220px);
+  overflow: hidden;
+  background: var(--surface);
+}
+.hero-banner__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.hero-banner__img.loaded { opacity: 1; }
+
+/* logo overlapping the banner's bottom edge */
+.hero-logo-row {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  margin-top: -32px;
+}
+.hero-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--background);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+/* no banner — compact logo inline with the restaurant name */
+.hero-logo--inline {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    Meta strip — non-sticky info line above the topbar
    ============================================================ */
@@ -593,6 +634,17 @@ a.meta-loc:hover { color: var(--foreground); }
   overflow: hidden;
   letter-spacing: -0.01em;
 }
+/* recommended marker — amber star after the dish name */
+.menu-card-star {
+  flex-shrink: 0;
+  margin-left: 5px;
+  color: var(--warning);
+  vertical-align: -1px;
+}
+/* in paper rows the name is a flex line — keep the star on the text line,
+   between the name and the dotted leader */
+.menu-grid--list .menu-card-star { align-self: center; }
+
 .menu-card-desc {
   font-size: 13px;
   line-height: 1.4;
@@ -1497,6 +1549,7 @@ a.meta-loc:hover { color: var(--foreground); }
 /* Desktop (≥ 1024px) — media rows in two columns */
 @media (min-width: 1024px) {
   .container { max-width: 980px; padding-left: 1.5rem; padding-right: 1.5rem; }
+  .hero-banner { max-width: 980px; margin: 0 auto; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
   .menu-grid--media {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1511,4 +1564,5 @@ a.meta-loc:hover { color: var(--foreground); }
 /* Large desktop (≥ 1280px) */
 @media (min-width: 1280px) {
   .container { max-width: 1120px; }
+  .hero-banner { max-width: 1120px; }
 }

@@ -6,16 +6,25 @@ use Illuminate\Support\Facades\Storage;
 
 class ImageProcessor
 {
+    /**
+     * Resize, convert and store an image with its thumbnail.
+     *
+     * @param  string  $profile  Size profile from config('image.profiles'):
+     *                           'default' (items), 'banner' (wide cover), 'logo' (small)
+     * @return array{0: string, 1: string} [mainPath, thumbPath]
+     */
     public function processAndStore(
         string $sourcePath,
         string $targetDir,
         string $baseName,
+        string $profile = 'default',
     ): array {
         $disk = config('image.disk');
         $format = config('image.format');
         $quality = config('image.quality');
-        $mainWidth = config('image.main.width');
-        $thumbWidth = config('image.thumb.width');
+        $sizes = config('image.profiles.'.$profile) ?? config('image.profiles.default');
+        $mainWidth = $sizes['main'];
+        $thumbWidth = $sizes['thumb'];
 
         $img = new \Imagick($sourcePath);
         $img->autoOrient();
@@ -28,7 +37,9 @@ class ImageProcessor
         $main->setImageCompressionQuality($quality);
 
         $thumb = clone $img;
-        $thumb->thumbnailImage($thumbWidth, $thumbWidth, true);
+        if (max($thumb->getImageWidth(), $thumb->getImageHeight()) > $thumbWidth) {
+            $thumb->thumbnailImage($thumbWidth, $thumbWidth, true);
+        }
         $thumb->setImageFormat($format);
         $thumb->setImageCompressionQuality($quality);
 

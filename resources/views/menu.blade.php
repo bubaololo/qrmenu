@@ -39,6 +39,22 @@
         $hasMeta = $locationParts->isNotEmpty();
     @endphp
 
+    @if($restaurant->image_url)
+        <div class="hero-banner">
+            <img src="{{ $restaurant->thumb_url }}"
+                 srcset="{{ $restaurant->thumb_url }} 800w, {{ $restaurant->image_url }} 1600w"
+                 sizes="(min-width: 1280px) 1120px, (min-width: 1024px) 980px, 100vw"
+                 alt="" class="hero-banner__img" fetchpriority="high" decoding="async"
+                 onload="this.classList.add('loaded')"
+                 onerror="this.classList.add('loaded')">
+        </div>
+        @if($restaurant->logo_url)
+            <div class="container hero-logo-row">
+                <img src="{{ $restaurant->logo_thumb_url }}" alt="" class="hero-logo">
+            </div>
+        @endif
+    @endif
+
     @if($hasMeta)
         <div id="top" class="meta-strip">
             <div class="container meta-strip-row">
@@ -60,6 +76,9 @@
     @endif
 
     <div class="container topbar-brandrow">
+        @if($restaurant->logo_url && ! $restaurant->image_url)
+            <img src="{{ $restaurant->logo_thumb_url }}" alt="" class="hero-logo hero-logo--inline">
+        @endif
         <div class="topbar-brand-stack">
             <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
             @if($heroInfo['todayHours'] !== null)
@@ -218,19 +237,30 @@
 
                                     $shouldEmbedExtras = $hasVariants || $hasOptions || isset($extras['description']);
                                 @endphp
-                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}" role="button" tabindex="0">
+                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
                                     @if($item->image)
+                                        @php
+                                            // Thumbs render at a fixed width: 104px in media rows, 56px in
+                                            // paper lists — `sizes` must match or dpr3 phones overfetch 800w.
+                                            // First items of the first section are above the fold: eager-load
+                                            // them so LCP doesn't wait for the lazy decoder.
+                                            $aboveTheFold = $loop->parent->first && $loop->index < 4;
+                                        @endphp
                                         <div class="menu-card-visual">
                                             <img src="{{ $item->thumb_url }}"
-                                                 srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 800w"
-                                                 sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
-                                                 alt="" class="menu-card__image" loading="lazy"
+                                                 srcset="{{ $item->thumb_url }} 400w, {{ $item->image_url }} 1024w"
+                                                 sizes="{{ $useMedia ? '104px' : '56px' }}"
+                                                 data-full="{{ $item->image_url }}"
+                                                 alt="" class="menu-card__image"
+                                                 loading="{{ $aboveTheFold ? 'eager' : 'lazy' }}"
+                                                 @if($aboveTheFold) fetchpriority="high" @endif
+                                                 decoding="async"
                                                  onload="this.classList.add('loaded')"
                                                  onerror="this.classList.add('loaded')">
                                         </div>
                                     @endif
                                     <div class="menu-card-body">
-                                        <h3 class="menu-card-name">{{ $itemName }}</h3>
+                                        <h3 class="menu-card-name">{{ $itemName }}@if($item->starred)<svg class="menu-card-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="{{ $uiStrings['recommended'] ?? 'Recommended' }}"><path d="M12 2l2.92 6.26 6.58.57-5 4.35 1.5 6.45L12 16.2l-6 3.43 1.5-6.45-5-4.35 6.58-.57L12 2z"/></svg>@endif</h3>
                                         @if($itemDesc)
                                             <p class="menu-card-desc">{{ \Illuminate\Support\Str::limit($itemDesc, 90, '…') }}</p>
                                         @endif
@@ -310,6 +340,9 @@
         </div>
         <div class="sheet-body">
             <h2 class="sheet-title"></h2>
+            <div class="sheet-badges badges" hidden>
+                <span class="badge badge-popular">{{ $uiStrings['recommended'] ?? 'Recommended' }}</span>
+            </div>
             <p class="sheet-desc" hidden></p>
             <div class="sheet-variants" hidden>
                 <p class="sheet-variants-label">{{ $uiStrings['chooseVariant'] ?? 'Choose' }}</p>

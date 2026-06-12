@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\SaveMenuAnalysisAction;
 use App\Models\DiningTable;
+use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\Zone;
 use App\Support\MenuJson;
@@ -175,5 +176,72 @@ class MenuPageTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Closed today')
             ->assertSee('Closed');
+    }
+
+    #[Test]
+    public function test_hero_banner_renders_when_restaurant_has_image(): void
+    {
+        $this->restaurant->update(['image' => 'restaurants/test-banner.webp']);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('class="hero-banner"', false)
+            ->assertSee('restaurants/test-banner.webp');
+    }
+
+    #[Test]
+    public function test_hero_logo_renders_when_restaurant_has_logo(): void
+    {
+        $this->restaurant->update(['logo' => 'logos/test-logo.webp']);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('class="hero-logo', false)
+            ->assertSee('logos/test-logo_thumb.webp');
+    }
+
+    #[Test]
+    public function test_item_card_exposes_full_image_url_for_the_sheet(): void
+    {
+        $item = MenuItem::query()->firstOrFail();
+        $item->update(['image' => 'menu-items/full-test.webp']);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('data-full=', false)
+            ->assertSee('menu-items/full-test.webp');
+    }
+
+    #[Test]
+    public function test_starred_item_renders_recommended_marker(): void
+    {
+        $item = MenuItem::query()->firstOrFail();
+        $item->update(['starred' => true]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('class="menu-card-star"', false)
+            ->assertSee('data-starred="1"', false)
+            ->assertSee('Recommended');
+    }
+
+    #[Test]
+    public function test_unstarred_menu_has_no_recommended_marker(): void
+    {
+        MenuItem::query()->update(['starred' => false]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertDontSee('class="menu-card-star"', false)
+            ->assertDontSee('data-starred', false);
+    }
+
+    #[Test]
+    public function test_hero_markup_absent_without_branding_images(): void
+    {
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertDontSee('class="hero-banner"', false)
+            ->assertDontSee('class="hero-logo', false);
     }
 }
