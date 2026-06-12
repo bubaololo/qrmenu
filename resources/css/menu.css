@@ -514,7 +514,7 @@ a.meta-loc:hover { color: var(--foreground); }
   align-items: baseline;
   column-gap: 0.625rem;
   row-gap: 3px;
-  padding: 0.5rem 2px;
+  padding: 1rem 2px;
   min-height: 0;
 }
 .menu-grid--list .menu-card-name {
