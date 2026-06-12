@@ -47,7 +47,7 @@ class MenuAnalysisController extends Controller
     ): MenuAnalysisResource|JsonResponse {
         $request->validate([
             'images' => ['required', 'array', 'min:1'],
-            'images.*' => ['required', 'image', 'max:10240'],
+            'images.*' => ['required', 'image', 'max:51200'],
             'restaurant_id' => ['nullable', 'integer', 'exists:restaurants,id'],
             'model' => ['nullable', 'string', 'in:'.implode(',', array_keys(MenuAnalyzer::visionModels()))],
             'sync' => ['nullable', 'boolean'],

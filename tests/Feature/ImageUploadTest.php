@@ -185,4 +185,47 @@ class ImageUploadTest extends TestCase
             'image' => UploadedFile::fake()->create('photo.jpg', 100, 'image/jpeg'),
         ], ['Accept' => 'application/json'])->assertStatus(401);
     }
+
+    #[Test]
+    public function test_menu_item_image_accepts_files_up_to_50_mb(): void
+    {
+        Queue::fake();
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+        $menu = Menu::factory()->for($restaurant)->create();
+        $section = MenuSection::factory()->for($menu)->create();
+        $item = MenuItem::factory()->for($section, 'section')->create();
+
+        $this->actingAs($user)
+            ->post("/api/v1/menu-items/{$item->id}/image", [
+                'image' => UploadedFile::fake()->create('photo.jpg', 30720, 'image/jpeg'),
+            ], ['Accept-Language' => ''])
+            ->assertStatus(202);
+    }
+
+    #[Test]
+    public function test_menu_item_image_rejects_files_over_50_mb(): void
+    {
+        Queue::fake();
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $restaurant = Restaurant::factory()->create(['created_by_user_id' => $user->id]);
+        $menu = Menu::factory()->for($restaurant)->create();
+        $section = MenuSection::factory()->for($menu)->create();
+        $item = MenuItem::factory()->for($section, 'section')->create();
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-items/{$item->id}/image", [
+                'image' => UploadedFile::fake()->create('photo.jpg', 53248, 'image/jpeg'),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('image');
+
+        Queue::assertNothingPushed();
+    }
 }

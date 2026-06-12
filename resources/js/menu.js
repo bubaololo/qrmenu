@@ -50,8 +50,11 @@ const App = {
       id: Number(id),
       sectionId: sectionEl ? Number(sectionEl.dataset.catId) : null,
       name: nameEl ? nameEl.textContent.trim() : '',
-      image_url: img ? img.src : null,
+      // img.src is the thumb (the full size lives only in srcset);
+      // data-full carries the 800w original for the bottom sheet.
+      image_url: img ? (img.dataset.full || img.src) : null,
       thumb_url: img ? img.src : null,
+      starred: article.dataset.starred === '1',
       description: extras.description || null,
       price: typeof extras.price === 'number' ? extras.price : 0,
       orderable: extras.orderable !== false,
@@ -239,6 +242,9 @@ const App = {
     }
 
     fragment.querySelector('.sheet-title').textContent = item.name;
+    if (item.starred) {
+      fragment.querySelector('.sheet-badges').hidden = false;
+    }
     const desc = item.description;
     if (desc && desc.trim()) {
       const descEl = fragment.querySelector('.sheet-desc');

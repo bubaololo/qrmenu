@@ -66,7 +66,7 @@ class SectionsRelationManager extends RelationManager
                             ->label('Photo')
                             ->image()
                             ->disk(config('image.disk'))
-                            ->maxSize(10240)
+                            ->maxSize(51200)
                             ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record): string {
                                 $processor = app(ImageProcessor::class);
                                 $disk = config('image.disk');

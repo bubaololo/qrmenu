@@ -28,6 +28,7 @@ class ImageController extends Controller
             $restaurant->id,
             config('image.paths.restaurants'),
             $restaurant->image,
+            profile: 'banner',
         );
     }
 
@@ -56,6 +57,7 @@ class ImageController extends Controller
             config('image.paths.logos'),
             $restaurant->logo,
             'logo',
+            profile: 'logo',
         );
     }
 
@@ -99,7 +101,7 @@ class ImageController extends Controller
 
     public function updateMenuItem(Request $request, int $itemId): JsonResponse
     {
-        $request->validate(['image' => ['required', 'image', 'max:10240']]);
+        $request->validate(['image' => ['required', 'image', 'max:51200']]);
 
         $item = MenuItem::with('section.menu.restaurant')->findOrFail($itemId);
         Gate::authorize('update', $item->section->menu->restaurant);
@@ -131,6 +133,7 @@ class ImageController extends Controller
         string $targetDir,
         ?string $oldImagePath,
         string $fieldName = 'image',
+        string $profile = 'default',
     ): JsonResponse {
         $originalsDisk = config('image.originals_disk');
         $disk = config('image.disk');
@@ -142,7 +145,7 @@ class ImageController extends Controller
             $originalsDisk,
         );
 
-        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath, $fieldName);
+        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath, $fieldName, $profile);
 
         return response()->json(['data' => [
             'image_url' => Storage::disk($disk)->url("{$targetDir}/{$baseName}.{$format}"),

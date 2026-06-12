@@ -26,6 +26,7 @@ class ProcessImageJob implements ShouldQueue
         public string $baseName,
         public ?string $oldImagePath = null,
         public string $fieldName = 'image',
+        public string $profile = 'default',
     ) {}
 
     public function handle(ImageProcessor $processor): void
@@ -47,6 +48,7 @@ class ProcessImageJob implements ShouldQueue
                 $tmpFile,
                 $this->targetDir,
                 $this->baseName,
+                $this->profile,
             );
 
             $model = $this->modelClass::findOrFail($this->modelId);

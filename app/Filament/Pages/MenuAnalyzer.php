@@ -22,7 +22,7 @@ class MenuAnalyzer extends Page
     /**
      * Laravel/Filament file validation uses kilobytes; 10240 KB = 10 MB per file.
      */
-    private const MAX_FILE_SIZE_KILOBYTES = 10240;
+    private const MAX_FILE_SIZE_KILOBYTES = 51200;
 
     protected string $view = 'filament.pages.menu-analyzer';
 
