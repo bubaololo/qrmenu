@@ -52,6 +52,28 @@ class Menu extends Model
     }
 
     /**
+     * The concrete, editable locale that holds (or should hold) this menu's
+     * initial (source-of-truth) translations.
+     *
+     * Differs from source_locale only for mixed-language menus: source_locale
+     * is then the sentinel 'mixed', which is never a real translation row.
+     * For those menus SaveMenuAnalysisAction::createSection stores the captured
+     * OCR text under the restaurant's primary_language, so that is where the
+     * is_initial=true rows actually live and where source edits must go.
+     *
+     * Returns null only when there is no usable locale at all (no source and
+     * no primary_language) — callers treat that as "contract undefined".
+     */
+    public function initialLocale(): ?string
+    {
+        if ($this->source_locale !== null && $this->source_locale !== 'mixed') {
+            return $this->source_locale;
+        }
+
+        return $this->restaurant?->primary_language;
+    }
+
+    /**
      * Return the list of locales available for this menu (always includes source_locale and primary_language).
      *
      * @return Collection<int, array{code: string, name: string, is_source: bool}>
@@ -81,12 +103,16 @@ class Menu extends Model
         // into. Drop it from the picker so the UI never offers it.
         $locales = $locales->reject(fn (string $code) => $code === 'mixed')->values();
 
+        // The "source" badge marks the editable origin locale, not the raw
+        // source_locale sentinel — for mixed menus that is primary_language.
+        $initialLocale = $this->initialLocale();
+
         $iso = new ISO639;
 
         return $locales->map(fn (string $code) => [
             'code' => $code,
             'name' => $iso->nativeByCode1($code, true) ?: strtoupper($code),
-            'is_source' => $code === $sourceLocale,
+            'is_source' => $code === $initialLocale,
         ])->sortBy('name')->values();
     }
 }

@@ -406,6 +406,57 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
+    public function test_mixed_source_locale_treats_primary_language_as_initial(): void
+    {
+        // Mixed-language menu: source_locale is the 'mixed' sentinel, so the
+        // initial (is_initial=true) translations live under the restaurant's
+        // primary_language. Editing in that locale must set is_initial=true.
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'mixed']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Beef Pho'], ['X-Locale' => 'en'])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('translations', [
+            'translatable_type' => MenuItem::class,
+            'translatable_id' => $item->id,
+            'locale' => 'en',
+            'field_id' => TranslationField::where('name', 'name')->value('id'),
+            'value' => 'Beef Pho',
+            'is_initial' => true,
+        ]);
+    }
+
+    #[Test]
+    public function test_locales_endpoint_exposes_initial_locale_for_mixed_menu(): void
+    {
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'mixed']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/v1/menus/{$menu->id}/locales")
+            ->assertStatus(200);
+
+        $response->assertJsonPath('meta.source_locale', 'mixed');
+        $response->assertJsonPath('meta.initial_locale', 'en');
+
+        // The 'mixed' sentinel is never offered as a selectable locale, and the
+        // source badge marks the editable origin (primary_language) instead.
+        $codes = collect($response->json('data'))->pluck('code');
+        $this->assertFalse($codes->contains('mixed'));
+        $en = collect($response->json('data'))->firstWhere('code', 'en');
+        $this->assertNotNull($en);
+        $this->assertTrue($en['is_source']);
+    }
+
+    #[Test]
     public function test_store_writes_to_accept_language_locale(): void
     {
         $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);

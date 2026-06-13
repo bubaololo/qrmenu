@@ -34,8 +34,11 @@ trait ResolvesLocale
      * Resolve the locale for editing a translation on the given menu.
      *
      * Returns [$locale, $isInitial] where $isInitial is true when the resolved
-     * locale matches the menu's source_locale (so we're editing the source-of-
-     * truth value).
+     * locale matches the menu's initial (source-of-truth) locale. For mixed-
+     * language menus that initial locale is the restaurant's primary_language,
+     * NOT the 'mixed' sentinel — see {@see Menu::initialLocale()}. Comparing
+     * against the raw source_locale here would leave every new entity on a
+     * mixed menu with is_initial=false and no source value forever.
      *
      * Also validates Accept-Language against availableLocales (see
      * {@see self::assertLocaleAllowed()}).
@@ -46,16 +49,16 @@ trait ResolvesLocale
     {
         $this->assertLocaleAllowed($menu);
 
-        $sourceLocale = $menu->source_locale;
-        $locale = request()->attributes->get('locale_from_header') ?? $sourceLocale;
+        $initialLocale = $menu->initialLocale();
+        $locale = request()->attributes->get('locale_from_header') ?? $initialLocale;
 
         if ($locale === null) {
             throw new HttpException(
                 422,
-                'Menu has no source_locale set and no Accept-Language header was provided.',
+                'Menu has no initial locale (no source_locale or primary_language) and no Accept-Language header was provided.',
             );
         }
 
-        return [$locale, $locale === $sourceLocale];
+        return [$locale, $locale === $initialLocale];
     }
 }
