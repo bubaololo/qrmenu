@@ -29,10 +29,8 @@ class MenuTranslationController extends Controller
             'meta' => [
                 'source_locale' => $sourceLocale,
                 'primary_language' => $primaryLang,
-                // The concrete, editable origin locale. Equals source_locale for
-                // single-language menus; falls back to primary_language for mixed
-                // menus where 'mixed' is not a real, selectable locale. The
-                // frontend gates create flows on this, not on source_locale.
+                // The menu's one original language; identical to source_locale.
+                // Kept for frontend compatibility (it gates create flows on this).
                 'initial_locale' => $menu->initialLocale(),
             ],
         ]);

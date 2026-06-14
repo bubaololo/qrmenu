@@ -37,7 +37,31 @@ class ProcessImageJob implements ShouldQueue
 
         try {
             if (! Storage::disk($originalsDisk)->exists($this->tempPath)) {
-                return;
+                $expectedPath = $this->targetDir.'/'.$this->baseName.'.'.config('image.format');
+                $model = $this->modelClass::find($this->modelId);
+
+                // Idempotent re-run: a prior attempt already processed the image
+                // (which deletes the original), or the target row is gone. Nothing
+                // left to do — don't treat this as a failure.
+                if ($model === null || $model->{$this->fieldName} === $expectedPath) {
+                    Log::debug('ProcessImageJob: original already consumed or model gone, skipping', [
+                        'model' => $this->modelClass,
+                        'modelId' => $this->modelId,
+                        'baseName' => $this->baseName,
+                    ]);
+
+                    return;
+                }
+
+                // The original is gone but the image was never written: a genuine
+                // loss. Fail loudly so it lands in failed_jobs and failed() runs,
+                // instead of silently returning success and stranding the upload.
+                throw new \RuntimeException(sprintf(
+                    'ProcessImageJob: original "%s" missing and %s#%d image was never written',
+                    $this->tempPath,
+                    class_basename($this->modelClass),
+                    $this->modelId,
+                ));
             }
 
             $content = Storage::disk($originalsDisk)->get($this->tempPath);
@@ -68,15 +92,38 @@ class ProcessImageJob implements ShouldQueue
                 'file' => $e->getFile().':'.$e->getLine(),
             ]);
 
-            if ($this->attempts() >= $this->tries) {
-                Storage::disk($originalsDisk)->delete($this->tempPath);
-            }
-
+            // Terminal cleanup of the temp original is handled by failed(), which
+            // also fires when the worker is hard-killed (OOM/SIGKILL) and this
+            // catch block never runs.
             throw $e;
         } finally {
             if ($tmpFile !== null && file_exists($tmpFile)) {
                 unlink($tmpFile);
             }
+        }
+    }
+
+    /**
+     * Terminal handler invoked by the queue once the job has permanently failed
+     * (retries exhausted, timeout, or worker killed). Logs loudly and removes the
+     * uploaded original so a failed upload never strands an orphan on disk.
+     */
+    public function failed(\Throwable $e): void
+    {
+        Log::error('ProcessImageJob: permanently failed', [
+            'model' => $this->modelClass,
+            'modelId' => $this->modelId,
+            'baseName' => $this->baseName,
+            'tempPath' => $this->tempPath,
+            'message' => $e->getMessage(),
+            'file' => $e->getFile().':'.$e->getLine(),
+        ]);
+
+        // TODO: broadcast(new ImageFailed(...)) here once websockets land.
+
+        $originalsDisk = config('image.originals_disk');
+        if (Storage::disk($originalsDisk)->exists($this->tempPath)) {
+            Storage::disk($originalsDisk)->delete($this->tempPath);
         }
     }
 

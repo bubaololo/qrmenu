@@ -12,9 +12,22 @@ use Throwable;
 
 abstract class BaseLlmProvider implements LlmProvider
 {
+    /**
+     * Per-instance HTTP timeout (seconds). null → global analysis default; the
+     * translation path injects a short value so a slow primary fails over to the
+     * fallback in seconds. Declared with a default (not promoted) so subclasses
+     * whose constructors don't call parent still see an initialized property.
+     */
+    protected ?int $timeout = null;
+
+    public function __construct(?int $timeout = null)
+    {
+        $this->timeout = $timeout;
+    }
+
     protected function timeoutSeconds(): int
     {
-        return (int) config('services.openai_compatible.http_timeout_seconds', 3600);
+        return $this->timeout ?? (int) config('llm.http_timeout_seconds');
     }
 
     protected function maxTokens(): ?int

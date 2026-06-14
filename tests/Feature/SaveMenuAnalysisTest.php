@@ -183,8 +183,11 @@ class SaveMenuAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_mixed_source_falls_back_to_restaurant_primary_language_for_initial_translations(): void
+    public function test_legacy_mixed_primary_language_resolves_to_concrete_source_locale(): void
     {
+        // A menu has exactly one concrete original language. Should an old prompt
+        // still emit the legacy 'mixed', it is resolved to the restaurant's
+        // primary_language so source_locale and the is_initial rows agree.
         $this->restaurant->update(['primary_language' => 'en']);
 
         $data = [
@@ -201,10 +204,10 @@ class SaveMenuAnalysisTest extends TestCase
 
         $menu = (new SaveMenuAnalysisAction)->handle($data, $this->restaurant->id, 1);
 
-        // Menu retains 'mixed' as informational marker for the translation pipeline
-        $this->assertSame('mixed', $menu->source_locale);
+        // 'mixed' is never stored — resolved to the concrete primary_language.
+        $this->assertSame('en', $menu->source_locale);
 
-        // Initial translations must still land — under the restaurant's primary_language
+        // Initial translations land under that same concrete locale.
         $nameFieldId = TranslationField::where('name', 'name')->value('id');
         $this->assertDatabaseHas('translations', [
             'field_id' => $nameFieldId,

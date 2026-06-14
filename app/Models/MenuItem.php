@@ -48,7 +48,7 @@ class MenuItem extends Model
     {
         static::saved(function (MenuItem $item) {
             $locale = $item->section?->menu?->source_locale;
-            $usable = $locale !== null && $locale !== 'mixed';
+            $usable = $locale !== null;
 
             if ($item->pendingName !== null && $usable) {
                 $item->setTranslation('name', $locale, $item->pendingName, true);

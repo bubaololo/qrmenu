@@ -34,7 +34,7 @@ class MenuSection extends Model
     {
         static::saved(function (MenuSection $section) {
             $locale = $section->menu?->source_locale;
-            if ($section->pendingName !== null && $locale !== null && $locale !== 'mixed') {
+            if ($section->pendingName !== null && $locale !== null) {
                 $section->setTranslation('name', $locale, $section->pendingName, true);
                 $section->pendingName = null;
             }

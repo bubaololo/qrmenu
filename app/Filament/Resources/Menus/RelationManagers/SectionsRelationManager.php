@@ -67,7 +67,7 @@ class SectionsRelationManager extends RelationManager
                             ->image()
                             ->disk(config('image.disk'))
                             ->maxSize(51200)
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record): string {
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file, $record, $livewire): string {
                                 $processor = app(ImageProcessor::class);
                                 $disk = config('image.disk');
 
@@ -76,9 +76,13 @@ class SectionsRelationManager extends RelationManager
                                     Storage::disk($disk)->delete($processor->thumbPath($record->image));
                                 }
 
+                                // Nest under the menu id (owner record), matching the
+                                // API and crop pipelines: menu-items/{menu_id}/.
+                                $menuId = $livewire->getOwnerRecord()->getKey();
+
                                 [$mainPath] = $processor->processAndStore(
                                     $file->getRealPath(),
-                                    'menu-items',
+                                    config('image.paths.menu_items').'/'.$menuId,
                                     Str::uuid()->toString(),
                                 );
 

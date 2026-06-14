@@ -35,6 +35,13 @@ class TranslateEntityJob implements ShouldQueue
 
     public int $tries = 3;
 
+    /**
+     * If the source entity is deleted between dispatch and execution (e.g. the
+     * user adds a category/item, then removes it before the translation runs),
+     * silently discard the job instead of failing with ModelNotFoundException.
+     */
+    public bool $deleteWhenMissingModels = true;
+
     private const PROMPT_TYPE = 'menu_translator';
 
     /**
@@ -88,9 +95,7 @@ class TranslateEntityJob implements ShouldQueue
         }
 
         $iso = new ISO639;
-        $sourceDescription = $sourceLocale === 'mixed'
-            ? 'auto-detect (each field may be in a different language)'
-            : ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
+        $sourceDescription = ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
 
         foreach ($this->targetLocales as $targetLocale) {
             $this->translateInto(
@@ -145,10 +150,13 @@ class TranslateEntityJob implements ShouldQueue
             new UserMessage($userPrompt."\n\n".$tsvLine),
         ];
 
+        // Short timeout so a slow deepseek fails over to openrouter in seconds.
+        $timeout = (int) config('llm.translation.http_timeout_seconds');
         $providers = [
-            app(DeepSeekTextProvider::class),
+            app()->makeWith(DeepSeekTextProvider::class, ['timeout' => $timeout]),
             app()->makeWith(OpenRouterProvider::class, [
                 'openRouterModel' => (string) config('llm.translation.openrouter_fallback_model', 'openai/gpt-4.1-mini'),
+                'timeout' => $timeout,
             ]),
         ];
 

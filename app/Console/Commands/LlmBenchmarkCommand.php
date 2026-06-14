@@ -261,7 +261,7 @@ class LlmBenchmarkCommand extends Command
         $imageObjs = array_map(static fn (string $p) => Image::fromLocalPath($p), $images);
         $user = [new UserMessage($prompt->user_prompt, $imageObjs)];
 
-        $timeout = (int) config('services.openai_compatible.http_timeout_seconds', 3600);
+        $timeout = (int) config('llm.http_timeout_seconds');
 
         $startedAt = microtime(true);
 

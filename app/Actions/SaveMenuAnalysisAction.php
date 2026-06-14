@@ -49,7 +49,16 @@ class SaveMenuAnalysisAction
             $this->fillRestaurantFromLlm($restaurant, $menuData);
 
             $version = $menuData['menu_version'] ?? [];
-            $sourceLocale = $menuData['restaurant']['primary_language'] ?? null;
+
+            // A menu has exactly one original language. The analyzer prompt now
+            // returns a single concrete primary_language (never 'mixed'); we
+            // resolve any legacy 'mixed'/empty to the restaurant's
+            // primary_language so source_locale and the is_initial rows always
+            // agree on one concrete locale.
+            $sourceLocale = $this->resolveConcreteLocale(
+                $menuData['restaurant']['primary_language'] ?? null,
+                $restaurant,
+            );
 
             // Each restaurant has a single menu. Re-running analysis replaces
             // the previous one (sections / items / option groups cascade out).
@@ -57,7 +66,7 @@ class SaveMenuAnalysisAction
 
             $menu = Menu::create([
                 'restaurant_id' => $restaurantId,
-                'source_locale' => is_string($sourceLocale) && $sourceLocale !== '' ? $sourceLocale : null,
+                'source_locale' => $sourceLocale,
                 'source_images_count' => (int) ($version['source_images_count'] ?? $sourceImagesCount),
                 'detected_date' => $version['detected_date'] ?? now()->toDateString(),
             ]);
@@ -91,11 +100,12 @@ class SaveMenuAnalysisAction
             $this->enrichRestaurantIfEmpty($menu->restaurant, $chunkData);
 
             $sourceLocale = $menu->source_locale
-                ?? (is_string($chunkData['restaurant']['primary_language'] ?? null) && $chunkData['restaurant']['primary_language'] !== ''
-                    ? (string) $chunkData['restaurant']['primary_language']
-                    : null);
+                ?? $this->resolveConcreteLocale(
+                    $chunkData['restaurant']['primary_language'] ?? null,
+                    $menu->restaurant,
+                );
 
-            if ($menu->source_locale === null && $sourceLocale !== null) {
+            if ($menu->source_locale === null) {
                 $menu->update(['source_locale' => $sourceLocale]);
             }
 
@@ -133,6 +143,21 @@ class SaveMenuAnalysisAction
                 sourceLocale: $sourceLocale,
             );
         }
+    }
+
+    /**
+     * Resolve a menu's single original language to a concrete ISO code. The
+     * analyzer prompt returns one concrete primary_language; this guards the
+     * legacy 'mixed'/empty case by falling back to the restaurant's
+     * primary_language (then 'en'), so source_locale is never 'mixed'/null.
+     */
+    private function resolveConcreteLocale(mixed $llmPrimaryLanguage, Restaurant $restaurant): string
+    {
+        if (is_string($llmPrimaryLanguage) && $llmPrimaryLanguage !== '' && $llmPrimaryLanguage !== 'mixed') {
+            return $llmPrimaryLanguage;
+        }
+
+        return $restaurant->primary_language ?: 'en';
     }
 
     /** @param  array<string, mixed>  $menuData */
@@ -221,13 +246,9 @@ class SaveMenuAnalysisAction
             'icon_id' => $iconName !== null ? Icon::where('name', $iconName)->value('id') : null,
         ]);
 
-        // Initial translations require a concrete source locale. For mixed-language
-        // menus (or when OCR couldn't detect one), fall back to the restaurant's
-        // primary_language so the captured OCR text is still persisted and the
-        // translation pipeline has something to work from.
-        $locale = ($sourceLocale !== null && $sourceLocale !== 'mixed')
-            ? $sourceLocale
-            : ($menu->restaurant?->primary_language ?? null);
+        // Initial translations are written under the menu's one concrete source
+        // locale (already resolved upstream in createMenu/appendChunk).
+        $locale = $sourceLocale;
 
         $name = MenuJson::extractText($sectionData['category_name'] ?? null);
         if ($name !== null && $locale !== null) {

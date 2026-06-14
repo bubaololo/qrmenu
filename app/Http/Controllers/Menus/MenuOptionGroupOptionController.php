@@ -25,8 +25,6 @@ class MenuOptionGroupOptionController extends Controller
 
         $validated = $request->validated();
 
-        [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
-
         $option = MenuOptionGroupOption::create([
             'group_id' => $menuOptionGroup->id,
             'price_adjust' => $validated['price_adjust'] ?? 0,
@@ -34,6 +32,7 @@ class MenuOptionGroupOptionController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
+        [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
         $option->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupOptionResource($option->fresh()))

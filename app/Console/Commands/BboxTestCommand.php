@@ -260,7 +260,7 @@ class BboxTestCommand extends Command
      */
     private function runModel(array $model, string $imagePath, Prompt $prompt): array
     {
-        $timeout = (int) config('services.openai_compatible.http_timeout_seconds', 3600);
+        $timeout = (int) config('llm.http_timeout_seconds');
         $startedAt = microtime(true);
 
         try {

@@ -35,7 +35,7 @@ abstract class DirectHttpLlmProvider implements LlmProvider
 
     protected function timeoutSeconds(): int
     {
-        return (int) config('services.openai_compatible.http_timeout_seconds', 3600);
+        return (int) config('llm.http_timeout_seconds');
     }
 
     /**

@@ -23,12 +23,13 @@ SYSTEM;
 Return ONLY the JSON object below. No markdown, no prose.
 
 === TEXT ===
-All `name`, `description`, `category_name`, `restaurant.address|phone|city|country`: exact original text from the menu, do NOT translate. Use null when absent.
+`name`, `description`, `category_name`: render in `primary_language`. The menu is the same information across languages, so if a field appears on the menu ONLY in another language, output it translated into `primary_language` (a faithful translation). Use null when absent.
+`restaurant.address|phone|city|country`: exact original text from the menu, do NOT translate. Use null when absent.
 `restaurant.name`: in primary_language.
 Bilingual lines (one item rendered in 2+ languages, separated by /, -, parens, newline): keep ONLY the primary_language version. Example with primary_language=vi: "Cà phê đen / Black coffee" → "Cà phê đen".
 
 === LANGUAGE & CURRENCY ===
-`primary_language`: ISO 639-1 of dominant text. Use "mixed" when (a) 2+ languages are roughly equal across the menu, OR (b) different fields consistently use different languages (e.g. names in vi but descriptions in en) even if one dominates by char count.
+`primary_language`: ISO 639-1 of the menu's single base language — the one in which it is most complete and accurate (usually dominant by coverage). Output exactly one concrete language code. If different fields use different languages (e.g. names in vi but descriptions in en), pick one base and render the rest into it (see TEXT).
 `currency`: ISO 4217. Infer from symbols/format/region (Vietnam → VND).
 
 === OPENING HOURS ===

@@ -52,25 +52,16 @@ class Menu extends Model
     }
 
     /**
-     * The concrete, editable locale that holds (or should hold) this menu's
-     * initial (source-of-truth) translations.
+     * The menu's one original (source-of-truth) language. Every menu has exactly
+     * one, stored concretely in {@see static::$source_locale} (never the legacy
+     * 'mixed' sentinel). Kept as a named accessor for call sites that read the
+     * "initial" locale; identical to source_locale.
      *
-     * Differs from source_locale only for mixed-language menus: source_locale
-     * is then the sentinel 'mixed', which is never a real translation row.
-     * For those menus SaveMenuAnalysisAction::createSection stores the captured
-     * OCR text under the restaurant's primary_language, so that is where the
-     * is_initial=true rows actually live and where source edits must go.
-     *
-     * Returns null only when there is no usable locale at all (no source and
-     * no primary_language) — callers treat that as "contract undefined".
+     * Returns null only for a freshly-seeded menu with no source_locale yet.
      */
     public function initialLocale(): ?string
     {
-        if ($this->source_locale !== null && $this->source_locale !== 'mixed') {
-            return $this->source_locale;
-        }
-
-        return $this->restaurant?->primary_language;
+        return $this->source_locale;
     }
 
     /**
@@ -99,12 +90,11 @@ class Menu extends Model
             }
         }
 
-        // 'mixed' is a menu-level attribute, not a locale anyone can translate
-        // into. Drop it from the picker so the UI never offers it.
+        // Safety net: 'mixed' is not a real locale, so it must never reach the
+        // picker (e.g. should a restaurant's primary_language ever be 'mixed').
         $locales = $locales->reject(fn (string $code) => $code === 'mixed')->values();
 
-        // The "source" badge marks the editable origin locale, not the raw
-        // source_locale sentinel — for mixed menus that is primary_language.
+        // The "source" badge marks the menu's original locale (source_locale).
         $initialLocale = $this->initialLocale();
 
         $iso = new ISO639;

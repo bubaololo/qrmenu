@@ -38,7 +38,7 @@ class MenuOptionGroup extends Model
     {
         static::saved(function (MenuOptionGroup $group) {
             $locale = $group->section?->menu?->source_locale;
-            if ($group->pendingName !== null && $locale !== null && $locale !== 'mixed') {
+            if ($group->pendingName !== null && $locale !== null) {
                 $group->setTranslation('name', $locale, $group->pendingName, true);
                 $group->pendingName = null;
             }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Menus;
 
+use App\Actions\ChangeMenuSourceLocaleAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Menus\StoreMenuRequest;
 use App\Http\Requests\Menus\UpdateMenuRequest;
@@ -79,11 +80,24 @@ class MenuController extends Controller
     /**
      * Update a menu.
      */
-    public function update(UpdateMenuRequest $request, Menu $menu): MenuResource
+    public function update(UpdateMenuRequest $request, Menu $menu, ChangeMenuSourceLocaleAction $changeSourceLocale): MenuResource
     {
         Gate::authorize('update', $menu);
 
-        $menu->update($request->validated());
+        $validated = $request->validated();
+
+        // Changing the original language is not a plain column write: it must
+        // re-point the is_initial flag across all entities (and validate the
+        // target is fully translated). Route it through the action.
+        if (array_key_exists('source_locale', $validated)) {
+            $changeSourceLocale($menu, (string) $validated['source_locale']);
+            unset($validated['source_locale']);
+            $menu->refresh();
+        }
+
+        if (! empty($validated)) {
+            $menu->update($validated);
+        }
 
         return new MenuResource($menu->fresh());
     }

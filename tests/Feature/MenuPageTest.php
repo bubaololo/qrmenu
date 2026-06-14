@@ -93,14 +93,13 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
-    public function test_does_not_trigger_translation_when_mixed_source_lang_matches_primary_language(): void
+    public function test_does_not_trigger_translation_when_opening_menu_in_its_source_language(): void
     {
-        // Reproduce production scenario: LLM marks menu as 'mixed', restaurant
-        // primary_language is the language initials were persisted under. Opening
-        // the menu in that language must not retrigger the translator (otherwise
-        // SSE 'translation.completed' replays loop the page on every reload).
+        // Opening a menu in its own original language must not retrigger the
+        // translator (otherwise SSE 'translation.completed' replays loop the page
+        // on every reload).
         $this->restaurant->update(['primary_language' => 'en']);
-        $this->restaurant->menu->update(['source_locale' => 'mixed']);
+        $this->restaurant->menu->update(['source_locale' => 'en']);
 
         $response = $this->get("/{$this->restaurant->id}/en")->assertStatus(200);
 

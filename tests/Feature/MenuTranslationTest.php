@@ -406,37 +406,13 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_mixed_source_locale_treats_primary_language_as_initial(): void
+    public function test_locales_endpoint_marks_source_and_never_returns_mixed(): void
     {
-        // Mixed-language menu: source_locale is the 'mixed' sentinel, so the
-        // initial (is_initial=true) translations live under the restaurant's
-        // primary_language. Editing in that locale must set is_initial=true.
+        // A menu has one concrete original language; the locales endpoint marks
+        // it as the source and exposes initial_locale == source_locale.
         $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'mixed']);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $item = MenuItem::factory()->create(['section_id' => $section->id]);
-
-        $this->actingAs($user)
-            ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Beef Pho'], ['X-Locale' => 'en'])
-            ->assertStatus(200);
-
-        $this->assertDatabaseHas('translations', [
-            'translatable_type' => MenuItem::class,
-            'translatable_id' => $item->id,
-            'locale' => 'en',
-            'field_id' => TranslationField::where('name', 'name')->value('id'),
-            'value' => 'Beef Pho',
-            'is_initial' => true,
-        ]);
-    }
-
-    #[Test]
-    public function test_locales_endpoint_exposes_initial_locale_for_mixed_menu(): void
-    {
-        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
-        $user = $this->asOwnerOf($restaurant);
-        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'mixed']);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         MenuItem::factory()->create(['section_id' => $section->id]);
 
@@ -444,16 +420,75 @@ class MenuTranslationTest extends TestCase
             ->getJson("/api/v1/menus/{$menu->id}/locales")
             ->assertStatus(200);
 
-        $response->assertJsonPath('meta.source_locale', 'mixed');
-        $response->assertJsonPath('meta.initial_locale', 'en');
+        $response->assertJsonPath('meta.source_locale', 'vi');
+        $response->assertJsonPath('meta.initial_locale', 'vi');
 
-        // The 'mixed' sentinel is never offered as a selectable locale, and the
-        // source badge marks the editable origin (primary_language) instead.
         $codes = collect($response->json('data'))->pluck('code');
         $this->assertFalse($codes->contains('mixed'));
-        $en = collect($response->json('data'))->firstWhere('code', 'en');
-        $this->assertNotNull($en);
-        $this->assertTrue($en['is_source']);
+        $vi = collect($response->json('data'))->firstWhere('code', 'vi');
+        $this->assertNotNull($vi);
+        $this->assertTrue($vi['is_source']);
+    }
+
+    #[Test]
+    public function test_change_source_locale_repoints_is_initial_across_menu(): void
+    {
+        // Changing the menu's original language must move the is_initial flag on
+        // EVERY entity to the new language, demoting (not deleting) the old
+        // source. The target must be fully translated first.
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $nameFieldId = TranslationField::firstOrCreate(['name' => 'name'])->id;
+        // section + item each fully present in vi (source) and en (translation).
+        Translation::create(['translatable_type' => MenuSection::class, 'translatable_id' => $section->id, 'locale' => 'vi', 'field_id' => $nameFieldId, 'value' => 'Đồ uống', 'is_initial' => true]);
+        Translation::create(['translatable_type' => MenuSection::class, 'translatable_id' => $section->id, 'locale' => 'en', 'field_id' => $nameFieldId, 'value' => 'Drinks', 'is_initial' => false]);
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'vi', 'field_id' => $nameFieldId, 'value' => 'Phở', 'is_initial' => true]);
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'en', 'field_id' => $nameFieldId, 'value' => 'Pho', 'is_initial' => false]);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/menus/{$menu->id}", ['source_locale' => 'en'])
+            ->assertStatus(200);
+
+        $this->assertSame('en', $menu->fresh()->source_locale);
+
+        // is_initial moved to en for both entities; vi rows demoted but kept.
+        foreach ([[MenuSection::class, $section->id], [MenuItem::class, $item->id]] as [$type, $id]) {
+            $this->assertDatabaseHas('translations', ['translatable_type' => $type, 'translatable_id' => $id, 'locale' => 'en', 'is_initial' => true]);
+            $this->assertDatabaseHas('translations', ['translatable_type' => $type, 'translatable_id' => $id, 'locale' => 'vi', 'is_initial' => false]);
+        }
+
+        // A new item is now authored in en (the new source).
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-sections/{$section->id}/items", ['name' => 'Tea', 'price_type' => 'fixed', 'price_value' => 0], ['X-Locale' => 'en'])
+            ->assertStatus(201);
+        $new = MenuItem::orderByDesc('id')->first();
+        $this->assertDatabaseHas('translations', ['translatable_type' => MenuItem::class, 'translatable_id' => $new->id, 'locale' => 'en', 'value' => 'Tea', 'is_initial' => true]);
+    }
+
+    #[Test]
+    public function test_change_source_locale_rejects_incomplete_target(): void
+    {
+        // Switching to a language that is not yet fully translated would leave
+        // some field with no source → 422, nothing changes.
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+
+        $nameFieldId = TranslationField::firstOrCreate(['name' => 'name'])->id;
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'vi', 'field_id' => $nameFieldId, 'value' => 'Phở', 'is_initial' => true]);
+        // No en row for the item → en is not a complete translation.
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/menus/{$menu->id}", ['source_locale' => 'en'])
+            ->assertStatus(422);
+
+        $this->assertSame('vi', $menu->fresh()->source_locale);
     }
 
     #[Test]

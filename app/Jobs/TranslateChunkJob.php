@@ -80,14 +80,7 @@ class TranslateChunkJob implements ShouldQueue
         $iso = new ISO639;
         $targetLocaleName = $iso->languageByCode1($this->targetLocale) ?: $this->targetLocale;
 
-        // Mixed-source menus carry text in multiple languages within the same
-        // chunk (e.g. Vietnamese item names with English descriptions). Telling
-        // the LLM the source is "mixed (mixed)" gives it no useful signal — it
-        // ends up either skipping fields or hallucinating translations. Pass an
-        // auto-detect hint instead so the model treats every field on its own.
-        $sourceDescription = $sourceLocale === 'mixed'
-            ? 'auto-detect (each field may be in a different language)'
-            : ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
+        $sourceDescription = ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
 
         $userPrompt = str_replace(
             ['{target_locale}', '{source_locale}', '{restaurant_name}', '{city}', '{country}'],
@@ -103,10 +96,13 @@ class TranslateChunkJob implements ShouldQueue
             new UserMessage($fullUserMessage),
         ];
 
+        // Short timeout so a slow deepseek fails over to openrouter in seconds.
+        $timeout = (int) config('llm.translation.http_timeout_seconds');
         $providers = [
-            app(DeepSeekTextProvider::class),
+            app()->makeWith(DeepSeekTextProvider::class, ['timeout' => $timeout]),
             app()->makeWith(OpenRouterProvider::class, [
                 'openRouterModel' => (string) config('llm.translation.openrouter_fallback_model', 'openai/gpt-4.1-mini'),
+                'timeout' => $timeout,
             ]),
         ];
 

@@ -82,8 +82,10 @@ class TranslationObserver
             return [];
         }
 
+        // Translate into every available locale except the source one (the
+        // locale just written, which equals the menu's source_locale).
         return $menu->availableLocales()
-            ->reject(fn (array $locale) => $locale['code'] === $sourceLocale || $locale['is_source'])
+            ->reject(fn (array $locale) => $locale['code'] === $sourceLocale)
             ->pluck('code')
             ->values()
             ->all();

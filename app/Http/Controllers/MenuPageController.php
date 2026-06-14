@@ -39,9 +39,9 @@ class MenuPageController extends Controller
         $menu = $restaurant->menu;
         $primaryLang = $restaurant->primary_language ?? 'en';
 
-        // Normalize: null, 'mixed', or invalid ISO-639-1 code → default to primaryLang
+        // Normalize: null or invalid ISO-639-1 code → default to primaryLang
         $iso = new ISO639;
-        if ($lang === null || $lang === 'mixed' || ($lang !== $primaryLang && $iso->languageByCode1($lang) === '')) {
+        if ($lang === null || ($lang !== $primaryLang && $iso->languageByCode1($lang) === '')) {
             $lang = $primaryLang;
         }
 
@@ -71,14 +71,7 @@ class MenuPageController extends Controller
         $menu = $restaurant->menu;
 
         // On-demand translation: if locale not initial and no translations exist, trigger LLM.
-        // For mixed-source menus, initials are persisted under the restaurant's
-        // primary_language (see SaveMenuAnalysisAction::createSection), so the
-        // effective source locale for the comparison is primary_language — not the
-        // 'mixed' marker. Otherwise opening the menu in its primary_language would
-        // loop the translator forever (no non-initial rows ever land).
-        $effectiveSource = ($menu?->source_locale === null || $menu->source_locale === 'mixed')
-            ? $primaryLang
-            : $menu->source_locale;
+        $effectiveSource = $menu?->source_locale ?? $primaryLang;
         $translationPending = false;
         $requestedLang = $lang;
         if ($menu && $lang !== $effectiveSource) {
@@ -358,16 +351,9 @@ class MenuPageController extends Controller
             return false;
         }
 
-        // For mixed-source menus, initial (OCR) translations may be tagged
-        // with the wrong locale (e.g. English descriptions stored as vi-initial),
-        // so we require non-initial entries from the translation pipeline.
         $translationQuery = Translation::where('locale', $lang)
             ->where('translatable_type', MenuItem::class)
             ->whereIn('translatable_id', $itemIds);
-
-        if (($menu->source_locale ?? null) === 'mixed') {
-            $translationQuery->where('is_initial', false);
-        }
 
         if ($translationQuery->exists()) {
             return false;
@@ -388,15 +374,10 @@ class MenuPageController extends Controller
         // The orchestrator's handle() now fires Bus::batch and returns; chunks
         // crunch in Horizon. Translations land asynchronously, so for this
         // request we treat this as "pending" and let the client subscribe.
-        $savedQuery = Translation::where('locale', $lang)
+        $translationsSaved = Translation::where('locale', $lang)
             ->where('translatable_type', MenuItem::class)
-            ->whereIn('translatable_id', $itemIds);
-
-        if (($menu->source_locale ?? null) === 'mixed') {
-            $savedQuery->where('is_initial', false);
-        }
-
-        $translationsSaved = $savedQuery->exists();
+            ->whereIn('translatable_id', $itemIds)
+            ->exists();
 
         Cache::put($cacheKey, true, now()->addHour());
 
@@ -412,7 +393,7 @@ class MenuPageController extends Controller
         $langs = [];
 
         // Always include the source locale (initial translation)
-        if ($menu && $menu->source_locale && $menu->source_locale !== 'mixed') {
+        if ($menu && $menu->source_locale) {
             $langs[] = [
                 'code' => $menu->source_locale,
                 'label' => $this->getLanguageLabel($menu->source_locale),
@@ -434,8 +415,7 @@ class MenuPageController extends Controller
             $langs[] = ['code' => 'en', 'label' => 'English', 'flag' => "\u{1F1EC}\u{1F1E7}"];
         }
 
-        // Include requested language if non-initial translations were generated for it
-        // (initial translations may be wrong-language for source_locale='mixed' menus).
+        // Include requested language if non-initial translations were generated for it.
         if ($requestedLang && ! collect($langs)->pluck('code')->contains($requestedLang)) {
             $hasTranslations = $menu && Translation::where('locale', $requestedLang)
                 ->where('translatable_type', MenuItem::class)

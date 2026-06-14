@@ -110,7 +110,9 @@ class ImageController extends Controller
             $request,
             MenuItem::class,
             $item->id,
-            config('image.paths.menu_items'),
+            // Nest under the menu id, matching CropMenuItemImagesJob, so a menu's
+            // photos live together in menu-items/{menu_id}/ instead of the root.
+            config('image.paths.menu_items').'/'.$item->section->menu_id,
             $item->image,
         );
     }

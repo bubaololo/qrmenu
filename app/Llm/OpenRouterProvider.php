@@ -13,7 +13,10 @@ class OpenRouterProvider extends BaseLlmProvider
     public function __construct(
         private string $openRouterModel = 'google/gemma-4-26b-a4b-it:free',
         private array $providerRouting = [],
-    ) {}
+        ?int $timeout = null,
+    ) {
+        parent::__construct($timeout);
+    }
 
     public function provider(): Provider
     {

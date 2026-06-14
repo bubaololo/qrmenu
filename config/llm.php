@@ -52,6 +52,11 @@ return [
 
     'chunk_job_timeout' => (int) env('LLM_CHUNK_JOB_TIMEOUT', 600),
 
+    // Default per-request HTTP timeout (seconds) for any LLM provider. Long, to
+    // accommodate slow image-analysis inference. The translation path overrides
+    // this with a short value (see 'translation.http_timeout_seconds').
+    'http_timeout_seconds' => 3600,
+
     /*
     |--------------------------------------------------------------------------
     | Translation Chunking
@@ -63,6 +68,11 @@ return [
     'translation' => [
         'chunk_lines' => (int) env('LLM_TRANSLATION_CHUNK_LINES', 80),
         'openrouter_fallback_model' => env('LLM_TRANSLATION_OR_FALLBACK_MODEL', 'openai/gpt-4.1-mini'),
+        // Per-request HTTP timeout for translation (seconds). Short on purpose:
+        // translation payloads are tiny, so a slow primary (deepseek) should
+        // fail over to the openrouter fallback in seconds, not wait out the long
+        // analysis-oriented default ('http_timeout_seconds').
+        'http_timeout_seconds' => 15,
         // When true, TranslationObserver auto-dispatches TranslateEntityJob
         // each time an initial translation is created or its value changes.
         // Disabled in tests by default; the observer-driven path has its own

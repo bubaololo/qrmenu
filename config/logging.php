@@ -78,6 +78,11 @@ return [
             'path' => storage_path('logs/llm.log'),
             'level' => 'debug',
             'days' => 30,
+            // Group-writable so the daily file stays writable by the Horizon
+            // worker (www-data) even when an artisan/CLI run (possibly as root)
+            // creates that day's file first. Pairs with the setgid bit on
+            // storage/logs, which makes new files inherit the www-data group.
+            'permission' => 0664,
             'replace_placeholders' => true,
         ],
 

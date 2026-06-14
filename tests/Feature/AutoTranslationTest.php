@@ -85,6 +85,38 @@ class AutoTranslationTest extends TestCase
     }
 
     #[Test]
+    public function test_new_source_entry_translates_into_all_other_available_locales(): void
+    {
+        // A menu has one source language; a new source entry auto-translates into
+        // every OTHER available locale (the source itself is excluded).
+        Bus::fake([TranslateEntityJob::class]);
+
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $menu = Menu::factory()->create([
+            'restaurant_id' => $restaurant->id,
+            'source_locale' => 'vi',
+        ]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        // Seed en + ru so availableLocales = [vi, en, ru].
+        $seedItem = MenuItem::factory()->create(['section_id' => $section->id]);
+        $nameFieldId = TranslationField::firstOrCreate(['name' => 'name'])->id;
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $seedItem->id, 'locale' => 'vi', 'field_id' => $nameFieldId, 'value' => 'Phở', 'is_initial' => true]);
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $seedItem->id, 'locale' => 'en', 'field_id' => $nameFieldId, 'value' => 'Pho', 'is_initial' => false]);
+        Translation::create(['translatable_type' => MenuItem::class, 'translatable_id' => $seedItem->id, 'locale' => 'ru', 'field_id' => $nameFieldId, 'value' => 'Фо', 'is_initial' => false]);
+
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+        $item->setTranslation('name', 'vi', 'Bún', isInitial: true);
+
+        Bus::assertDispatched(
+            TranslateEntityJob::class,
+            fn (TranslateEntityJob $job) => $job->entity->is($item)
+                && $job->field === 'name'
+                && $job->targetLocales === ['en', 'ru'],
+        );
+    }
+
+    #[Test]
     public function test_creating_initial_translation_skips_dispatch_when_no_target_locales(): void
     {
         Bus::fake([TranslateEntityJob::class]);
