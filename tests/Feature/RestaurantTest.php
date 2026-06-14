@@ -84,6 +84,18 @@ class RestaurantTest extends TestCase
     }
 
     #[Test]
+    public function test_restaurant_resource_exposes_public_menu_url(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->getJson("/api/v1/restaurants/{$restaurant->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.attributes.menu_url', config('app.url').'/'.$restaurant->id);
+    }
+
+    #[Test]
     public function test_show_returns_403_for_non_owner(): void
     {
         $restaurant = Restaurant::factory()->create();

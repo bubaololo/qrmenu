@@ -1048,6 +1048,25 @@ const App = {
         return;
       }
 
+      // Restaurant info panel: chevron toggles the collapsible block.
+      const infoToggle = e.target.closest('#info-toggle');
+      if (infoToggle) {
+        const panel = document.getElementById('info-panel');
+        if (panel) {
+          const open = panel.classList.toggle('open');
+          infoToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        return;
+      }
+
+      // Copy address / phone to clipboard.
+      const copyBtn = e.target.closest('.info-copy');
+      if (copyBtn) {
+        e.preventDefault();
+        this._copyToClipboard(copyBtn.dataset.copy, copyBtn);
+        return;
+      }
+
       // Category option (in the sheet)
       const tabBtn = e.target.closest('[data-cat]');
       if (tabBtn) {
@@ -1281,6 +1300,59 @@ const App = {
    * touched. Transform writes during touchmove are throttled through
    * requestAnimationFrame to avoid jank on slow CPUs.
    */
+  /**
+   * Copy text to the clipboard with a graceful fallback for non-secure
+   * contexts / older browsers (Clipboard API needs HTTPS). On success flips
+   * the button into a brief check state and shows the shared toast.
+   */
+  _copyToClipboard(text, btn) {
+    if (!text) return;
+
+    const done = () => {
+      if (btn) {
+        btn.classList.add('copied');
+        clearTimeout(btn._copyTimer);
+        btn._copyTimer = setTimeout(() => btn.classList.remove('copied'), 1400);
+      }
+      this._showToast(this.t('copied'));
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => this._fallbackCopy(text, done));
+    } else {
+      this._fallbackCopy(text, done);
+    }
+  },
+
+  _fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      if (document.execCommand('copy')) done();
+    } catch (_) { /* ignore */ }
+    document.body.removeChild(ta);
+  },
+
+  /** Shared bottom toast (also used by add-to-cart). */
+  _showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('visible');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => toast.classList.remove('visible'), 1800);
+  },
+
   _setupCartSwipe() {
     const container = document.getElementById('cart-sheet-content');
     if (!container || container.dataset.swipeBound) return;

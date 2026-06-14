@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\DiningTables;
 
+use App\Actions\BuildPublicMenuUrl;
 use App\Actions\GenerateQrCode;
 use App\Actions\StoreDiningTableAction;
 use App\Actions\UpdateDiningTableAction;
@@ -23,7 +24,7 @@ class DiningTableController extends Controller
         Gate::authorize('view', $zone);
 
         return DiningTableResource::collection(
-            $zone->tables()->with('tableShape')->get()
+            $zone->tables()->with(['tableShape', 'zone.restaurant'])->get()
         );
     }
 
@@ -33,14 +34,15 @@ class DiningTableController extends Controller
 
         $table = app(StoreDiningTableAction::class)($zone, $request->toData());
 
-        return (new DiningTableResource($table))->response()->setStatusCode(201);
+        return (new DiningTableResource($table->load(['tableShape', 'zone.restaurant'])))
+            ->response()->setStatusCode(201);
     }
 
     public function show(DiningTable $diningTable): DiningTableResource
     {
         Gate::authorize('view', $diningTable);
 
-        return new DiningTableResource($diningTable->load('tableShape'));
+        return new DiningTableResource($diningTable->load(['tableShape', 'zone.restaurant']));
     }
 
     public function update(UpdateDiningTableRequest $request, DiningTable $diningTable): DiningTableResource
@@ -49,7 +51,7 @@ class DiningTableController extends Controller
 
         $table = app(UpdateDiningTableAction::class)($diningTable, $request->toData());
 
-        return new DiningTableResource($table);
+        return new DiningTableResource($table->load(['tableShape', 'zone.restaurant']));
     }
 
     public function destroy(DiningTable $diningTable): JsonResponse
@@ -66,13 +68,10 @@ class DiningTableController extends Controller
      *
      * The encoded URL is `{app_url}/{restaurant.uniqid}/t/{table.uniqid}`.
      */
-    public function qr(DiningTable $diningTable, GenerateQrCode $generateQr): Response
+    public function qr(DiningTable $diningTable, GenerateQrCode $generateQr, BuildPublicMenuUrl $buildUrl): Response
     {
         Gate::authorize('view', $diningTable);
 
-        $restaurant = $diningTable->zone->restaurant;
-        $url = config('app.url').'/'.$restaurant->uniqid.'/t/'.$diningTable->uniqid;
-
-        return $generateQr($url);
+        return $generateQr($buildUrl->forTable($diningTable));
     }
 }

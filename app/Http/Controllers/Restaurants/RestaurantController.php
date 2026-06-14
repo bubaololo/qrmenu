@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Restaurants;
 
+use App\Actions\BuildPublicMenuUrl;
 use App\Actions\GenerateQrCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurants\StoreRestaurantRequest;
@@ -86,13 +87,11 @@ class RestaurantController extends Controller
      * The encoded URL is `{app_url}/{restaurant.id}`. A restaurant always has
      * at most one active menu, so the QR targets the restaurant, not a specific menu.
      */
-    public function qr(Restaurant $restaurant, GenerateQrCode $generateQr): Response
+    public function qr(Restaurant $restaurant, GenerateQrCode $generateQr, BuildPublicMenuUrl $buildUrl): Response
     {
         Gate::authorize('view', $restaurant);
 
-        $url = config('app.url').'/'.$restaurant->id;
-
-        return $generateQr($url);
+        return $generateQr($buildUrl->forRestaurant($restaurant));
     }
 
     /**

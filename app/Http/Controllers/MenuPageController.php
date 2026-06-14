@@ -186,6 +186,7 @@ class MenuPageController extends Controller
      * @param  array<string, string>  $uiStrings
      * @return array{
      *     address: ?string,
+     *     phone: ?string,
      *     mapsUrl: ?string,
      *     todayHours: ?string,
      *     isOpenNow: ?bool,
@@ -205,6 +206,7 @@ class MenuPageController extends Controller
 
         return [
             'address' => $restaurant->address,
+            'phone' => $restaurant->phone,
             'mapsUrl' => $restaurant->google_maps_url,
             'todayHours' => $todayHours,
             'isOpenNow' => $isOpenNow,
@@ -472,6 +474,7 @@ class MenuPageController extends Controller
                 'address' => 'Địa chỉ', 'hoursToday' => 'Hôm nay', 'currency' => 'Tiền tệ',
                 'openNow' => 'Đang mở', 'closedNow' => 'Đã đóng',
                 'closedToday' => 'Đóng cửa hôm nay', 'open24h' => '24 giờ',
+                'details' => 'Thông tin', 'copy' => 'Sao chép', 'copied' => 'Đã sao chép',
                 'submitOrder' => 'Gửi đơn hàng', 'placingOrder' => 'Đang gửi đơn',
                 'orderPlaced' => 'Đã đặt đơn', 'orderNumber' => 'Đơn',
                 'orderFailed' => 'Đặt đơn thất bại', 'orderRequiresTable' => 'Vui lòng quét mã QR trên bàn để đặt đơn',
@@ -488,6 +491,7 @@ class MenuPageController extends Controller
                 'address' => 'Address', 'hoursToday' => 'Today', 'currency' => 'Currency',
                 'openNow' => 'Open now', 'closedNow' => 'Closed',
                 'closedToday' => 'Closed today', 'open24h' => '24 hours',
+                'details' => 'Details', 'copy' => 'Copy', 'copied' => 'Copied',
                 'submitOrder' => 'Submit order', 'placingOrder' => 'Sending order',
                 'orderPlaced' => 'Order placed', 'orderNumber' => 'Order',
                 'orderFailed' => 'Order failed', 'orderRequiresTable' => 'Scan the table QR code to order',
@@ -504,6 +508,7 @@ class MenuPageController extends Controller
                 'address' => 'Адрес', 'hoursToday' => 'Сегодня', 'currency' => 'Валюта',
                 'openNow' => 'Открыто', 'closedNow' => 'Закрыто',
                 'closedToday' => 'Сегодня закрыто', 'open24h' => '24 часа',
+                'details' => 'Информация', 'copy' => 'Копировать', 'copied' => 'Скопировано',
                 'submitOrder' => 'Отправить заказ', 'placingOrder' => 'Отправляем заказ',
                 'orderPlaced' => 'Заказ принят', 'orderNumber' => 'Заказ',
                 'orderFailed' => 'Не удалось отправить заказ', 'orderRequiresTable' => 'Отсканируйте QR на столе, чтобы заказать',
@@ -520,6 +525,7 @@ class MenuPageController extends Controller
                 'address' => 'Мекенжай', 'hoursToday' => 'Бүгін', 'currency' => 'Валюта',
                 'openNow' => 'Ашық', 'closedNow' => 'Жабық',
                 'closedToday' => 'Бүгін жабық', 'open24h' => '24 сағат',
+                'details' => 'Ақпарат', 'copy' => 'Көшіру', 'copied' => 'Көшірілді',
                 'submitOrder' => 'Тапсырысты жіберу', 'placingOrder' => 'Жіберілуде',
                 'orderPlaced' => 'Тапсырыс қабылданды', 'orderNumber' => 'Тапсырыс',
                 'orderFailed' => 'Жіберу сәтсіз', 'orderRequiresTable' => 'Тапсырыс беру үшін үстелдегі QR кодты сканерлеңіз',

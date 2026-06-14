@@ -52,6 +52,22 @@ class DiningTableTest extends TestCase
     }
 
     #[Test]
+    public function table_resource_exposes_public_menu_url(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $zone = $this->zoneForRestaurant($restaurant);
+        $table = DiningTable::factory()->create(['zone_id' => $zone->id]);
+
+        $expected = config('app.url')."/{$restaurant->uniqid}/t/{$table->uniqid}";
+
+        $this->actingAs($user)
+            ->getJson("/api/v1/dining-tables/{$table->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.attributes.menu_url', $expected);
+    }
+
+    #[Test]
     public function owner_can_create_table(): void
     {
         $restaurant = Restaurant::factory()->create();

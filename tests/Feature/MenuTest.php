@@ -111,6 +111,7 @@ class MenuTest extends TestCase
             ->getJson("/api/v1/menus/{$menu->id}")
             ->assertStatus(200)
             ->assertJsonPath('data.id', $menu->id)
+            ->assertJsonPath('data.restaurant_menu_url', config('app.url').'/'.$restaurant->id)
             ->assertJsonPath('data.sections.0.id', $section->id);
     }
 

@@ -178,6 +178,69 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
+    public function test_info_panel_shows_todays_hours_only(): void
+    {
+        $this->restaurant->update([
+            'opening_hours' => [
+                'periods' => [
+                    ['days' => ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], 'open' => '10:00', 'close' => '22:00'],
+                ],
+            ],
+        ]);
+
+        $response = $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('id="info-toggle"', false)
+            ->assertSee('id="info-panel"', false)
+            ->assertSee('10:00–22:00');
+
+        // Today only — no full weekly breakdown.
+        $this->assertStringNotContainsString('info-schedule-day', $response->getContent());
+        // Today's window appears exactly once, not seven times.
+        $this->assertSame(1, substr_count($response->getContent(), '10:00–22:00'));
+    }
+
+    #[Test]
+    public function test_info_panel_shows_phone_with_tel_link_and_copy_button(): void
+    {
+        $this->restaurant->update(['phone' => '+84 263 3816 868']);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            // tel: target keeps a leading + but strips spaces/punctuation.
+            ->assertSee('href="tel:+842633816868"', false)
+            ->assertSee('class="info-copy"', false)
+            ->assertSee('data-copy="+84 263 3816 868"', false);
+    }
+
+    #[Test]
+    public function test_info_panel_shows_address_with_maps_link_and_copy_button(): void
+    {
+        $this->restaurant->update([
+            'city' => null,
+            'address' => '12 Test Street',
+            'google_maps_url' => 'https://maps.google.com/?q=test',
+        ]);
+
+        $this->get("/{$this->restaurant->id}/en")
+            ->assertStatus(200)
+            ->assertSee('href="https://maps.google.com/?q=test"', false)
+            ->assertSee('class="info-text info-link"', false)
+            ->assertSee('data-copy="12 Test Street"', false);
+    }
+
+    #[Test]
+    public function test_info_panel_absent_when_no_contact_info(): void
+    {
+        $bare = Restaurant::factory()->create(['city' => null]);
+
+        $this->get("/{$bare->id}")
+            ->assertStatus(200)
+            ->assertDontSee('id="info-panel"', false)
+            ->assertDontSee('id="info-toggle"', false);
+    }
+
+    #[Test]
     public function test_hero_banner_renders_when_restaurant_has_image(): void
     {
         $this->restaurant->update(['image' => 'restaurants/test-banner.webp']);

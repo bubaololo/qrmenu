@@ -21,7 +21,7 @@ class ZoneController extends Controller
         Gate::authorize('view', $restaurant);
 
         return ZoneResource::collection(
-            $restaurant->zones()->with('tables.tableShape')->get()
+            $restaurant->zones()->with(['tables.tableShape', 'tables.zone.restaurant'])->get()
         );
     }
 
@@ -38,7 +38,7 @@ class ZoneController extends Controller
     {
         Gate::authorize('view', $zone);
 
-        return new ZoneResource($zone->load('tables.tableShape'));
+        return new ZoneResource($zone->load(['tables.tableShape', 'tables.zone.restaurant']));
     }
 
     public function update(UpdateZoneRequest $request, Zone $zone): ZoneResource

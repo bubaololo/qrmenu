@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Menus;
 
+use App\Actions\BuildPublicMenuUrl;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,9 @@ class FullMenuResource extends JsonResource
         return [
             'id' => $this->id,
             'restaurant_id' => $this->restaurant_id,
+            'restaurant_menu_url' => $this->restaurant
+                ? app(BuildPublicMenuUrl::class)->forRestaurant($this->restaurant)
+                : null,
             'source_locale' => $this->source_locale,
             'locale' => $locale,
             'detected_date' => $this->detected_date?->toDateString(),

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Restaurants;
 
+use App\Actions\BuildPublicMenuUrl;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 class RestaurantResource extends JsonApiResource
@@ -29,4 +31,15 @@ class RestaurantResource extends JsonApiResource
     public $relationships = [
         'menu',
     ];
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    public function toAttributes(Request $request): array
+    {
+        return [
+            ...$this->attributes,
+            'menu_url' => app(BuildPublicMenuUrl::class)->forRestaurant($this->resource),
+        ];
+    }
 }

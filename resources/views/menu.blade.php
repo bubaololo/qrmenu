@@ -37,6 +37,13 @@
             ->values();
         $locationLabel = $locationParts->implode(', ');
         $hasMeta = $locationParts->isNotEmpty();
+
+        // Collapsible restaurant-info panel: only render rows that are filled.
+        $infoPhone = $heroInfo['phone'] ?? null;
+        $infoHours = $heroInfo['todayHours'] ?? null;
+        $hasInfo = $hasMeta || ! empty($infoPhone) || $infoHours !== null;
+        // Strip everything but digits and a leading + for the tel: target.
+        $telHref = $infoPhone ? preg_replace('/(?!^\+)[^\d]/', '', $infoPhone) : null;
     @endphp
 
     @if($restaurant->image_url)
@@ -55,37 +62,60 @@
         @endif
     @endif
 
-    @if($hasMeta)
-        <div id="top" class="meta-strip">
-            <div class="container meta-strip-row">
-                @if($locationParts->isNotEmpty())
-                    @if($heroInfo['mapsUrl'])
-                        <a class="meta-item meta-loc" href="{{ $heroInfo['mapsUrl'] }}" target="_blank" rel="noopener" aria-label="{{ $locationLabel }} — open in Maps">
-                            <svg class="meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span class="meta-loc-label">{{ $locationLabel }}</span>
-                        </a>
-                    @else
-                        <span class="meta-item meta-loc">
-                            <svg class="meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span class="meta-loc-label">{{ $locationLabel }}</span>
-                        </span>
-                    @endif
-                @endif
-            </div>
-        </div>
-    @endif
-
-    <div class="container topbar-brandrow">
+    <div id="top" class="container topbar-brandrow">
         @if($restaurant->logo_url && ! $restaurant->image_url)
             <img src="{{ $restaurant->logo_thumb_url }}" alt="" class="hero-logo hero-logo--inline">
         @endif
-        <div class="topbar-brand-stack">
-            <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
-            @if($heroInfo['todayHours'] !== null)
-                <div class="topbar-brand-hours">{{ $heroInfo['todayHours'] }}</div>
-            @endif
-        </div>
+        <h1 class="topbar-brand font-display">{{ $restaurantName }}</h1>
+        @if($hasInfo)
+            <button type="button" class="info-toggle" id="info-toggle"
+                    aria-expanded="false" aria-controls="info-panel"
+                    aria-label="{{ $uiStrings['details'] ?? 'Details' }}">
+                <svg class="info-toggle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+            </button>
+        @endif
     </div>
+
+    @if($hasInfo)
+        <div class="info-panel" id="info-panel" role="region" aria-label="{{ $uiStrings['details'] ?? 'Details' }}">
+            <div class="info-panel-clip">
+                <div class="container info-panel-content">
+                    @if($infoHours !== null)
+                        <div class="info-row">
+                            <svg class="info-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                            <span class="info-text">{{ $infoHours }}</span>
+                        </div>
+                    @endif
+
+                    @if($hasMeta)
+                        <div class="info-row">
+                            <svg class="info-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            @if($heroInfo['mapsUrl'])
+                                <a class="info-text info-link" href="{{ $heroInfo['mapsUrl'] }}" target="_blank" rel="noopener" aria-label="{{ $locationLabel }} — Maps">{{ $locationLabel }}</a>
+                            @else
+                                <span class="info-text">{{ $locationLabel }}</span>
+                            @endif
+                            <button type="button" class="info-copy" data-copy="{{ $locationLabel }}" aria-label="{{ $uiStrings['copy'] ?? 'Copy' }}">
+                                <svg class="info-copy-icon info-copy-icon--copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                                <svg class="info-copy-icon info-copy-icon--done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                            </button>
+                        </div>
+                    @endif
+
+                    @if($infoPhone)
+                        <div class="info-row">
+                            <svg class="info-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <a class="info-text info-link" href="tel:{{ $telHref }}">{{ $infoPhone }}</a>
+                            <button type="button" class="info-copy" data-copy="{{ $infoPhone }}" aria-label="{{ $uiStrings['copy'] ?? 'Copy' }}">
+                                <svg class="info-copy-icon info-copy-icon--copy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                                <svg class="info-copy-icon info-copy-icon--done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
 
     <header class="topbar topbar-sticky" aria-label="Main navigation">
         <div class="container topbar-mainrow">

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\DiningTables;
 
+use App\Actions\BuildPublicMenuUrl;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 class DiningTableResource extends JsonApiResource
@@ -20,4 +22,15 @@ class DiningTableResource extends JsonApiResource
         'sort_order',
         'is_active',
     ];
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    public function toAttributes(Request $request): array
+    {
+        return [
+            ...$this->attributes,
+            'menu_url' => app(BuildPublicMenuUrl::class)->forTable($this->resource),
+        ];
+    }
 }
