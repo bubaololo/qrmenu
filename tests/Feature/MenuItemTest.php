@@ -122,4 +122,53 @@ class MenuItemTest extends TestCase
             ->postJson("/api/v1/menu-sections/{$section->id}/items", ['name' => 'Test'])
             ->assertStatus(403);
     }
+
+    #[Test]
+    public function test_store_accepts_name_and_description_at_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-sections/{$section->id}/items", [
+                'name' => str_repeat('a', config('limits.name')),
+                'description' => str_repeat('b', config('limits.description')),
+            ])
+            ->assertStatus(201);
+    }
+
+    #[Test]
+    public function test_store_rejects_name_over_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-sections/{$section->id}/items", [
+                'name' => str_repeat('a', config('limits.name') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
+    #[Test]
+    public function test_store_rejects_description_over_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-sections/{$section->id}/items", [
+                'name' => 'Valid name',
+                'description' => str_repeat('b', config('limits.description') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('description');
+    }
 }

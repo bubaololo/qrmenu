@@ -15,7 +15,7 @@ class StoreMenuOptionGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:'.config('limits.name')],
             'type' => ['nullable', 'string', 'max:100'],
             'is_variation' => ['nullable', 'boolean'],
             'required' => ['nullable', 'boolean'],

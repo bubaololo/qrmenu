@@ -175,6 +175,37 @@ class RestaurantTest extends TestCase
     }
 
     #[Test]
+    public function test_update_rejects_overlong_name_address_and_phone(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/restaurants/{$restaurant->id}", [
+                'name' => str_repeat('a', config('limits.restaurant_name') + 1),
+                'address' => str_repeat('b', config('limits.address') + 1),
+                'phone' => str_repeat('1', config('limits.phone') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['name', 'address', 'phone']);
+    }
+
+    #[Test]
+    public function test_update_accepts_name_address_and_phone_at_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->putJson("/api/v1/restaurants/{$restaurant->id}", [
+                'name' => str_repeat('a', config('limits.restaurant_name')),
+                'address' => str_repeat('b', config('limits.address')),
+                'phone' => str_repeat('1', config('limits.phone')),
+            ])
+            ->assertStatus(200);
+    }
+
+    #[Test]
     public function test_active_menus_omits_restaurants_without_active_menu(): void
     {
         $restaurant = Restaurant::factory()->create();

@@ -177,6 +177,35 @@ class MenuSectionTest extends TestCase
     }
 
     #[Test]
+    public function test_store_rejects_name_over_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/sections", [
+                'name' => str_repeat('a', config('limits.name') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
+    #[Test]
+    public function test_store_accepts_name_at_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/sections", [
+                'name' => str_repeat('a', config('limits.name')),
+            ])
+            ->assertStatus(201);
+    }
+
+    #[Test]
     public function test_update_replaces_icon_via_icon_name(): void
     {
         Icon::firstOrCreate(['name' => 'pizza']);

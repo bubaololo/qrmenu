@@ -17,8 +17,8 @@ class StoreMenuItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:'.config('limits.name')],
+            'description' => ['nullable', 'string', 'max:'.config('limits.description')],
             'starred' => ['nullable', 'boolean'],
             'price_type' => ['nullable', new Enum(PriceType::class)],
             'price_value' => ['nullable', 'numeric', 'min:0'],

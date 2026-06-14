@@ -17,8 +17,8 @@ class UpdateMenuItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
+            'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
+            'description' => ['sometimes', 'nullable', 'string', 'max:'.config('limits.description')],
             'starred' => ['sometimes', 'boolean'],
             'price_type' => ['sometimes', new Enum(PriceType::class)],
             'price_value' => ['sometimes', 'nullable', 'numeric', 'min:0'],

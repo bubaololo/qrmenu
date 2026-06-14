@@ -54,6 +54,22 @@ class MenuOptionGroupTest extends TestCase
     }
 
     #[Test]
+    public function test_store_rejects_name_over_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menu-sections/{$section->id}/option-groups", [
+                'name' => str_repeat('a', config('limits.name') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
+    #[Test]
     public function test_update_modifies_option_group(): void
     {
         $restaurant = Restaurant::factory()->create();

@@ -113,6 +113,33 @@ class ZoneTest extends TestCase
     }
 
     #[Test]
+    public function rejects_zone_name_over_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/restaurants/{$restaurant->id}/zones", [
+                'name' => str_repeat('a', config('limits.zone_name') + 1),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
+    #[Test]
+    public function accepts_zone_name_at_limit(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/restaurants/{$restaurant->id}/zones", [
+                'name' => str_repeat('a', config('limits.zone_name')),
+            ])
+            ->assertStatus(201);
+    }
+
+    #[Test]
     public function cannot_access_other_restaurant_zone(): void
     {
         $restaurant1 = Restaurant::factory()->create();

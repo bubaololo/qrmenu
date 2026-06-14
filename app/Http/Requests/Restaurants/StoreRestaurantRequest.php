@@ -15,11 +15,11 @@ class StoreRestaurantRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'address' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:'.config('limits.restaurant_name')],
+            'address' => ['sometimes', 'nullable', 'string', 'max:'.config('limits.address')],
             'city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'country' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:'.config('limits.phone')],
             'currency' => ['sometimes', 'nullable', 'string', 'max:10'],
             'primary_language' => ['sometimes', 'nullable', 'string', 'max:10'],
             'opening_hours' => ['sometimes', 'nullable', 'array'],

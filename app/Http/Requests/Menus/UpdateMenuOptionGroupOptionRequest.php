@@ -15,7 +15,7 @@ class UpdateMenuOptionGroupOptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
             'price_adjust' => ['sometimes', 'nullable', 'numeric'],
             'is_default' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],

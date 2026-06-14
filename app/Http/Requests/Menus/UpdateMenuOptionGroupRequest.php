@@ -15,7 +15,7 @@ class UpdateMenuOptionGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
             'type' => ['sometimes', 'nullable', 'string', 'max:100'],
             'is_variation' => ['sometimes', 'boolean'],
             'required' => ['sometimes', 'boolean'],

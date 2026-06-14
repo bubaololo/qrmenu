@@ -15,7 +15,7 @@ class StoreMenuOptionGroupOptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:'.config('limits.name')],
             'price_adjust' => ['nullable', 'numeric'],
             'is_default' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

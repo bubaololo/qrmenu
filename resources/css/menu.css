@@ -504,6 +504,12 @@ a.info-link:hover { color: var(--muted-foreground); }
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+}
+.category-title span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .category-icon { width: 1.25em; height: 1.25em; flex-shrink: 0; color: var(--primary); opacity: 0.85; }
 
@@ -682,6 +688,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   -webkit-box-orient: vertical;
   overflow: hidden;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 /* recommended marker — amber star after the dish name */
 .menu-card-star {
@@ -702,6 +710,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .menu-card-foot {
   display: flex;
@@ -1057,6 +1067,10 @@ a.info-link:hover { color: var(--muted-foreground); }
   padding: 1rem 1.125rem 0;
   overflow-y: auto;
   flex: 1;
+  /* Without min-height:0 a flex child refuses to shrink below its content, so
+     a very long description would grow the sheet past max-height and push the
+     pinned footer (Order button) out of view. This lets the body scroll. */
+  min-height: 0;
 }
 .sheet-title {
   font-family: var(--font-display);
@@ -1066,6 +1080,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: var(--foreground);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .sheet-badges { margin-bottom: 0.625rem; }
 .sheet-desc {
@@ -1073,6 +1089,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   color: var(--muted-foreground);
   line-height: 1.55;
   margin-bottom: 1rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* variants */
@@ -1304,6 +1322,7 @@ a.info-link:hover { color: var(--muted-foreground); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 .cart-header h2,
 .cart-title {
@@ -1317,7 +1336,7 @@ a.info-link:hover { color: var(--muted-foreground); }
   color: var(--destructive);
   font-weight: 500;
 }
-.cart-items { padding: 0; }
+.cart-items { padding: 0; flex: 1; min-height: 0; overflow-y: auto; }
 .cart-item {
   position: relative;
   overflow: hidden;
@@ -1358,7 +1377,7 @@ a.info-link:hover { color: var(--muted-foreground); }
 .cart-item-info { flex: 1; min-width: 0; }
 .cart-item-editable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .cart-item-editable:active { opacity: 0.7; }
-.cart-item-name { font-size: 13.5px; font-weight: 600; color: var(--foreground); line-height: 1.3; }
+.cart-item-name { font-size: 13.5px; font-weight: 600; color: var(--foreground); line-height: 1.3; overflow-wrap: anywhere; word-break: break-word; }
 .cart-item-variant { font-size: 11.5px; color: var(--muted-foreground); margin-top: 2px; }
 .cart-item-price { font-size: 13.5px; font-weight: 700; color: var(--primary); white-space: nowrap; }
 .cart-item-qty { display: flex; align-items: center; gap: 0.5rem; }
@@ -1386,6 +1405,7 @@ a.info-link:hover { color: var(--muted-foreground); }
   padding: 1rem 1.125rem 1.125rem;
   border-top: 1px solid var(--border);
   background: var(--card);
+  flex-shrink: 0;
 }
 .cart-total,
 .cart-total-row {
