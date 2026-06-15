@@ -4,8 +4,6 @@ namespace App\Observers;
 
 use App\Jobs\DeleteImageFilesJob;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
 use App\Models\Translation;
 use App\Services\ImageProcessor;
@@ -20,33 +18,21 @@ class MenuSectionObserver
     /**
      * The section's own translations are handled by the HasTranslations trait.
      * Before FK CASCADE wipes descendant rows:
-     *   1. Bulk-delete polymorphic translations of descendant items/groups/options.
+     *   1. Bulk-delete polymorphic translations of descendant items.
      *   2. Collect menu_items.image paths so the post-delete event can dispatch cleanup.
+     *
+     * Option groups are menu-scoped (shared across sections), so they are NOT
+     * deleted with a section — only the item↔group pivot rows cascade. Group
+     * translation cleanup happens on menu/restaurant deletion.
      */
     public function deleting(MenuSection $section): void
     {
         $itemIds = DB::table('menu_items')->where('section_id', $section->id)->pluck('id');
-        $groupIds = DB::table('menu_option_groups')->where('section_id', $section->id)->pluck('id');
-        $optionIds = $groupIds->isEmpty()
-            ? collect()
-            : DB::table('menu_option_group_options')->whereIn('group_id', $groupIds)->pluck('id');
 
-        if ($itemIds->isNotEmpty() || $groupIds->isNotEmpty() || $optionIds->isNotEmpty()) {
+        if ($itemIds->isNotEmpty()) {
             Translation::query()
-                ->where(function ($q) use ($itemIds, $groupIds, $optionIds) {
-                    if ($itemIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuItem::class)
-                            ->whereIn('translatable_id', $itemIds));
-                    }
-                    if ($groupIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroup::class)
-                            ->whereIn('translatable_id', $groupIds));
-                    }
-                    if ($optionIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuOptionGroupOption::class)
-                            ->whereIn('translatable_id', $optionIds));
-                    }
-                })
+                ->where('translatable_type', MenuItem::class)
+                ->whereIn('translatable_id', $itemIds)
                 ->delete();
         }
 

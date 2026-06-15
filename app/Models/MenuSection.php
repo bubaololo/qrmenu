@@ -89,11 +89,6 @@ class MenuSection extends Model
         return $this->hasMany(MenuItem::class, 'section_id')->orderBy('sort_order');
     }
 
-    public function optionGroups(): HasMany
-    {
-        return $this->hasMany(MenuOptionGroup::class, 'section_id')->orderBy('sort_order');
-    }
-
     /** @param  Builder<MenuSection>  $query */
     public function scopeActive(Builder $query): Builder
     {

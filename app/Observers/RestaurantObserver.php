@@ -55,9 +55,9 @@ class RestaurantObserver
         $itemIds = $sectionIds->isEmpty()
             ? collect()
             : DB::table('menu_items')->whereIn('section_id', $sectionIds)->pluck('id');
-        $groupIds = $sectionIds->isEmpty()
+        $groupIds = $menuIds->isEmpty()
             ? collect()
-            : DB::table('menu_option_groups')->whereIn('section_id', $sectionIds)->pluck('id');
+            : DB::table('menu_option_groups')->whereIn('menu_id', $menuIds)->pluck('id');
         $optionIds = $groupIds->isEmpty()
             ? collect()
             : DB::table('menu_option_group_options')->whereIn('group_id', $groupIds)->pluck('id');

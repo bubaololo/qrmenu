@@ -2,8 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\OptionGroupKind;
+use App\Models\Menu;
 use App\Models\MenuOptionGroup;
-use App\Models\MenuSection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,12 +15,22 @@ class MenuOptionGroupFactory extends Factory
     public function definition(): array
     {
         return [
-            'section_id' => MenuSection::factory(),
-            'is_variation' => false,
+            'menu_id' => Menu::factory(),
+            'kind' => OptionGroupKind::Addon,
             'required' => false,
             'allow_multiple' => false,
             'min_select' => 0,
             'sort_order' => 0,
         ];
+    }
+
+    public function variant(): static
+    {
+        return $this->state(fn (): array => ['kind' => OptionGroupKind::Variant]);
+    }
+
+    public function addon(): static
+    {
+        return $this->state(fn (): array => ['kind' => OptionGroupKind::Addon]);
     }
 }

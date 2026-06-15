@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\OptionGroupKind;
 use App\Models\Menu;
 use App\Models\Prompt;
 use App\Services\AnalysisEventBroker;
@@ -60,8 +61,8 @@ class TranslateMenuJob implements ShouldQueue
         $this->menu->load([
             'sections.initialTranslations',
             'sections.items.initialTranslations',
-            'sections.optionGroups.initialTranslations',
-            'sections.optionGroups.options.initialTranslations',
+            'optionGroups.initialTranslations',
+            'optionGroups.options.initialTranslations',
             'restaurant',
         ]);
 
@@ -185,16 +186,17 @@ class TranslateMenuJob implements ShouldQueue
                 $desc = $item->initialText('description') ?? '';
                 $lines[] = "I|{$item->id}|{$name}|{$desc}";
             }
+        }
 
-            foreach ($section->optionGroups as $group) {
-                $groupName = $group->initialText('name') ?? '';
-                $type = $group->is_variation ? 'V' : 'G';
-                $lines[] = "{$type}|{$group->id}|{$groupName}";
+        // Option groups are shared across the whole menu, so emit them once.
+        foreach ($this->menu->optionGroups as $group) {
+            $groupName = $group->initialText('name') ?? '';
+            $type = $group->kind === OptionGroupKind::Variant ? 'V' : 'G';
+            $lines[] = "{$type}|{$group->id}|{$groupName}";
 
-                foreach ($group->options as $opt) {
-                    $optName = $opt->initialText('name') ?? '';
-                    $lines[] = "O|{$opt->id}|{$optName}";
-                }
+            foreach ($group->options as $opt) {
+                $optName = $opt->initialText('name') ?? '';
+                $lines[] = "O|{$opt->id}|{$optName}";
             }
         }
 

@@ -73,7 +73,7 @@ class CascadeDeleteTest extends TestCase
             }
 
             foreach (range(1, 3) as $g) {
-                $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+                $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
                 $group->setTranslation('name', 'en', "Group $s.$g", true);
                 $this->groups[] = $group;
 

@@ -39,7 +39,7 @@ class ChangeMenuSourceLocaleAction
 
         $sectionIds = $menu->sections()->pluck('id');
         $itemIds = MenuItem::whereIn('section_id', $sectionIds)->pluck('id');
-        $groupIds = MenuOptionGroup::whereIn('section_id', $sectionIds)->pluck('id');
+        $groupIds = MenuOptionGroup::where('menu_id', $menu->id)->pluck('id');
         $optionIds = MenuOptionGroupOption::whereIn('group_id', $groupIds)->pluck('id');
 
         $scope = function (Builder $q) use ($sectionIds, $itemIds, $groupIds, $optionIds): void {

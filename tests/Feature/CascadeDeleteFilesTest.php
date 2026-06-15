@@ -98,7 +98,7 @@ class CascadeDeleteFilesTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
 
         $item->setTranslation('name', 'en', 'Pho', true);

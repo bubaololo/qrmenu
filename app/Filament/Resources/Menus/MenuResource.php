@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Menus;
 use App\Filament\Resources\Menus\Pages\CreateMenu;
 use App\Filament\Resources\Menus\Pages\EditMenu;
 use App\Filament\Resources\Menus\Pages\ListMenus;
+use App\Filament\Resources\Menus\RelationManagers\OptionGroupsRelationManager;
 use App\Filament\Resources\Menus\RelationManagers\SectionsRelationManager;
 use App\Filament\Resources\Menus\Schemas\MenuForm;
 use App\Filament\Resources\Menus\Tables\MenusTable;
@@ -37,6 +38,7 @@ class MenuResource extends Resource
     {
         return [
             SectionsRelationManager::class,
+            OptionGroupsRelationManager::class,
         ];
     }
 

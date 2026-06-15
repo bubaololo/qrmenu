@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OptionGroupKind;
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuOptionGroupFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,9 +22,9 @@ class MenuOptionGroup extends Model
     protected $appends = ['name'];
 
     protected $fillable = [
-        'section_id',
+        'menu_id',
         'type',
-        'is_variation',
+        'kind',
         'required',
         'allow_multiple',
         'min_select',
@@ -37,7 +38,7 @@ class MenuOptionGroup extends Model
     protected static function booted(): void
     {
         static::saved(function (MenuOptionGroup $group) {
-            $locale = $group->section?->menu?->source_locale;
+            $locale = $group->menu?->source_locale;
             if ($group->pendingName !== null && $locale !== null) {
                 $group->setTranslation('name', $locale, $group->pendingName, true);
                 $group->pendingName = null;
@@ -48,7 +49,7 @@ class MenuOptionGroup extends Model
     protected function casts(): array
     {
         return [
-            'is_variation' => 'boolean',
+            'kind' => OptionGroupKind::class,
             'required' => 'boolean',
             'allow_multiple' => 'boolean',
             'min_select' => 'integer',
@@ -67,9 +68,9 @@ class MenuOptionGroup extends Model
         $this->pendingName = $value;
     }
 
-    public function section(): BelongsTo
+    public function menu(): BelongsTo
     {
-        return $this->belongsTo(MenuSection::class, 'section_id');
+        return $this->belongsTo(Menu::class, 'menu_id');
     }
 
     public function options(): HasMany

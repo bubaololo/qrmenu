@@ -14,7 +14,7 @@ class MenuOptionGroupResource extends JsonApiResource
     public $attributes = [
         'name',
         'type',
-        'is_variation',
+        'kind',
         'required',
         'allow_multiple',
         'min_select',

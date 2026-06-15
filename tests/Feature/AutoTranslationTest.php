@@ -209,7 +209,7 @@ class AutoTranslationTest extends TestCase
 
         $menu = $this->makeTranslatedMenu();
         $section = $menu->sections()->first();
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $group->setTranslation('name', 'vi', 'Đồ uống', isInitial: true);
 
         Bus::assertDispatched(
@@ -226,7 +226,7 @@ class AutoTranslationTest extends TestCase
 
         $menu = $this->makeTranslatedMenu();
         $section = $menu->sections()->first();
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
         $option->setTranslation('name', 'vi', 'Cay', isInitial: true);
 

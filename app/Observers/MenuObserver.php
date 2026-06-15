@@ -32,7 +32,7 @@ class MenuObserver
         }
 
         $itemIds = DB::table('menu_items')->whereIn('section_id', $sectionIds)->pluck('id');
-        $groupIds = DB::table('menu_option_groups')->whereIn('section_id', $sectionIds)->pluck('id');
+        $groupIds = DB::table('menu_option_groups')->where('menu_id', $menu->id)->pluck('id');
         $optionIds = $groupIds->isEmpty()
             ? collect()
             : DB::table('menu_option_group_options')->whereIn('group_id', $groupIds)->pluck('id');

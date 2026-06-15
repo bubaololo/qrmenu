@@ -198,7 +198,7 @@ class MenuTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'en']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $group->items()->attach($item->id);
         MenuOptionGroupOption::factory()->count(2)->create(['group_id' => $group->id]);
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OptionGroupKind;
 use App\Enums\PriceType;
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuItemFactory;
@@ -138,7 +139,12 @@ class MenuItem extends Model
 
     public function variations(): BelongsToMany
     {
-        return $this->optionGroups()->where('is_variation', true);
+        return $this->optionGroups()->where('kind', OptionGroupKind::Variant);
+    }
+
+    public function addons(): BelongsToMany
+    {
+        return $this->optionGroups()->where('kind', OptionGroupKind::Addon);
     }
 
     /** @param  Builder<MenuItem>  $query */

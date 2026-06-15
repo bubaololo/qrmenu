@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\SaveMenuAnalysisAction;
+use App\Enums\OptionGroupKind;
 use App\Enums\PriceType;
 use App\Models\MenuItem;
 use App\Models\MenuOptionGroup;
@@ -84,9 +85,10 @@ class SaveMenuAnalysisTest extends TestCase
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // 12 per-item variations deduplicate to 4 unique section-level groups
-        $this->assertSame(4, MenuOptionGroup::where('is_variation', true)->count());
-        $variationGroupIds = MenuOptionGroup::where('is_variation', true)->pluck('id');
+        // per-item variations deduplicate to unique menu-level variant groups
+        // (this fixture's items all share one identical temperature variation)
+        $this->assertSame(1, MenuOptionGroup::where('kind', OptionGroupKind::Variant)->count());
+        $variationGroupIds = MenuOptionGroup::where('kind', OptionGroupKind::Variant)->pluck('id');
         $this->assertDatabaseHas('menu_option_group_options', ['group_id' => $variationGroupIds->first()]);
     }
 
@@ -95,17 +97,19 @@ class SaveMenuAnalysisTest extends TestCase
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // 15 per-item option groups deduplicate to 2 unique section-level groups
-        $this->assertSame(2, MenuOptionGroup::where('is_variation', false)->count());
+        // per-item option groups deduplicate to unique menu-level add-on groups
+        // (this fixture's items all share one identical "ADD ON" block)
+        $this->assertSame(1, MenuOptionGroup::where('kind', OptionGroupKind::Addon)->count());
     }
 
     #[Test]
-    public function test_deduplicates_option_groups_at_section_level(): void
+    public function test_deduplicates_option_groups_at_menu_level(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // 27 total (12 + 15) → 6 unique groups, 27 pivot rows (items still linked to their groups)
-        $this->assertSame(6, MenuOptionGroup::count());
+        // per-item groups deduplicate to unique menu-level groups (1 variant +
+        // 1 add-on here); items are still linked to their groups via pivot rows
+        $this->assertSame(2, MenuOptionGroup::count());
         $this->assertSame(27, DB::table('menu_item_option_group')->count());
     }
 

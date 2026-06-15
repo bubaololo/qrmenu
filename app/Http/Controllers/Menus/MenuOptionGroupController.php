@@ -8,8 +8,8 @@ use App\Http\Requests\Menus\AttachDetachItemsRequest;
 use App\Http\Requests\Menus\StoreMenuOptionGroupRequest;
 use App\Http\Requests\Menus\UpdateMenuOptionGroupRequest;
 use App\Http\Resources\Menus\MenuOptionGroupResource;
+use App\Models\Menu;
 use App\Models\MenuOptionGroup;
-use App\Models\MenuSection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -18,18 +18,18 @@ class MenuOptionGroupController extends Controller
     use ResolvesLocale;
 
     /**
-     * Create an option group in a section.
+     * Create a variant/add-on group shared across the menu.
      */
-    public function store(StoreMenuOptionGroupRequest $request, MenuSection $menuSection): JsonResponse
+    public function store(StoreMenuOptionGroupRequest $request, Menu $menu): JsonResponse
     {
-        Gate::authorize('update', $menuSection->menu);
+        Gate::authorize('update', $menu);
 
         $validated = $request->validated();
 
         $group = MenuOptionGroup::create([
-            'section_id' => $menuSection->id,
+            'menu_id' => $menu->id,
             'type' => $validated['type'] ?? null,
-            'is_variation' => $validated['is_variation'] ?? false,
+            'kind' => $validated['kind'],
             'required' => $validated['required'] ?? false,
             'allow_multiple' => $validated['allow_multiple'] ?? false,
             'min_select' => $validated['min_select'] ?? 0,
@@ -37,7 +37,7 @@ class MenuOptionGroupController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        [$locale, $isInitial] = $this->resolveLocale($menuSection->menu);
+        [$locale, $isInitial] = $this->resolveLocale($menu);
         $group->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupResource($group->fresh()))
@@ -50,12 +50,12 @@ class MenuOptionGroupController extends Controller
      */
     public function update(UpdateMenuOptionGroupRequest $request, MenuOptionGroup $menuOptionGroup): MenuOptionGroupResource
     {
-        Gate::authorize('update', $menuOptionGroup->section->menu);
+        Gate::authorize('update', $menuOptionGroup->menu);
 
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
+            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->menu);
             $menuOptionGroup->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }
@@ -72,7 +72,7 @@ class MenuOptionGroupController extends Controller
      */
     public function destroy(MenuOptionGroup $menuOptionGroup): JsonResponse
     {
-        Gate::authorize('delete', $menuOptionGroup->section->menu);
+        Gate::authorize('delete', $menuOptionGroup->menu);
 
         $menuOptionGroup->delete();
 
@@ -84,10 +84,15 @@ class MenuOptionGroupController extends Controller
      */
     public function attachItems(AttachDetachItemsRequest $request, MenuOptionGroup $menuOptionGroup): MenuOptionGroupResource
     {
-        Gate::authorize('update', $menuOptionGroup->section->menu);
+        Gate::authorize('update', $menuOptionGroup->menu);
 
-        $sectionItemIds = $menuOptionGroup->section->items()->pluck('id')->all();
-        $validIds = array_intersect($request->validated('item_ids'), $sectionItemIds);
+        $menuItemIds = $menuOptionGroup->menu->sections()
+            ->with('items:id,section_id')
+            ->get()
+            ->flatMap->items
+            ->pluck('id')
+            ->all();
+        $validIds = array_intersect($request->validated('item_ids'), $menuItemIds);
 
         $menuOptionGroup->items()->syncWithoutDetaching($validIds);
 
@@ -99,7 +104,7 @@ class MenuOptionGroupController extends Controller
      */
     public function detachItems(AttachDetachItemsRequest $request, MenuOptionGroup $menuOptionGroup): MenuOptionGroupResource
     {
-        Gate::authorize('update', $menuOptionGroup->section->menu);
+        Gate::authorize('update', $menuOptionGroup->menu);
 
         $menuOptionGroup->items()->detach($request->validated('item_ids'));
 

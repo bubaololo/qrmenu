@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Menus;
 
+use App\Enums\OptionGroupKind;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreMenuOptionGroupRequest extends FormRequest
 {
@@ -17,7 +19,7 @@ class StoreMenuOptionGroupRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:'.config('limits.name')],
             'type' => ['nullable', 'string', 'max:100'],
-            'is_variation' => ['nullable', 'boolean'],
+            'kind' => ['required', Rule::enum(OptionGroupKind::class)],
             'required' => ['nullable', 'boolean'],
             'allow_multiple' => ['nullable', 'boolean'],
             'min_select' => ['nullable', 'integer', 'min:0'],

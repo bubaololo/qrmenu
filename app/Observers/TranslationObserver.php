@@ -73,8 +73,8 @@ class TranslationObserver
         $menu = match (true) {
             $owner instanceof MenuItem => $owner->loadMissing('section.menu')->section?->menu,
             $owner instanceof MenuSection => $owner->loadMissing('menu')->menu,
-            $owner instanceof MenuOptionGroup => $owner->loadMissing('section.menu')->section?->menu,
-            $owner instanceof MenuOptionGroupOption => $owner->loadMissing('group.section.menu')->group?->section?->menu,
+            $owner instanceof MenuOptionGroup => $owner->loadMissing('menu')->menu,
+            $owner instanceof MenuOptionGroupOption => $owner->loadMissing('group.menu')->group?->menu,
             default => null,
         };
 

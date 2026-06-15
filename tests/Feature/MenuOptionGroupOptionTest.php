@@ -33,7 +33,7 @@ class MenuOptionGroupOptionTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
 
         $response = $this->actingAs($user)
             ->postJson("/api/v1/menu-option-groups/{$group->id}/options", [
@@ -61,7 +61,7 @@ class MenuOptionGroupOptionTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
 
         $this->actingAs($user)
             ->postJson("/api/v1/menu-option-groups/{$group->id}/options", [
@@ -78,7 +78,7 @@ class MenuOptionGroupOptionTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id, 'is_default' => false]);
 
         $this->actingAs($user)
@@ -96,7 +96,7 @@ class MenuOptionGroupOptionTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
 
         $this->actingAs($user)
@@ -110,7 +110,7 @@ class MenuOptionGroupOptionTest extends TestCase
     public function test_non_owner_gets_403_on_store(): void
     {
         $section = MenuSection::factory()->create();
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $stranger = User::factory()->create();
 
         $this->actingAs($stranger)

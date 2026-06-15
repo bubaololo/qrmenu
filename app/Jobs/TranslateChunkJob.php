@@ -59,7 +59,7 @@ class TranslateChunkJob implements ShouldQueue
         $this->menu->load([
             'restaurant',
             'sections.items',
-            'sections.optionGroups.options',
+            'optionGroups.options',
         ]);
 
         $idMap = $this->buildIdMap();
@@ -164,11 +164,13 @@ class TranslateChunkJob implements ShouldQueue
             foreach ($section->items as $item) {
                 $map['items'][$item->id] = $item;
             }
-            foreach ($section->optionGroups as $group) {
-                $map['groups'][$group->id] = $group;
-                foreach ($group->options as $opt) {
-                    $map['options'][$opt->id] = $opt;
-                }
+        }
+
+        // Option groups are shared at menu level, not per section.
+        foreach ($this->menu->optionGroups as $group) {
+            $map['groups'][$group->id] = $group;
+            foreach ($group->options as $opt) {
+                $map['options'][$opt->id] = $opt;
             }
         }
 

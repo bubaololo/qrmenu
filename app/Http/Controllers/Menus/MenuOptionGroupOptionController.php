@@ -21,7 +21,7 @@ class MenuOptionGroupOptionController extends Controller
      */
     public function store(StoreMenuOptionGroupOptionRequest $request, MenuOptionGroup $menuOptionGroup): JsonResponse
     {
-        Gate::authorize('update', $menuOptionGroup->section->menu);
+        Gate::authorize('update', $menuOptionGroup->menu);
 
         $validated = $request->validated();
 
@@ -32,7 +32,7 @@ class MenuOptionGroupOptionController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->section->menu);
+        [$locale, $isInitial] = $this->resolveLocale($menuOptionGroup->menu);
         $option->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
 
         return (new MenuOptionGroupOptionResource($option->fresh()))
@@ -45,12 +45,12 @@ class MenuOptionGroupOptionController extends Controller
      */
     public function update(UpdateMenuOptionGroupOptionRequest $request, MenuOptionGroupOption $menuOptionGroupOption): MenuOptionGroupOptionResource
     {
-        Gate::authorize('update', $menuOptionGroupOption->group->section->menu);
+        Gate::authorize('update', $menuOptionGroupOption->group->menu);
 
         $validated = $request->validated();
 
         if (isset($validated['name'])) {
-            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroupOption->group->section->menu);
+            [$locale, $isInitial] = $this->resolveLocale($menuOptionGroupOption->group->menu);
             $menuOptionGroupOption->setTranslation('name', $locale, $validated['name'], isInitial: $isInitial);
             unset($validated['name']);
         }
@@ -67,7 +67,7 @@ class MenuOptionGroupOptionController extends Controller
      */
     public function destroy(MenuOptionGroupOption $menuOptionGroupOption): JsonResponse
     {
-        Gate::authorize('delete', $menuOptionGroupOption->group->section->menu);
+        Gate::authorize('delete', $menuOptionGroupOption->group->menu);
 
         $menuOptionGroupOption->delete();
 

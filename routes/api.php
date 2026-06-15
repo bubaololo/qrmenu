@@ -116,7 +116,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/menu-items/{menuItem}', [MenuItemController::class, 'destroy']);
 
     // Menu Option Groups
-    Route::post('/menu-sections/{menuSection}/option-groups', [MenuOptionGroupController::class, 'store']);
+    Route::post('/menus/{menu}/option-groups', [MenuOptionGroupController::class, 'store']);
     Route::put('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'update']);
     Route::delete('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'destroy']);
     Route::post('/menu-option-groups/{menuOptionGroup}/attach-items', [MenuOptionGroupController::class, 'attachItems']);

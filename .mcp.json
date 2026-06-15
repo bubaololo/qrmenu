@@ -3,7 +3,7 @@
         "laravel-boost": {
             "command": "/usr/bin/php8.5",
             "args": [
-                "/srv/menu/backend/artisan",
+                "/home/buba/projects/menu/backend/artisan",
                 "boost:mcp"
             ]
         }

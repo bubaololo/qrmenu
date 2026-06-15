@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\OptionGroupKind;
 use App\Llm\DeepSeekTextProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\Menu;
@@ -239,7 +240,7 @@ class TranslateEntityJob implements ShouldQueue
             ),
             $entity instanceof MenuOptionGroup => sprintf(
                 '%s|%d|%s',
-                $entity->is_variation ? 'V' : 'G',
+                $entity->kind === OptionGroupKind::Variant ? 'V' : 'G',
                 $entity->getKey(),
                 (string) $entity->initialText('name'),
             ),
@@ -315,8 +316,8 @@ class TranslateEntityJob implements ShouldQueue
         return match (true) {
             $this->entity instanceof MenuItem => $this->entity->section?->menu,
             $this->entity instanceof MenuSection => $this->entity->menu,
-            $this->entity instanceof MenuOptionGroup => $this->entity->section?->menu,
-            $this->entity instanceof MenuOptionGroupOption => $this->entity->group?->section?->menu,
+            $this->entity instanceof MenuOptionGroup => $this->entity->menu,
+            $this->entity instanceof MenuOptionGroupOption => $this->entity->group?->menu,
             default => null,
         };
     }

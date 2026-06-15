@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Menus;
 
+use App\Enums\OptionGroupKind;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateMenuOptionGroupRequest extends FormRequest
 {
@@ -17,7 +19,7 @@ class UpdateMenuOptionGroupRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
             'type' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'is_variation' => ['sometimes', 'boolean'],
+            'kind' => ['sometimes', Rule::enum(OptionGroupKind::class)],
             'required' => ['sometimes', 'boolean'],
             'allow_multiple' => ['sometimes', 'boolean'],
             'min_select' => ['sometimes', 'integer', 'min:0'],

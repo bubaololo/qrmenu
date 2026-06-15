@@ -294,7 +294,7 @@ class MenuTranslationTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
 
         $this->actingAs($user)
             ->putJson("/api/v1/menu-option-groups/{$group->id}", ['name' => 'Toppings'], ['X-Locale' => 'en'])
@@ -316,7 +316,7 @@ class MenuTranslationTest extends TestCase
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['section_id' => $section->id]);
+        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
         $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
 
         $this->actingAs($user)

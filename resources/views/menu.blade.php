@@ -222,7 +222,7 @@
                                     }
 
                                     $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
-                                    $hasOptions = $item->optionGroups->where('is_variation', false)->isNotEmpty();
+                                    $hasOptions = $item->optionGroups->where('kind', \App\Enums\OptionGroupKind::Addon)->isNotEmpty();
 
                                     // Modal-only extras: fields menu.js needs that aren't visible in the card DOM.
                                     $extras = [];
@@ -248,7 +248,7 @@
 
                                     if ($hasOptions) {
                                         $options = [];
-                                        foreach ($item->optionGroups->where('is_variation', false) as $g) {
+                                        foreach ($item->optionGroups->where('kind', \App\Enums\OptionGroupKind::Addon) as $g) {
                                             $options[] = [
                                                 'id' => $g->id,
                                                 'name' => $g->translate('name', $lang) ?? $g->translate('name', $sourceLocale) ?? '',
