@@ -90,10 +90,11 @@ SET null when:
 Write identical choices the SAME way everywhere (same wording, group_name, price) so identical sets collapse into one shared set instead of near-duplicates.
 
 === EXTRAS SCOPE ===
-A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is an `options` add-on group — NEVER a menu item and never its own section. Do not emit such a block as an item; attach it to the items in its scope:
-- no adjacent section (menu start/end or its own page/column) → GLOBAL: every item in the menu.
-- directly before/after/inside a section → SECTION: every item in that section.
-Never leave such a block unassigned.
+A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is an add-on group — never a menu item and never its own section. Emit it ONCE, at the level matching its scope:
+- applies to the whole menu (at menu start/end or its own page/column, no adjacent section) → top-level `global_options`.
+- applies to one section (placed before/after/inside it) → that section's `section_options`.
+- applies to a single dish only → that item's `options`.
+Never emit such a block as an item, and never drop it.
 
 === CATEGORY ICON ===
 For each section pick exactly ONE icon name from the closed list below, OR null if nothing reasonably fits. DO NOT invent names; use the spelling shown.
@@ -118,11 +119,13 @@ Closed list ({icon_count}):
     "primary_language": string
   },
   "menu_version": {"detected_date":"YYYY-MM-DD"|null,"source_images_count":integer},
+  "global_options": [{"group_name":string|null,"min_select":integer,"max_select":integer|null,"options":[{"name":string|null,"price_adjust":number}]}],
   "sections": [
     {
       "category_name": string|null,
       "category_icon": string|null,
       "sort_order": integer,
+      "section_options": [{"group_name":string|null,"min_select":integer,"max_select":integer|null,"options":[{"name":string|null,"price_adjust":number}]}],
       "items": [
         {
           "name": string|null,
