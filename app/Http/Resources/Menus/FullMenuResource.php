@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Menus;
 
 use App\Actions\BuildPublicMenuUrl;
+use App\Enums\OptionGroupKind;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -64,7 +65,12 @@ class FullMenuResource extends JsonResource
                     'option_groups' => $item->optionGroups->map(fn ($group) => [
                         'id' => $group->id,
                         'name' => $group->translate('name', $locale),
-                        'is_variation' => $group->is_variation,
+                        // Null-safe: a group with no/invalid kind must not 500 the
+                        // whole menu. `is_variation` is emitted for the current
+                        // frontend contract and derived from whichever schema this
+                        // DB is on (legacy `is_variation` column, or the `kind` enum).
+                        'kind' => $group->kind?->value,
+                        'is_variation' => $group->is_variation ?? ($group->kind === OptionGroupKind::Variant),
                         'required' => $group->required,
                         'allow_multiple' => $group->allow_multiple,
                         'min_select' => $group->min_select,

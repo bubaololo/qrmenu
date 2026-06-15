@@ -80,13 +80,20 @@ SET null when:
 
 `options` = ADDITIVE extras; customer picks 0..N. Use for extra toppings (extra cheese, extra shot, extra egg), additional sauce as an add-on (not a choice), side extras.
 
+=== PRICE SEMANTICS ===
+`price_adjust` is read differently per block:
+- VARIATIONS → the FULL, absolute price printed for that choice; it REPLACES the dish price (not a delta). Use 0 only when a choice carries no price of its own.
+- OPTIONS (add-ons) → the amount ADDED on top of the dish price.
+
 `variations[].type` MUST be EXACTLY one of: portion, size, spice_level, sauce, base, protein, temperature, cooking_method, flavor, unit, other. Do NOT invent.
 
+Write identical choices the SAME way everywhere (same wording, group_name, price) so identical sets collapse into one shared set instead of near-duplicates.
+
 === EXTRAS SCOPE ===
-Before attaching any extras block, determine its scope:
-- Block at menu start/end OR on a dedicated page/column with no adjacent section → GLOBAL: apply to every item in the menu.
-- Block placed directly before/after/inside a specific section → SECTION: apply to every item in that section only.
-Never leave a standalone block unassigned. Example: an "ADD ON" block in the bottom-right corner of a coffee menu with no adjacent section is GLOBAL → attach those options to every coffee item.
+A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is an `options` add-on group — NEVER a menu item and never its own section. Do not emit such a block as an item; attach it to the items in its scope:
+- no adjacent section (menu start/end or its own page/column) → GLOBAL: every item in the menu.
+- directly before/after/inside a section → SECTION: every item in that section.
+Never leave such a block unassigned.
 
 === CATEGORY ICON ===
 For each section pick exactly ONE icon name from the closed list below, OR null if nothing reasonably fits. DO NOT invent names; use the spelling shown.
