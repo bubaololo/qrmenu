@@ -2,57 +2,40 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Redis;
+use App\Events\RealtimeEvent;
+use GuzzleHttp\Exception\ConnectException;
+use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Publishes per-analysis / per-translation progress events to Redis lists.
+ * Single chokepoint for realtime progress / order / notification events.
  *
- * Each topic maps to a Redis list `events:{topic}` capped by TTL. SSE clients
- * poll the list with a Last-Event-ID cursor to stream new events without
- * needing pub/sub (which is awkward inside PHP-FPM).
+ * Broadcasts each event over the configured driver (Reverb / WebSockets) as a
+ * {@see RealtimeEvent}. The `$topic` is the Echo channel name and `$event` the
+ * broadcast name (clients listen with a leading dot, e.g. `.analysis.started`).
+ * Replaces the former Redis-list + SSE-poll mechanism; payloads and event names
+ * are unchanged so existing consumers keep working.
  */
 class AnalysisEventBroker
 {
-    public const TTL_SECONDS = 3600;
-
-    public const MAX_EVENTS = 500;
-
     /**
      * @param  array<string, mixed>  $payload
      */
     public function publish(string $topic, string $event, array $payload): void
     {
-        $message = json_encode([
-            'event' => $event,
-            'data' => $payload,
-            'ts' => microtime(true),
-        ], JSON_UNESCAPED_UNICODE);
-
-        $key = $this->key($topic);
-        Redis::rpush($key, $message);
-        Redis::ltrim($key, -self::MAX_EVENTS, -1);
-        Redis::expire($key, self::TTL_SECONDS);
-    }
-
-    /**
-     * Read all events on the topic from $sinceIndex (zero-based) to the latest.
-     *
-     * @return list<string> Raw JSON event strings in order.
-     */
-    public function readSince(string $topic, int $sinceIndex): array
-    {
-        $events = Redis::lrange($this->key($topic), $sinceIndex, -1);
-
-        return is_array($events) ? array_values($events) : [];
-    }
-
-    public function totalEvents(string $topic): int
-    {
-        return (int) Redis::llen($this->key($topic));
-    }
-
-    private function key(string $topic): string
-    {
-        return 'events:'.$topic;
+        // Swallow ONLY transport-layer failures (Reverb daemon unreachable / HTTP
+        // error) so a WebSocket outage can't break the business transaction
+        // (order placement, image processing, analysis) that emitted the event —
+        // but log them loudly so the outage is visible. Any other exception (a real
+        // bug) is deliberately NOT caught and propagates so it surfaces immediately.
+        try {
+            broadcast(new RealtimeEvent($topic, $event, $payload));
+        } catch (BroadcastException|ConnectException $e) {
+            Log::error('Realtime broadcast transport failure', [
+                'topic' => $topic,
+                'event' => $event,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

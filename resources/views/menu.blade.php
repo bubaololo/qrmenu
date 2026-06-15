@@ -484,49 +484,116 @@
              class="translation-banner"
              role="status"
              aria-live="polite"
-             style="position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:90;background:rgba(20,20,20,.9);color:#fff;padding:.65rem 1rem;border-radius:999px;font-size:.85rem;display:flex;gap:.6rem;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.18);backdrop-filter:blur(10px)">
-            <span class="translation-banner__spinner" aria-hidden="true"
-                  style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite"></span>
-            <span class="translation-banner__text" id="translation-banner-text">
-                {{ $uiStrings['translating'] ?? 'Translating menu…' }}
-            </span>
+             style="position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:90;background:rgba(20,20,20,.92);color:#fff;padding:.7rem 1rem;border-radius:16px;font-size:.85rem;display:flex;flex-direction:column;gap:.55rem;min-width:210px;max-width:80vw;box-shadow:0 8px 30px rgba(0,0,0,.22);backdrop-filter:blur(10px)">
+            <div style="display:flex;gap:.55rem;align-items:center">
+                <span class="translation-banner__spinner" aria-hidden="true"
+                      style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite;flex:none"></span>
+                <span class="translation-banner__text" id="translation-banner-text" style="flex:1">
+                    {{ $uiStrings['translating'] ?? 'Translating menu…' }}
+                </span>
+            </div>
+            <div id="translation-progress" style="display:flex;gap:4px;height:6px">
+                @for($i = 0; $i < max(1, (int) ($translationChunkTotal ?? 1)); $i++)
+                    <div class="tp-seg" style="flex:1;height:100%;border-radius:3px;background:rgba(255,255,255,.22);transition:background .35s ease"></div>
+                @endfor
+            </div>
         </div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
         <script>
+            window.__REVERB__ = {
+                key: @json(config('broadcasting.connections.reverb.key')),
+                host: @json(config('broadcasting.connections.reverb.options.host')),
+                port: @json((int) config('broadcasting.connections.reverb.options.port', 443)),
+                scheme: @json(config('broadcasting.connections.reverb.options.scheme', 'https')),
+            };
+            // Minimal Pusher-protocol client for the public `menu-translation.*`
+            // channel (no auth needed) over Laravel Reverb. Avoids bundling
+            // laravel-echo/pusher-js into this server-rendered page.
             (function () {
-                var menuId = window.__CONFIG__.menuId;
-                var locale = window.__CONFIG__.translationLocale || window.__CONFIG__.lang;
-                if (!menuId || !locale) return;
+                var cfg = window.__CONFIG__ || {};
+                var R = window.__REVERB__ || {};
+                var menuId = cfg.menuId;
+                var locale = cfg.translationLocale || cfg.lang;
+                if (!menuId || !locale || !R.key || !R.host) return;
 
                 var banner = document.getElementById('translation-banner');
                 var bannerText = document.getElementById('translation-banner-text');
-                if (!banner) return;
+                var progressEl = document.getElementById('translation-progress');
+                var channel = 'menu-translation.' + menuId + '.' + locale;
 
-                var es = new EventSource('/api/v1/menus/' + menuId + '/translations/' + locale + '/events', { withCredentials: true });
+                // Render `total` progress segments (rebuild only if the count changed
+                // from the server-rendered estimate).
+                function renderSegments(total) {
+                    if (!progressEl || !total || total < 1 || progressEl.children.length === total) return;
+                    progressEl.innerHTML = '';
+                    for (var i = 0; i < total; i++) {
+                        var seg = document.createElement('div');
+                        seg.style.cssText = 'flex:1;height:100%;border-radius:3px;background:rgba(255,255,255,.22);transition:background .35s ease';
+                        progressEl.appendChild(seg);
+                    }
+                }
+                // Fill the first `done` segments (cumulative — self-corrects on reload).
+                function fillSegments(done) {
+                    if (!progressEl) return;
+                    var segs = progressEl.children;
+                    for (var i = 0; i < segs.length; i++) {
+                        segs[i].style.background = i < done ? '#fff' : 'rgba(255,255,255,.22)';
+                    }
+                }
+                function progressText(done, total) {
+                    if (bannerText) bannerText.textContent = done + '/' + (total || '?') + ' chunks';
+                }
 
-                es.onmessage = function (e) {
-                    try {
-                        var parsed = JSON.parse(e.data);
-                        var event = parsed.event;
-                        var data = parsed.data || {};
+                // Safety net: if the 'completed' event is ever missed (socket
+                // dropped, or the translation finished before we connected),
+                // reload once so the finished translation still shows — instead of
+                // the banner hanging. A reload won't re-arm the socket unless a
+                // translation is genuinely still running.
+                var settled = false;
+                var fallbackTimer = setTimeout(function () {
+                    if (!settled) window.location.reload();
+                }, 90000);
 
-                        if (event === 'translation.started') {
-                            if (bannerText) bannerText.textContent = '0/' + (data.chunk_total || '?') + ' chunks…';
-                        } else if (event === 'translation.chunk-complete') {
-                            if (bannerText) bannerText.textContent =
-                                (data.chunk_index || 0) + '/' + (data.chunk_total || '?') + ' chunks';
-                        } else if (event === 'translation.completed') {
-                            es.close();
-                            if (bannerText) bannerText.textContent = 'Done · refreshing…';
-                            setTimeout(function () { window.location.reload(); }, 800);
-                        }
-                    } catch (_) { /* ignore */ }
+                var wsProto = R.scheme === 'https' ? 'wss' : 'ws';
+                var url = wsProto + '://' + R.host + ':' + R.port + '/app/' + R.key
+                    + '?protocol=7&client=js&version=8&flash=false';
+
+                var ws;
+                try { ws = new WebSocket(url); } catch (_) { return; }
+
+                ws.onmessage = function (e) {
+                    var msg;
+                    try { msg = JSON.parse(e.data); } catch (_) { return; }
+                    if (msg.event === 'pusher:ping') {
+                        ws.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
+                        return;
+                    }
+                    if (msg.event === 'pusher:connection_established') {
+                        ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { channel: channel } }));
+                        return;
+                    }
+                    var data = {};
+                    try { data = typeof msg.data === 'string' ? JSON.parse(msg.data) : (msg.data || {}); } catch (_) {}
+                    if (msg.event === 'translation.started') {
+                        renderSegments(data.chunk_total);
+                        progressText(0, data.chunk_total);
+                    } else if (msg.event === 'translation.chunk-complete') {
+                        renderSegments(data.chunk_total);
+                        fillSegments(data.chunk_index || 0);
+                        progressText(data.chunk_index || 0, data.chunk_total);
+                    } else if (msg.event === 'translation.completed') {
+                        settled = true;
+                        clearTimeout(fallbackTimer);
+                        fillSegments(progressEl ? progressEl.children.length : 0);
+                        try { ws.close(); } catch (_) {}
+                        if (bannerText) bannerText.textContent = 'Done · refreshing…';
+                        setTimeout(function () { window.location.reload(); }, 700);
+                    }
                 };
 
-                es.onerror = function () {
-                    if (es.readyState === EventSource.CLOSED) {
-                        if (bannerText) bannerText.textContent = 'Connection lost — refresh to retry.';
-                    }
+                ws.onerror = function () {
+                    // Don't leave a stuck banner; the fallback timer will reload.
+                    if (banner) banner.style.display = 'none';
                 };
             })();
         </script>

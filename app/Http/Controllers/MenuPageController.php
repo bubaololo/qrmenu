@@ -8,6 +8,7 @@ use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Matriphe\ISO639\ISO639;
 
@@ -73,9 +74,11 @@ class MenuPageController extends Controller
         // On-demand translation: if locale not initial and no translations exist, trigger LLM.
         $effectiveSource = $menu?->source_locale ?? $primaryLang;
         $translationPending = false;
+        $translationChunkTotal = 0;
         $requestedLang = $lang;
         if ($menu && $lang !== $effectiveSource) {
-            $translationPending = $this->ensureTranslations($restaurant, $menu, $lang);
+            $translationChunkTotal = $this->ensureTranslations($restaurant, $menu, $lang);
+            $translationPending = $translationChunkTotal > 0;
             $menu = $restaurant->menu; // refresh after potential translation
         }
 
@@ -85,9 +88,9 @@ class MenuPageController extends Controller
             $lang = $primaryLang;
         }
 
-        // The page renders fallback strings while translation chunks crunch;
-        // the SSE banner needs the originally-requested locale so it can
-        // subscribe to *that* topic and reload the page when chunks land.
+        // The page renders fallback strings while translation chunks crunch; the
+        // progress banner needs the originally-requested locale so it can subscribe
+        // to *that* WebSocket topic and reload the page when chunks land.
         $translationLocale = $translationPending ? $requestedLang : null;
 
         $currencyCode = strtoupper($restaurant->currency ?? 'USD');
@@ -108,6 +111,7 @@ class MenuPageController extends Controller
             'heroInfo',
             'translationPending',
             'translationLocale',
+            'translationChunkTotal',
             'locales',
             'identifier',
             'tableUniqid',
@@ -342,48 +346,67 @@ class MenuPageController extends Controller
     }
 
     /**
-     * @return bool True if translation chunks are still in-flight after dispatch
-     *              (the page should subscribe to SSE for live progress).
+     * Ensure a translation exists (or is running) for the requested locale.
+     *
+     * @return int Number of translation chunks the page should show progress for
+     *             (0 = nothing pending: already translated, or a prior run failed
+     *             and the throttle still blocks a retry). >0 means a batch is in
+     *             flight — the banner renders that many progress segments and the
+     *             WebSocket fills them as chunks land.
      */
-    private function ensureTranslations(Restaurant $restaurant, object $menu, string $lang): bool
+    private function ensureTranslations(Restaurant $restaurant, object $menu, string $lang): int
     {
         $itemIds = $menu->sections->flatMap->items->pluck('id');
 
         if ($itemIds->isEmpty()) {
-            return false;
+            return 0;
         }
 
-        $translationQuery = Translation::where('locale', $lang)
-            ->where('translatable_type', MenuItem::class)
-            ->whereIn('translatable_id', $itemIds);
-
-        if ($translationQuery->exists()) {
-            return false;
-        }
-
-        // Throttle: max 1 translation per menu+locale per hour
-        $cacheKey = "menu_translation:{$menu->id}:{$lang}";
-
-        if (Cache::has($cacheKey)) {
-            // Already dispatched recently — assume chunks are still in-flight
-            // (or finished but data not loaded for this request). Either way,
-            // SSE subscription resolves it on the client.
-            return true;
-        }
-
-        TranslateMenuJob::dispatchSync($menu, $lang);
-
-        // The orchestrator's handle() now fires Bus::batch and returns; chunks
-        // crunch in Horizon. Translations land asynchronously, so for this
-        // request we treat this as "pending" and let the client subscribe.
-        $translationsSaved = Translation::where('locale', $lang)
+        $hasTranslations = Translation::where('locale', $lang)
             ->where('translatable_type', MenuItem::class)
             ->whereIn('translatable_id', $itemIds)
             ->exists();
 
+        if ($hasTranslations) {
+            return 0;
+        }
+
+        $batchName = "menu-translation-{$menu->id}-{$lang}";
+
+        // Already running? Show live progress on THIS view too (not only on the
+        // request that started it), so a reload mid-translation still sees the bar
+        // instead of a silent English fallback. A failed/finished batch has
+        // finished_at set, so it won't match here.
+        $running = DB::table('job_batches')
+            ->where('name', $batchName)
+            ->whereNull('finished_at')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($running) {
+            return max(1, (int) $running->total_jobs);
+        }
+
+        // Throttle: one dispatch per menu+locale per hour. Key set but no running
+        // batch and no translations → the previous run failed; don't re-dispatch
+        // and don't show a stuck banner.
+        $cacheKey = "menu_translation:{$menu->id}:{$lang}";
+
+        if (Cache::has($cacheKey)) {
+            return 0;
+        }
+
+        TranslateMenuJob::dispatchSync($menu, $lang);
         Cache::put($cacheKey, true, now()->addHour());
 
-        return ! $translationsSaved;
+        // dispatchSync created the Bus::batch synchronously; read its chunk count
+        // so the banner can render the correct number of segments immediately.
+        $total = (int) (DB::table('job_batches')
+            ->where('name', $batchName)
+            ->orderByDesc('created_at')
+            ->value('total_jobs') ?? 0);
+
+        return max(1, $total);
     }
 
     /**

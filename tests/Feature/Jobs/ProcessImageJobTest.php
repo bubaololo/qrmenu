@@ -40,6 +40,7 @@ class ProcessImageJobTest extends TestCase
         $job = new ProcessImageJob(
             MenuItem::class,
             123,
+            1,
             'originals/temp.jpg',
             'menu-items',
             'base-uuid',
@@ -62,6 +63,7 @@ class ProcessImageJobTest extends TestCase
         $job = new ProcessImageJob(
             MenuItem::class,
             123,
+            1,
             'originals/missing.jpg',
             'menu-items',
             'base-uuid',
@@ -82,6 +84,7 @@ class ProcessImageJobTest extends TestCase
         $job = new ProcessImageJob(
             MenuItem::class,
             $item->id,
+            $item->section->menu->restaurant_id,
             'originals/gone.jpg',
             'menu-items',
             'base-uuid',
@@ -102,6 +105,7 @@ class ProcessImageJobTest extends TestCase
         $job = new ProcessImageJob(
             MenuItem::class,
             $item->id,
+            $item->section->menu->restaurant_id,
             'originals/gone.jpg',
             'menu-items',
             'base-uuid',
@@ -122,6 +126,7 @@ class ProcessImageJobTest extends TestCase
         $job = new ProcessImageJob(
             MenuItem::class,
             999999,
+            1,
             'originals/gone.jpg',
             'menu-items',
             'base-uuid',

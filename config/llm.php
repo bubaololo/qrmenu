@@ -68,11 +68,13 @@ return [
     'translation' => [
         'chunk_lines' => (int) env('LLM_TRANSLATION_CHUNK_LINES', 80),
         'openrouter_fallback_model' => env('LLM_TRANSLATION_OR_FALLBACK_MODEL', 'openai/gpt-4.1-mini'),
-        // Per-request HTTP timeout for translation (seconds). Short on purpose:
-        // translation payloads are tiny, so a slow primary (deepseek) should
-        // fail over to the openrouter fallback in seconds, not wait out the long
-        // analysis-oriented default ('http_timeout_seconds').
-        'http_timeout_seconds' => 15,
+        // Per-request HTTP timeout for translation (seconds). The INPUT payload is
+        // tiny, but generating a full chunk of translated TSV (up to chunk_lines
+        // rows of output) routinely takes longer than a few seconds — a 15s cap
+        // made deepseek AND the openrouter fallback both time out mid-generation
+        // ("374 bytes received" then cURL 28), failing the chunk. Give generation
+        // real headroom; tune via env if a provider is slow.
+        'http_timeout_seconds' => (int) env('LLM_TRANSLATION_HTTP_TIMEOUT', 60),
         // When true, TranslationObserver auto-dispatches TranslateEntityJob
         // each time an initial translation is created or its value changes.
         // Disabled in tests by default; the observer-driven path has its own

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Services\AnalysisEventBroker;
 use App\Services\ImageProcessor;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -21,6 +22,7 @@ class ProcessImageJob implements ShouldQueue
     public function __construct(
         public string $modelClass,
         public int $modelId,
+        public int $restaurantId,
         public string $tempPath,
         public string $targetDir,
         public string $baseName,
@@ -83,6 +85,20 @@ class ProcessImageJob implements ShouldQueue
             if ($this->oldImagePath) {
                 $this->deleteOldFiles($processor, $disk);
             }
+
+            // Notify the restaurant admin UI the processed image is now live, so
+            // it can swap the placeholder without long-polling the predicted URL.
+            app(AnalysisEventBroker::class)->publish(
+                "restaurant.{$this->restaurantId}",
+                'image.processed',
+                [
+                    'model_class' => $this->modelClass,
+                    'model_id' => $this->modelId,
+                    'field' => $this->fieldName,
+                    'image_url' => Storage::disk($disk)->url($mainPath),
+                    'thumb_url' => Storage::disk($disk)->url($processor->thumbPath($mainPath)),
+                ],
+            );
         } catch (\Exception $e) {
             Log::error('ProcessImageJob: failed', [
                 'model' => $this->modelClass,
@@ -119,7 +135,16 @@ class ProcessImageJob implements ShouldQueue
             'file' => $e->getFile().':'.$e->getLine(),
         ]);
 
-        // TODO: broadcast(new ImageFailed(...)) here once websockets land.
+        app(AnalysisEventBroker::class)->publish(
+            "restaurant.{$this->restaurantId}",
+            'image.failed',
+            [
+                'model_class' => $this->modelClass,
+                'model_id' => $this->modelId,
+                'field' => $this->fieldName,
+                'error' => $e->getMessage(),
+            ],
+        );
 
         $originalsDisk = config('image.originals_disk');
         if (Storage::disk($originalsDisk)->exists($this->tempPath)) {

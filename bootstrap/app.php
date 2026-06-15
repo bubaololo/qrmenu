@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\LlmRequestFailedException;
+use App\Http\Middleware\SetLocaleFromHeader;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,11 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Channel authorization lives at /api/broadcasting/auth (NOT /broadcasting/auth)
+    // so the cross-origin Sanctum SPA authorizes private channels with its session
+    // cookie via the `api` group — already covered by config/cors.php `api/*`.
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
 
         $middleware->api(append: [
-            \App\Http\Middleware\SetLocaleFromHeader::class,
+            SetLocaleFromHeader::class,
         ]);
 
         // Public auth endpoints don't need CSRF — no session to protect yet

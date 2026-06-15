@@ -11,6 +11,7 @@ use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
 use App\Models\Prompt;
 use App\Models\Restaurant;
+use App\Services\AnalysisEventBroker;
 use App\Services\LlmCascadeService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
@@ -97,7 +98,31 @@ class TranslateEntityJob implements ShouldQueue
         $iso = new ISO639;
         $sourceDescription = ($iso->languageByCode1($sourceLocale) ?: $sourceLocale)." ({$sourceLocale})";
 
+        $restaurantId = $menu?->restaurant_id;
+
+        // Tell the admin UI a source-language edit is being synced to the menu's
+        // other locales. Emitted once per job (not per retry) so the client's
+        // in-flight counter stays balanced; `completed` fires on success below
+        // and on terminal failure in failed().
+        if ($restaurantId !== null && $this->attempts() === 1) {
+            app(AnalysisEventBroker::class)->publish(
+                "restaurant.{$restaurantId}",
+                'entity-translation.started',
+                ['restaurant_id' => $restaurantId],
+            );
+        }
+
         foreach ($this->targetLocales as $targetLocale) {
+            // Locales are translated one at a time (one LLM call each), so tell the
+            // admin UI which language is being worked on right now.
+            if ($restaurantId !== null) {
+                app(AnalysisEventBroker::class)->publish(
+                    "restaurant.{$restaurantId}",
+                    'entity-translation.progress',
+                    ['restaurant_id' => $restaurantId, 'locale' => $targetLocale],
+                );
+            }
+
             $this->translateInto(
                 $cascade,
                 $prompt,
@@ -107,6 +132,14 @@ class TranslateEntityJob implements ShouldQueue
                 $sourceLocale,
                 $restaurant,
                 $iso,
+            );
+        }
+
+        if ($restaurantId !== null) {
+            app(AnalysisEventBroker::class)->publish(
+                "restaurant.{$restaurantId}",
+                'entity-translation.completed',
+                ['restaurant_id' => $restaurantId],
             );
         }
     }
@@ -120,6 +153,16 @@ class TranslateEntityJob implements ShouldQueue
             'target_locales' => $this->targetLocales,
             'error' => $e->getMessage(),
         ]);
+
+        // Settle the admin UI's "translating…" toast even on terminal failure.
+        $restaurantId = $this->resolveMenu()?->restaurant_id;
+        if ($restaurantId !== null) {
+            app(AnalysisEventBroker::class)->publish(
+                "restaurant.{$restaurantId}",
+                'entity-translation.completed',
+                ['restaurant_id' => $restaurantId],
+            );
+        }
     }
 
     private function translateInto(

@@ -15,7 +15,6 @@ use App\Http\Controllers\Orders\OrderController;
 use App\Http\Controllers\Orders\OrderItemController;
 use App\Http\Controllers\Public\PublicOrderController;
 use App\Http\Controllers\Restaurants\RestaurantController;
-use App\Http\Controllers\SseEventsController;
 use App\Http\Controllers\Zones\ZoneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,11 +42,6 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
 | Protected API (auth:sanctum — session cookie or Bearer token)
 |--------------------------------------------------------------------------
 */
-// Public SSE — public menu page subscribes to translation progress while
-// anonymous QR-scanning users wait for new locales to land.
-Route::get('/v1/menus/{menu}/translations/{locale}/events', [SseEventsController::class, 'menuTranslation'])
-    ->name('menu-translations.events');
-
 // Public Orders — guests place orders by table_uniqid + restaurant_uniqid.
 Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void {
     Route::post('/orders', [PublicOrderController::class, 'store'])->name('public.orders.store');
@@ -60,8 +54,6 @@ Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
     Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
-    Route::get('/menu-analyses/{uuid}/events', [SseEventsController::class, 'menuAnalysis'])
-        ->name('menu-analyses.events');
 
     // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);
@@ -123,8 +115,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
 
     // Orders
     Route::get('/restaurants/{restaurant}/orders', [OrderController::class, 'index']);
-    Route::get('/restaurants/{restaurant}/orders/events', [SseEventsController::class, 'restaurantOrders'])
-        ->name('restaurant-orders.events');
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::patch('/orders/{order}', [OrderController::class, 'update']);
     Route::delete('/orders/{order}', [OrderController::class, 'destroy']);

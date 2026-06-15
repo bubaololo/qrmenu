@@ -26,6 +26,7 @@ class ImageController extends Controller
             $request,
             Restaurant::class,
             $restaurant->id,
+            $restaurant->id,
             config('image.paths.restaurants'),
             $restaurant->image,
             profile: 'banner',
@@ -53,6 +54,7 @@ class ImageController extends Controller
         return $this->storeAndDispatch(
             $request,
             Restaurant::class,
+            $restaurant->id,
             $restaurant->id,
             config('image.paths.logos'),
             $restaurant->logo,
@@ -83,6 +85,7 @@ class ImageController extends Controller
             $request,
             Zone::class,
             $zone->id,
+            $zone->restaurant->id,
             config('image.paths.zones'),
             $zone->image,
         );
@@ -110,6 +113,7 @@ class ImageController extends Controller
             $request,
             MenuItem::class,
             $item->id,
+            $item->section->menu->restaurant_id,
             // Nest under the menu id, matching CropMenuItemImagesJob, so a menu's
             // photos live together in menu-items/{menu_id}/ instead of the root.
             config('image.paths.menu_items').'/'.$item->section->menu_id,
@@ -132,6 +136,7 @@ class ImageController extends Controller
         Request $request,
         string $modelClass,
         int $modelId,
+        int $restaurantId,
         string $targetDir,
         ?string $oldImagePath,
         string $fieldName = 'image',
@@ -147,7 +152,7 @@ class ImageController extends Controller
             $originalsDisk,
         );
 
-        ProcessImageJob::dispatch($modelClass, $modelId, $tempPath, $targetDir, $baseName, $oldImagePath, $fieldName, $profile);
+        ProcessImageJob::dispatch($modelClass, $modelId, $restaurantId, $tempPath, $targetDir, $baseName, $oldImagePath, $fieldName, $profile);
 
         return response()->json(['data' => [
             'image_url' => Storage::disk($disk)->url("{$targetDir}/{$baseName}.{$format}"),

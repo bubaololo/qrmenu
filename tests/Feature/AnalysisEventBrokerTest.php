@@ -2,67 +2,113 @@
 
 namespace Tests\Feature;
 
+use App\Events\RealtimeEvent;
 use App\Services\AnalysisEventBroker;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\Broadcaster;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AnalysisEventBrokerTest extends TestCase
 {
-    protected function setUp(): void
+    #[Test]
+    public function it_broadcasts_a_realtime_event_with_topic_event_and_payload(): void
     {
-        parent::setUp();
-        Redis::del('events:test-topic');
-    }
+        Event::fake([RealtimeEvent::class]);
 
-    protected function tearDown(): void
-    {
-        Redis::del('events:test-topic');
-        parent::tearDown();
+        app(AnalysisEventBroker::class)->publish('menu-analysis.abc', 'analysis.started', ['chunk_total' => 2]);
+
+        Event::assertDispatched(RealtimeEvent::class, function (RealtimeEvent $e): bool {
+            return $e->topic === 'menu-analysis.abc'
+                && $e->event === 'analysis.started'
+                && $e->payload === ['chunk_total' => 2]
+                && $e->broadcastAs() === 'analysis.started'
+                && $e->broadcastWith() === ['chunk_total' => 2];
+        });
     }
 
     #[Test]
-    public function it_publishes_events_in_chronological_order(): void
+    public function public_topics_broadcast_on_a_public_channel(): void
     {
-        $broker = new AnalysisEventBroker;
+        Event::fake([RealtimeEvent::class]);
 
-        $broker->publish('test-topic', 'started', ['n' => 1]);
-        $broker->publish('test-topic', 'chunk-complete', ['n' => 2]);
-        $broker->publish('test-topic', 'completed', ['n' => 3]);
+        app(AnalysisEventBroker::class)->publish('menu-translation.5.fr', 'translation.started', []);
 
-        $events = $broker->readSince('test-topic', 0);
-        $this->assertCount(3, $events);
+        Event::assertDispatched(RealtimeEvent::class, function (RealtimeEvent $e): bool {
+            $channel = $e->broadcastOn();
 
-        $decoded = array_map(fn ($e) => json_decode($e, true), $events);
-        $this->assertSame('started', $decoded[0]['event']);
-        $this->assertSame('chunk-complete', $decoded[1]['event']);
-        $this->assertSame('completed', $decoded[2]['event']);
-        $this->assertSame(['n' => 1], $decoded[0]['data']);
+            return $channel instanceof Channel
+                && ! $channel instanceof PrivateChannel
+                && $channel->name === 'menu-translation.5.fr';
+        });
     }
 
     #[Test]
-    public function read_since_returns_only_events_at_or_after_index(): void
+    public function restaurant_topics_broadcast_on_a_private_channel(): void
     {
-        $broker = new AnalysisEventBroker;
-        $broker->publish('test-topic', 'a', []);
-        $broker->publish('test-topic', 'b', []);
-        $broker->publish('test-topic', 'c', []);
+        Event::fake([RealtimeEvent::class]);
 
-        $tail = $broker->readSince('test-topic', 1);
-        $this->assertCount(2, $tail);
-        $this->assertSame('b', json_decode($tail[0], true)['event']);
-        $this->assertSame('c', json_decode($tail[1], true)['event']);
+        app(AnalysisEventBroker::class)->publish('restaurant-orders.7', 'order.placed', []);
+        app(AnalysisEventBroker::class)->publish('restaurant.7', 'menu-item.updated', []);
+
+        Event::assertDispatched(
+            RealtimeEvent::class,
+            fn (RealtimeEvent $e): bool => $e->topic === 'restaurant-orders.7' && $e->broadcastOn() instanceof PrivateChannel,
+        );
+        Event::assertDispatched(
+            RealtimeEvent::class,
+            fn (RealtimeEvent $e): bool => $e->topic === 'restaurant.7' && $e->broadcastOn() instanceof PrivateChannel,
+        );
     }
 
     #[Test]
-    public function total_events_reports_list_length(): void
+    public function it_swallows_a_transport_failure_and_logs(): void
     {
-        $broker = new AnalysisEventBroker;
-        $this->assertSame(0, $broker->totalEvents('test-topic'));
+        Log::spy();
+        $this->bindBroadcasterThrowing(new BroadcastException('reverb unreachable'));
 
-        $broker->publish('test-topic', 'a', []);
-        $broker->publish('test-topic', 'b', []);
+        // Must NOT throw — a Reverb outage cannot break the emitting transaction.
+        app(AnalysisEventBroker::class)->publish('menu-analysis.x', 'analysis.started', []);
 
-        $this->assertSame(2, $broker->totalEvents('test-topic'));
+        Log::shouldHaveReceived('error')
+            ->withArgs(fn (string $message): bool => $message === 'Realtime broadcast transport failure')
+            ->once();
+    }
+
+    #[Test]
+    public function it_rethrows_a_non_transport_error(): void
+    {
+        $this->bindBroadcasterThrowing(new \RuntimeException('a real bug'));
+
+        // A non-transport error (e.g. a programming bug) must surface, not hide.
+        $this->expectException(\RuntimeException::class);
+        app(AnalysisEventBroker::class)->publish('menu-analysis.x', 'analysis.started', []);
+    }
+
+    private function bindBroadcasterThrowing(\Throwable $e): void
+    {
+        Broadcast::extend('throwing', fn (): Broadcaster => new class($e) implements Broadcaster
+        {
+            public function __construct(private \Throwable $e) {}
+
+            public function auth($request) {}
+
+            public function validAuthenticationResponse($request, $result) {}
+
+            public function broadcast(array $channels, $event, array $payload = [])
+            {
+                throw $this->e;
+            }
+        });
+
+        config([
+            'broadcasting.default' => 'throwing',
+            'broadcasting.connections.throwing' => ['driver' => 'throwing'],
+        ]);
     }
 }

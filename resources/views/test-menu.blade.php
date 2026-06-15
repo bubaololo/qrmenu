@@ -725,7 +725,15 @@
 
         return new Promise((resolve) => {
             setStatus('Connecting to event stream…');
-            const es = new EventSource(`${API}/menu-analyses/${uuid}/events`, { withCredentials: true });
+            // Minimal Pusher-protocol client over Laravel Reverb (public channel).
+            const R = {
+                key: @json(config('broadcasting.connections.reverb.key')),
+                host: @json(config('broadcasting.connections.reverb.options.host')),
+                port: @json((int) config('broadcasting.connections.reverb.options.port', 443)),
+                scheme: @json(config('broadcasting.connections.reverb.options.scheme', 'https')),
+            };
+            const wsProto = R.scheme === 'https' ? 'wss' : 'ws';
+            const es = new WebSocket(`${wsProto}://${R.host}:${R.port}/app/${R.key}?protocol=7&client=js&version=8&flash=false`);
             let chunkTotal = 0;
             let finished = false;
 
@@ -766,15 +774,25 @@
             };
 
             es.onmessage = (e) => {
-                let parsed;
+                let frame;
                 try {
-                    parsed = JSON.parse(e.data);
+                    frame = JSON.parse(e.data);
                 } catch (_) {
                     return;
                 }
-                const event = parsed.event;
-                const data = parsed.data ?? {};
-                const ts = parsed.ts;
+                if (frame.event === 'pusher:ping') {
+                    es.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
+                    return;
+                }
+                if (frame.event === 'pusher:connection_established') {
+                    es.send(JSON.stringify({ event: 'pusher:subscribe', data: { channel: `menu-analysis.${uuid}` } }));
+                    return;
+                }
+                if (typeof frame.event !== 'string' || frame.event.indexOf('pusher') === 0) return;
+                const event = frame.event;
+                let data = {};
+                try { data = typeof frame.data === 'string' ? JSON.parse(frame.data) : (frame.data ?? {}); } catch (_) {}
+                const ts = data.ts;
 
                 if (event === 'analysis.started') {
                     chunkTotal = Number(data.chunk_total) || 0;
@@ -866,9 +884,7 @@
 
             es.onerror = () => {
                 if (finished) return;
-                if (es.readyState === EventSource.CLOSED) {
-                    finish(null, 'Connection to event stream lost.');
-                }
+                finish(null, 'Connection to event stream lost.');
             };
         });
     }

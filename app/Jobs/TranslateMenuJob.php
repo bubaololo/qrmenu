@@ -94,6 +94,19 @@ class TranslateMenuJob implements ShouldQueue
             ],
         );
 
+        // Mirror to the restaurant admin channel so a toast fires regardless of
+        // which screen the admin is on (the per-locale topic above drives the
+        // inline progress UI).
+        app(AnalysisEventBroker::class)->publish(
+            "restaurant.{$this->menu->restaurant_id}",
+            'translation.started',
+            [
+                'menu_id' => $this->menu->id,
+                'locale' => $this->targetLocale,
+                'restaurant_id' => $this->menu->restaurant_id,
+            ],
+        );
+
         $jobs = [];
         foreach ($chunks as $i => $chunk) {
             $jobs[] = new TranslateChunkJob(
@@ -107,11 +120,12 @@ class TranslateMenuJob implements ShouldQueue
 
         $menuId = $this->menu->id;
         $locale = $this->targetLocale;
+        $restaurantId = $this->menu->restaurant_id;
 
         Bus::batch($jobs)
             ->name("menu-translation-{$menuId}-{$locale}")
             ->onQueue(config('llm.queue', 'llm-analysis'))
-            ->finally(function ($batch) use ($menuId, $locale) {
+            ->finally(function ($batch) use ($menuId, $locale, $restaurantId) {
                 Log::channel('llm')->info('Translation batch complete', [
                     'menu_id' => $menuId,
                     'target_locale' => $locale,
@@ -129,6 +143,17 @@ class TranslateMenuJob implements ShouldQueue
                         'chunks_total' => $batch->totalJobs,
                         'chunks_failed' => $batch->failedJobs,
                         'chunks_ok' => $batch->totalJobs - $batch->failedJobs,
+                    ],
+                );
+
+                app(AnalysisEventBroker::class)->publish(
+                    "restaurant.{$restaurantId}",
+                    'translation.completed',
+                    [
+                        'menu_id' => $menuId,
+                        'locale' => $locale,
+                        'restaurant_id' => $restaurantId,
+                        'chunks_failed' => $batch->failedJobs,
                     ],
                 );
             })

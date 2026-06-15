@@ -10,6 +10,7 @@ use App\Models\MenuOptionGroup;
 use App\Models\MenuSection;
 use App\Models\Restaurant;
 use App\Models\Translation;
+use App\Observers\MenuItemObserver;
 use App\Support\MenuJson;
 use Illuminate\Support\Facades\DB;
 
@@ -44,7 +45,7 @@ class SaveMenuAnalysisAction
     {
         $this->allowedIconNames = Icon::query()->pluck('name')->all();
 
-        return DB::transaction(fn (): Menu => Translation::withoutEvents(function () use ($menuData, $restaurantId, $sourceImagesCount): Menu {
+        return DB::transaction(fn (): Menu => MenuItemObserver::muted(fn (): Menu => Translation::withoutEvents(function () use ($menuData, $restaurantId, $sourceImagesCount): Menu {
             $restaurant = Restaurant::findOrFail($restaurantId);
             $this->fillRestaurantFromLlm($restaurant, $menuData);
 
@@ -80,7 +81,7 @@ class SaveMenuAnalysisAction
             );
 
             return $menu;
-        }));
+        })));
     }
 
     /**
@@ -95,7 +96,7 @@ class SaveMenuAnalysisAction
     {
         $this->allowedIconNames = Icon::query()->pluck('name')->all();
 
-        DB::transaction(fn () => Translation::withoutEvents(function () use ($menu, $chunkData, $imageOffset): void {
+        DB::transaction(fn () => MenuItemObserver::muted(fn () => Translation::withoutEvents(function () use ($menu, $chunkData, $imageOffset): void {
             $menu->loadMissing('restaurant');
             $this->enrichRestaurantIfEmpty($menu->restaurant, $chunkData);
 
@@ -118,7 +119,7 @@ class SaveMenuAnalysisAction
                 imageOffset: $imageOffset,
                 sourceLocale: $sourceLocale,
             );
-        }));
+        })));
     }
 
     /**

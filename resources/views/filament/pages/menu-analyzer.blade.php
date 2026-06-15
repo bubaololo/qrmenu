@@ -93,7 +93,7 @@
                 return {
                     uuid,
                     error: '',
-                    es: null,
+                    ws: null,
                     chunkTotal: 0,
                     logEntries: [],
                     stages: [
@@ -145,17 +145,40 @@
                     },
                     init() {
                         if (!this.uuid) return;
-                        this.es = new EventSource(`/api/v1/menu-analyses/${this.uuid}/events`, { withCredentials: true });
-                        this.es.onmessage = (e) => {
-                            let parsed; try { parsed = JSON.parse(e.data); } catch (_) { return; }
-                            const { event, data = {}, ts } = parsed;
-                            this.handle(event, data, ts);
+                        // Minimal Pusher-protocol client over Laravel Reverb. The
+                        // `menu-analysis.{uuid}` channel is public (uuid is the bearer).
+                        const R = {
+                            key: @json(config('broadcasting.connections.reverb.key')),
+                            host: @json(config('broadcasting.connections.reverb.options.host')),
+                            port: @json((int) config('broadcasting.connections.reverb.options.port', 443)),
+                            scheme: @json(config('broadcasting.connections.reverb.options.scheme', 'https')),
                         };
-                        this.es.onerror = () => {
-                            if (this.es && this.es.readyState === EventSource.CLOSED) {
-                                this.error = 'Connection to event stream lost. Refresh the page to retry.';
-                                this.es = null;
+                        if (!R.key || !R.host) return;
+                        const channel = `menu-analysis.${this.uuid}`;
+                        const wsProto = R.scheme === 'https' ? 'wss' : 'ws';
+                        const url = `${wsProto}://${R.host}:${R.port}/app/${R.key}?protocol=7&client=js&version=8&flash=false`;
+                        try { this.ws = new WebSocket(url); } catch (_) { return; }
+                        this.ws.onmessage = (e) => {
+                            let msg; try { msg = JSON.parse(e.data); } catch (_) { return; }
+                            if (msg.event === 'pusher:ping') {
+                                this.ws.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
+                                return;
                             }
+                            if (msg.event === 'pusher:connection_established') {
+                                this.ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { channel } }));
+                                return;
+                            }
+                            if (typeof msg.event !== 'string' || msg.event.indexOf('pusher') === 0) return;
+                            let data = {};
+                            try { data = typeof msg.data === 'string' ? JSON.parse(msg.data) : (msg.data || {}); } catch (_) {}
+                            this.handle(msg.event, data, data.ts);
+                            if (msg.event === 'analysis.completed' || msg.event === 'analysis.failed') {
+                                try { this.ws.close(); } catch (_) {}
+                                this.ws = null;
+                            }
+                        };
+                        this.ws.onerror = () => {
+                            this.error = 'Connection to event stream lost. Refresh the page to retry.';
                         };
                     },
                     handle(event, data, ts) {
@@ -243,7 +266,7 @@
                         }
                     },
                     close() {
-                        if (this.es) { this.es.close(); this.es = null; }
+                        if (this.ws) { try { this.ws.close(); } catch (_) {} this.ws = null; }
                     },
                     destroy() { this.close(); },
                 };
