@@ -200,47 +200,15 @@ Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 
 === TRANSLATION RULES ===
 
-1. Return EXACTLY the same lines with same IDs, only translate the text parts. No extra lines, no markdown, no explanations.
+1. Return EXACTLY the same lines with the same IDs; translate only the text parts. No extra lines, markdown, or explanations. Keep empty descriptions empty; do not pad.
 
-2. Use natural, meaningful {target_locale} food terminology. DO NOT transliterate generic culinary terms letter-by-letter into the target alphabet.
+2. Translate the MEANING into natural, idiomatic {target_locale} food language — word it the way a native menu in {target_locale} would. Generic words (ingredients, drinks, cooking methods, temperature, taste) always have a real translation; use it.
 
-   Generic terms to translate (NOT transliterate): potato, rice, noodles, beef, chicken, pork, seafood, soup, salad, fried, grilled, steamed, sweet, spicy, iced, hot, milk, sugar, coffee, tea, etc. and their combinations.
+3. NEVER transliterate: do not respell a source word with target-script letters to imitate its sound. A phonetic spelling that carries no meaning in {target_locale} is always wrong.
 
-3. Preserve iconic/signature dish names in their recognizable form — do not translate or describe them. These are dishes with no direct translation that are known globally by their original name:
-   - Vietnamese: Phở, Bánh mì, Bún bò Huế, Bún chả, Gỏi cuốn, Chả giò, Cao lầu, Mì Quảng, Cơm tấm, Bánh xèo
-   - Thai: Pad Thai, Tom Yum, Tom Kha, Som Tam, Massaman, Khao Pad
-   - Japanese: Sushi, Ramen, Udon, Tempura, Teriyaki, Onigiri
-   - Korean: Kimchi, Bibimbap, Bulgogi, Tteokbokki
-   - Chinese: Dim Sum, Wonton, Kung Pao, Mapo Tofu
+4. Leave text unchanged ONLY when it has no meaningful translation — a brand, place or person name, or a globally-recognised signature dish known by its own name. For these, use the established {target_locale} spelling if one exists; otherwise keep the original source spelling. Never invent a phonetic spelling.
 
-   For iconic names when target is Cyrillic, use the standard adapted spelling (e.g., "Pho" → "Фо", "Banh mi" → "Бань ми", "Pad Thai" → "Пад-тай").
-
-4. For anything that is NOT in the iconic list, prefer descriptive translation over transliteration. If you are tempted to transliterate, stop and translate the meaning instead.
-
-5. Descriptions: translate naturally, keep the meaning, do not pad. Keep empty descriptions empty.
-
-6. Preserve brand names, geographic names, and proper nouns as-is.
-
-=== EXAMPLES ===
-
-Source Vietnamese → Russian (ru):
-- "Khoai tây chiên" → "Картофель фри"   (generic: fried potato)
-- "Hủ tiếu bò kho" → "Рисовая лапша с тушёной говядиной"   (generic dish, describe it)
-- "Cà phê sữa đá" → "Кофе со сгущёнкой со льдом"   (generic: iced milk coffee)
-- "Mì xào hải sản" → "Жареная лапша с морепродуктами"
-- "Cơm chiên trứng" → "Жареный рис с яйцом"
-- "Bánh mì bò nướng" → "Бань ми с говядиной на гриле"   (iconic Bánh mì + describe filling)
-- "Phở bò" → "Фо бо"   (iconic, preserve)
-
-Source Vietnamese → English (en):
-- "Khoai tây chiên" → "French fries"
-- "Hủ tiếu bò kho" → "Rice noodles with beef stew"
-- "Cà phê sữa đá" → "Iced coffee with condensed milk"
-- "Phở bò" → "Phở bò"   (iconic, preserve)
-
-Anti-pattern (DO NOT DO THIS):
-- "Khoai tây chiên" → "Кхоай тяй чиен"   ❌ transliteration loses meaning
-- "Hủ tiếu bò kho" → "Ху тьеу бо кхо"   ❌ transliteration loses meaning
+5. When unsure, translate the meaning; if a term genuinely has none, keep the original source text verbatim — never transliterate.
 
 Lines to translate:
 PROMPT;
