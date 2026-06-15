@@ -14,7 +14,10 @@ use App\Http\Controllers\Orders\BillController;
 use App\Http\Controllers\Orders\OrderController;
 use App\Http\Controllers\Orders\OrderItemController;
 use App\Http\Controllers\Public\PublicOrderController;
+use App\Http\Controllers\Push\PushSubscriptionController;
+use App\Http\Controllers\Push\PushTestController;
 use App\Http\Controllers\Restaurants\RestaurantController;
+use App\Http\Controllers\Users\UserController;
 use App\Http\Controllers\Zones\ZoneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -51,9 +54,20 @@ Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void
     Route::get('/icons', [IconController::class, 'index'])->name('public.icons.index');
 });
 
+// VAPID public key — needed by the SPA before the user is authenticated, and a
+// public key by definition, so it lives outside the auth group.
+Route::get('/v1/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
+    ->name('push.vapid');
+
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
     Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
+
+    // Web Push — PWA subscribe/unsubscribe; admin-only test sender + user list.
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy']);
+    Route::post('/push/test', [PushTestController::class, 'send']);
+    Route::get('/users', [UserController::class, 'index']);
 
     // Restaurants
     Route::get('/restaurants', [RestaurantController::class, 'index']);

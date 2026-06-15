@@ -136,6 +136,28 @@
 <!-- UPLOAD -->
 <div id="upload-section">
     <p class="user-info">Signed in as <span id="user-email"></span> — <a href="#" onclick="logout(); return false;">Sign out</a></p>
+
+    <!-- WEB PUSH TEST -->
+    <section style="background:#fff; border-radius:8px; padding:1.25rem; margin-bottom:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:3px solid #16a34a; max-width:560px;">
+        <h2 style="margin-bottom:1rem;">Web Push Test</h2>
+        <p style="font-size:.85rem; color:#6b7280; margin-bottom:1rem;">
+            Send an ad-hoc push notification to a user. The recipient must have enabled
+            notifications in the admin PWA first. Admin-only.
+        </p>
+        <div class="field">
+            <label>Recipient</label>
+            <select id="push-user-select" style="width:100%; padding:.55rem .9rem; border:1px solid #ccc; border-radius:6px; font-size:1rem; background:#fff;">
+                <option value="">Loading…</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Message</label>
+            <input type="text" id="push-message" placeholder="New order at table 4" maxlength="255">
+        </div>
+        <button class="btn" id="push-send-btn" onclick="sendTestPush()">Send push</button>
+        <p id="push-status" style="font-size:.85rem; margin-top:.6rem;"></p>
+    </section>
+
     <h2>Upload Menu Images</h2>
 
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
@@ -369,7 +391,84 @@
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('upload-section').style.display = 'block';
         document.getElementById('user-email').textContent = email ?? '';
+        loadPushUsers();
         await loadRestaurants();
+    }
+
+    // ── Web Push test harness ───────────────────────────────────────────────────
+    async function loadPushUsers() {
+        const select = document.getElementById('push-user-select');
+        if (!select) {
+            return;
+        }
+        select.innerHTML = '<option value="">Loading…</option>';
+        select.disabled = true;
+        try {
+            const res = await fetch(`${API}/users`, { credentials: 'include', headers: authHeaders() });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                select.innerHTML = `<option value="">${res.status === 403 ? 'Admins only' : 'Failed to load'}</option>`;
+                return;
+            }
+            const list = Array.isArray(payload.data) ? payload.data : [];
+            select.innerHTML = '<option value="">— select —</option>';
+            list.forEach((u) => {
+                const opt = document.createElement('option');
+                opt.value = String(u.id);
+                opt.textContent = `#${u.id} ${u.email}`;
+                select.appendChild(opt);
+            });
+        } catch (e) {
+            select.innerHTML = '<option value="">Network error</option>';
+        } finally {
+            select.disabled = false;
+        }
+    }
+
+    async function sendTestPush() {
+        const select = document.getElementById('push-user-select');
+        const message = document.getElementById('push-message');
+        const status = document.getElementById('push-status');
+        const btn = document.getElementById('push-send-btn');
+        const userId = select ? select.value : '';
+        const body = (message ? message.value : '').trim();
+
+        status.textContent = '';
+        if (!userId) {
+            status.textContent = 'Choose a recipient.';
+            status.style.color = '#c00';
+            return;
+        }
+        if (!body) {
+            status.textContent = 'Enter a message.';
+            status.style.color = '#c00';
+            return;
+        }
+
+        btn.disabled = true;
+        status.textContent = 'Sending…';
+        status.style.color = '#6b7280';
+        try {
+            const res = await fetch(`${API}/push/test`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ user_id: Number(userId), body }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                status.textContent = data.message ?? (res.status === 403 ? 'Admins only.' : `HTTP ${res.status}`);
+                status.style.color = '#c00';
+                return;
+            }
+            status.textContent = data.message ?? 'Queued.';
+            status.style.color = data.subscriptions > 0 ? '#16a34a' : '#b45309';
+        } catch (e) {
+            status.textContent = e.message;
+            status.style.color = '#c00';
+        } finally {
+            btn.disabled = false;
+        }
     }
 
     // ── Restaurant selector ───────────────────────────────────────────────────

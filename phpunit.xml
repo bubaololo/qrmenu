@@ -31,5 +31,9 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="LLM_TRANSLATION_AUTO_SYNC" value="false"/>
+        <env name="ADMIN_EMAILS" value="admin@example.com"/>
+        <env name="VAPID_SUBJECT" value="mailto:test@example.com"/>
+        <env name="VAPID_PUBLIC_KEY" value="BFAJEj1bcLn3eo9olDedi710-F3DqsRfFC6LCXl22WWuohULMl-kSBITh6qaGwqLMGGDeVTvQj1U95oqnyLI-h4"/>
+        <env name="VAPID_PRIVATE_KEY" value="fwfU7-azgJRdKuQqgaZQeRDEhGmejxwykrOEDj-aXVo"/>
     </php>
 </phpunit>
