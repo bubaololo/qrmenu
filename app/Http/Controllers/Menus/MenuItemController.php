@@ -10,6 +10,7 @@ use App\Http\Requests\Menus\UpdateMenuItemRequest;
 use App\Http\Resources\Menus\MenuItemResource;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
+use App\Models\Translation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
@@ -111,23 +112,29 @@ class MenuItemController extends Controller
         $clone = $menuItem->replicate();
         $clone->save();
 
-        foreach ($menuItem->translations as $translation) {
-            $clone->translations()->create([
-                'locale' => $translation->locale,
-                'field_id' => $translation->field_id,
-                'value' => $translation->value,
-                'is_initial' => $translation->is_initial,
-            ]);
-        }
+        // Copy every locale's translation verbatim. Wrapped in withoutEvents so
+        // TranslationObserver does NOT dispatch TranslateEntityJob — the clone
+        // already carries all target-locale translations, so re-translating
+        // would be redundant (and costly) on production.
+        Translation::withoutEvents(function () use ($menuItem, $clone): void {
+            foreach ($menuItem->translations as $translation) {
+                $clone->translations()->create([
+                    'locale' => $translation->locale,
+                    'field_id' => $translation->field_id,
+                    'value' => $translation->value,
+                    'is_initial' => $translation->is_initial,
+                ]);
+            }
 
-        $nameInitial = $clone->translations()
-            ->whereHas('translationField', fn ($query) => $query->where('name', 'name'))
-            ->where('is_initial', true)
-            ->first();
+            $nameInitial = $clone->translations()
+                ->whereHas('translationField', fn ($query) => $query->where('name', 'name'))
+                ->where('is_initial', true)
+                ->first();
 
-        if ($nameInitial) {
-            $nameInitial->update(['value' => $nameInitial->value.' (копия)']);
-        }
+            if ($nameInitial) {
+                $nameInitial->update(['value' => $nameInitial->value.' (копия)']);
+            }
+        });
 
         $clone->variations()->sync($menuItem->variations()->pluck('menu_variations.id')->all());
         $clone->addons()->sync($menuItem->addons()->pluck('menu_addons.id')->all());
