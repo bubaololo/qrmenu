@@ -50,9 +50,7 @@ Place an order from the public Blade menu (or any external client).
       "menu_item_id": 42,
       "quantity": 2,
       "variation_option_id": 7,
-      "selected_options": [
-        { "group_id": 3, "option_ids": [11, 12] }
-      ],
+      "addon_ids": [11, 12],
       "note": "no salt"
     }
   ]
@@ -67,41 +65,39 @@ Place an order from the public Blade menu (or any external client).
 | `table_uniqid` | ✓ | Must belong to a zone of the same restaurant. |
 | `items[].menu_item_id` | ✓ | Must belong to an active section of the restaurant's single menu, with both `is_visible=true` and `is_orderable=true` on the item. Hidden items (`is_visible=false`) and "out of stock" items (`is_orderable=false`) are rejected. |
 | `items[].quantity` | ✓ | 1..99 |
-| `items[].variation_option_id` | – | Picked variant — adjusts `unit_price`. |
-| `items[].selected_options` | – | Non-variation extras (`{group_id, option_ids[]}`); price adjusts apply. |
+| `items[].variation_option_id` | – | Chosen variation option id (`menu_variation_options.id`). Its price is **absolute** — it *replaces* the dish base price. |
+| `items[].addon_ids` | – | Array of chosen atomic add-on ids (`menu_addons.id`). Each price is a **delta** added on top. |
 | `items[].note`, top-level `note` | – | ≤255 / ≤500 chars. |
 | `items[]` | ✓ | 1..100 entries. |
 
-> **Cart prices are not trusted** — the server snapshots `menu_items.price_value + variation.price_adjust + Σoption.price_adjust` into `order_items.unit_price`. Anything the client sends in price fields is ignored.
+> **Cart prices are not trusted** — the server snapshots `(variation_option.price ?? menu_items.price_value) + Σaddon.price` into `order_items.unit_price`. Anything the client sends in price fields is ignored. The chosen `addon_ids` are stored verbatim in `order_items.selected_options` (a JSON array of add-on ids).
 
-#### How `variation_option_id` and `selected_options` differ
+#### How `variation_option_id` and `addon_ids` differ
 
-A `MenuItem` may be linked to several `MenuOptionGroup`s, each with its own options. Two flavors coexist:
+The menu models two distinct, separately-stored shapes:
 
-| flag | what it represents | how to send |
-| --- | --- | --- |
-| `is_variation = true` | Mutually exclusive variant (Size, Choice, Hot/Iced). Picks the "main" form of the dish. | A single `variation_option_id` per item. |
-| `is_variation = false` | Independent extras (toppings, add-ons, e.g. "+ shot", "+ oat milk"). | An entry in `selected_options` per group: `{group_id, option_ids: [...]}`. May choose multiple ids if `max_select > 1`. |
+| shape | what it represents | how to send | price semantics |
+| --- | --- | --- | --- |
+| **Variation** (`menu_variations` + `menu_variation_options`) | A pick-exactly-one axis (Size, Choice, Hot/Iced). Selects the "main" form of the dish. | A single `variation_option_id` per item. | **Absolute** — replaces the dish base price. |
+| **Add-on** (`menu_addons`) | Independent atomic extras (toppings, "+ shot", "+ oat milk"). Pick any number, 0..N. | Each chosen id in `addon_ids[]`. | **Delta** — added on top. |
 
-Each chosen option contributes its `price_adjust` to `unit_price`. Worked example for an item that costs 35 000 base, with a variation `Đá` (adj = 0) and two extras `+shot` (25 000) and `+oat milk` (5 000):
+Worked example: an item with base 35 000, variation option `Lớn` (absolute 45 000) and two add-ons `+shot` (25 000) and `+oat milk` (5 000):
 
 ```json
 {
   "menu_item_id": 1,
   "quantity": 2,
   "variation_option_id": 2,
-  "selected_options": [
-    { "group_id": 2, "option_ids": [3, 4] }
-  ]
+  "addon_ids": [3, 4]
 }
 ```
 
 ```
-unit_price = 35 000 + 0 + 25 000 + 5 000 = 65 000
-line_total = 65 000 × 2          = 130 000
+unit_price = 45 000 (variation, replaces base) + 25 000 + 5 000 = 75 000
+line_total = 75 000 × 2                                          = 150 000
 ```
 
-The client is responsible for respecting `min_select` / `max_select` on each group (UX-level — the server validates that the chosen ids belong to a group attached to the item, but doesn't currently enforce min/max).
+The server validates that `variation_option_id` exists in `menu_variation_options` and each `addon_ids[]` exists in `menu_addons` (it does not currently enforce that they're attached to the specific item).
 
 **Response 201:**
 

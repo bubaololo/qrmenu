@@ -3,10 +3,11 @@
 namespace App\Actions;
 
 use App\Models\Menu;
+use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Translation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -39,14 +40,16 @@ class ChangeMenuSourceLocaleAction
 
         $sectionIds = $menu->sections()->pluck('id');
         $itemIds = MenuItem::whereIn('section_id', $sectionIds)->pluck('id');
-        $groupIds = MenuOptionGroup::where('menu_id', $menu->id)->pluck('id');
-        $optionIds = MenuOptionGroupOption::whereIn('group_id', $groupIds)->pluck('id');
+        $variationIds = MenuVariation::where('menu_id', $menu->id)->pluck('id');
+        $variationOptionIds = MenuVariationOption::whereIn('variation_id', $variationIds)->pluck('id');
+        $addonIds = MenuAddon::where('menu_id', $menu->id)->pluck('id');
 
-        $scope = function (Builder $q) use ($sectionIds, $itemIds, $groupIds, $optionIds): void {
+        $scope = function (Builder $q) use ($sectionIds, $itemIds, $variationIds, $variationOptionIds, $addonIds): void {
             $q->where(fn (Builder $q) => $q->where('translatable_type', MenuSection::class)->whereIn('translatable_id', $sectionIds))
                 ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuItem::class)->whereIn('translatable_id', $itemIds))
-                ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuOptionGroup::class)->whereIn('translatable_id', $groupIds))
-                ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuOptionGroupOption::class)->whereIn('translatable_id', $optionIds));
+                ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuVariation::class)->whereIn('translatable_id', $variationIds))
+                ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuVariationOption::class)->whereIn('translatable_id', $variationOptionIds))
+                ->orWhere(fn (Builder $q) => $q->where('translatable_type', MenuAddon::class)->whereIn('translatable_id', $addonIds));
         };
 
         $key = fn ($t): string => "{$t->translatable_type}:{$t->translatable_id}:{$t->field_id}";

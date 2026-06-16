@@ -20,13 +20,11 @@ class StorePublicOrderRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.menu_item_id' => ['required', 'integer', 'exists:menu_items,id'],
-            'items.*.variation_option_id' => ['nullable', 'integer', 'exists:menu_option_group_options,id'],
+            'items.*.variation_option_id' => ['nullable', 'integer', 'exists:menu_variation_options,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
             'items.*.note' => ['nullable', 'string', 'max:255'],
-            'items.*.selected_options' => ['nullable', 'array'],
-            'items.*.selected_options.*.group_id' => ['required', 'integer'],
-            'items.*.selected_options.*.option_ids' => ['required', 'array'],
-            'items.*.selected_options.*.option_ids.*' => ['integer'],
+            'items.*.addon_ids' => ['nullable', 'array'],
+            'items.*.addon_ids.*' => ['integer', 'exists:menu_addons,id'],
         ];
     }
 }

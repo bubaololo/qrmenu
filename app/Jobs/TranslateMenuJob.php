@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Enums\OptionGroupKind;
 use App\Models\Menu;
 use App\Models\Prompt;
 use App\Services\AnalysisEventBroker;
@@ -61,8 +60,9 @@ class TranslateMenuJob implements ShouldQueue
         $this->menu->load([
             'sections.initialTranslations',
             'sections.items.initialTranslations',
-            'optionGroups.initialTranslations',
-            'optionGroups.options.initialTranslations',
+            'variations.initialTranslations',
+            'variations.options.initialTranslations',
+            'addons.initialTranslations',
             'restaurant',
         ]);
 
@@ -166,9 +166,9 @@ class TranslateMenuJob implements ShouldQueue
      *
      * S|section_id|Section Name
      * I|item_id|Item Name|Item Description
-     * V|group_id|Group Name  (variation group at section level)
-     * G|group_id|Group Name  (option group at section level)
-     * O|option_id|Option Name
+     * V|variation_id|Variation Name  (pick-one axis, e.g. Size)
+     * O|option_id|Option Name        (a choice within a variation)
+     * A|addon_id|Add-on Name         (atomic extra)
      * R|field|value
      *
      * @return list<string>
@@ -188,16 +188,20 @@ class TranslateMenuJob implements ShouldQueue
             }
         }
 
-        // Option groups are shared across the whole menu, so emit them once.
-        foreach ($this->menu->optionGroups as $group) {
-            $groupName = $group->initialText('name') ?? '';
-            $type = $group->kind === OptionGroupKind::Variant ? 'V' : 'G';
-            $lines[] = "{$type}|{$group->id}|{$groupName}";
+        // Variations and add-ons are shared across the whole menu, so emit them once.
+        foreach ($this->menu->variations as $variation) {
+            $variationName = $variation->initialText('name') ?? '';
+            $lines[] = "V|{$variation->id}|{$variationName}";
 
-            foreach ($group->options as $opt) {
+            foreach ($variation->options as $opt) {
                 $optName = $opt->initialText('name') ?? '';
                 $lines[] = "O|{$opt->id}|{$optName}";
             }
+        }
+
+        foreach ($this->menu->addons as $addon) {
+            $addonName = $addon->initialText('name') ?? '';
+            $lines[] = "A|{$addon->id}|{$addonName}";
         }
 
         return $lines;

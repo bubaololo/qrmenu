@@ -2,24 +2,23 @@
 
 namespace App\Http\Resources\Menus;
 
-use App\Models\MenuSection;
+use App\Models\MenuVariation;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
- * @mixin MenuSection
+ * @mixin MenuVariation
  */
-class MenuSectionResource extends JsonApiResource
+class MenuVariationResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
         'name',
         'sort_order',
-        'icon_name',
-        'is_active',
     ];
 
     /** @var array<int, string> */
     public $relationships = [
+        'options',
         'items',
     ];
 }

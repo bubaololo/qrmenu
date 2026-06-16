@@ -4,7 +4,7 @@ namespace App\Http\Requests\Menus;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreMenuOptionGroupOptionRequest extends FormRequest
+class StoreMenuAddonRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,8 +16,7 @@ class StoreMenuOptionGroupOptionRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:'.config('limits.name')],
-            'price_adjust' => ['nullable', 'numeric'],
-            'is_default' => ['nullable', 'boolean'],
+            'price' => ['nullable', 'numeric'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }

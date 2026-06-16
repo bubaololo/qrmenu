@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Actions\SaveMenuAnalysisAction;
-use App\Enums\OptionGroupKind;
 use App\Enums\PriceType;
+use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
+use App\Models\MenuVariation;
 use App\Models\Restaurant;
 use App\Models\TranslationField;
 use App\Support\MenuJson;
@@ -85,32 +85,34 @@ class SaveMenuAnalysisTest extends TestCase
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // per-item variations deduplicate to unique menu-level variant groups
-        // (this fixture's items all share one identical temperature variation)
-        $this->assertSame(1, MenuOptionGroup::where('kind', OptionGroupKind::Variant)->count());
-        $variationGroupIds = MenuOptionGroup::where('kind', OptionGroupKind::Variant)->pluck('id');
-        $this->assertDatabaseHas('menu_option_group_options', ['group_id' => $variationGroupIds->first()]);
+        // Per-item variation axes deduplicate to unique menu-level variations,
+        // each with its (absolute-priced) options.
+        $this->assertSame(1, MenuVariation::count());
+        $this->assertSame(2, DB::table('menu_variation_options')->count());
+        $variationIds = MenuVariation::pluck('id');
+        $this->assertDatabaseHas('menu_variation_options', ['variation_id' => $variationIds->first()]);
     }
 
     #[Test]
-    public function test_creates_option_groups_and_their_options(): void
+    public function test_creates_atomic_addons(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // per-item option groups deduplicate to unique menu-level add-on groups
-        // (this fixture's items all share one identical "ADD ON" block)
-        $this->assertSame(1, MenuOptionGroup::where('kind', OptionGroupKind::Addon)->count());
+        // The legacy grouped "ADD ON" block is flattened into atomic add-ons,
+        // deduplicated by name + price across all items.
+        $this->assertSame(3, MenuAddon::count());
     }
 
     #[Test]
-    public function test_deduplicates_option_groups_at_menu_level(): void
+    public function test_deduplicates_variations_and_addons_at_menu_level(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // per-item groups deduplicate to unique menu-level groups (1 variant +
-        // 1 add-on here); items are still linked to their groups via pivot rows
-        $this->assertSame(2, MenuOptionGroup::count());
-        $this->assertSame(27, DB::table('menu_item_option_group')->count());
+        // Deduped entities are linked back to their items via pivot rows.
+        $this->assertSame(1, MenuVariation::count());
+        $this->assertSame(3, MenuAddon::count());
+        $this->assertSame(12, DB::table('menu_item_variation')->count());
+        $this->assertSame(45, DB::table('menu_item_addon')->count());
     }
 
     #[Test]

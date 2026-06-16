@@ -65,11 +65,19 @@ final class MenuJson
             }
         }
 
-        $slice = self::extractBalanced($text, '[', ']');
-        if ($slice !== null) {
-            $decoded = json_decode($slice, true, self::JSON_DECODE_DEPTH, self::JSON_DECODE_FLAGS);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $normalizeListRoot($decoded);
+        // Bare-array root salvage ONLY when the payload genuinely starts with a
+        // list. Without this guard, a malformed object would fall through here
+        // and `extractBalanced` would grab the FIRST inner array it finds —
+        // typically `restaurant.opening_hours.periods` — wrapping it as a lone
+        // "item" and yielding a garbage one-item menu instead of an honest
+        // empty result the caller can surface for re-recognition.
+        if (str_starts_with($text, '[')) {
+            $slice = self::extractBalanced($text, '[', ']');
+            if ($slice !== null) {
+                $decoded = json_decode($slice, true, self::JSON_DECODE_DEPTH, self::JSON_DECODE_FLAGS);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    return $normalizeListRoot($decoded);
+                }
             }
         }
 

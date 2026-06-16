@@ -2,18 +2,18 @@
 
 namespace App\Http\Resources\Menus;
 
-use App\Models\MenuOptionGroupOption;
+use App\Models\MenuVariationOption;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
- * @mixin MenuOptionGroupOption
+ * @mixin MenuVariationOption
  */
-class MenuOptionGroupOptionResource extends JsonApiResource
+class MenuVariationOptionResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
         'name',
-        'price_adjust',
+        'price',
         'is_default',
         'sort_order',
     ];

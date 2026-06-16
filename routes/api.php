@@ -4,12 +4,13 @@ use App\Http\Controllers\DiningTables\DiningTableController;
 use App\Http\Controllers\IconController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
+use App\Http\Controllers\Menus\MenuAddonController;
 use App\Http\Controllers\Menus\MenuController;
 use App\Http\Controllers\Menus\MenuItemController;
-use App\Http\Controllers\Menus\MenuOptionGroupController;
-use App\Http\Controllers\Menus\MenuOptionGroupOptionController;
 use App\Http\Controllers\Menus\MenuSectionController;
 use App\Http\Controllers\Menus\MenuTranslationController;
+use App\Http\Controllers\Menus\MenuVariationController;
+use App\Http\Controllers\Menus\MenuVariationOptionController;
 use App\Http\Controllers\Orders\BillController;
 use App\Http\Controllers\Orders\OrderController;
 use App\Http\Controllers\Orders\OrderItemController;
@@ -114,18 +115,26 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::put('/menu-sections/{menuSection}/items/reorder', [MenuItemController::class, 'reorder']);
     Route::put('/menu-items/{menuItem}', [MenuItemController::class, 'update']);
     Route::delete('/menu-items/{menuItem}', [MenuItemController::class, 'destroy']);
+    Route::post('/menu-items/{menuItem}/clone', [MenuItemController::class, 'clone']);
 
-    // Menu Option Groups
-    Route::post('/menus/{menu}/option-groups', [MenuOptionGroupController::class, 'store']);
-    Route::put('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'update']);
-    Route::delete('/menu-option-groups/{menuOptionGroup}', [MenuOptionGroupController::class, 'destroy']);
-    Route::post('/menu-option-groups/{menuOptionGroup}/attach-items', [MenuOptionGroupController::class, 'attachItems']);
-    Route::post('/menu-option-groups/{menuOptionGroup}/detach-items', [MenuOptionGroupController::class, 'detachItems']);
+    // Menu Variations (pick-exactly-one axis; option price is absolute)
+    Route::post('/menus/{menu}/variations', [MenuVariationController::class, 'store']);
+    Route::put('/menu-variations/{menuVariation}', [MenuVariationController::class, 'update']);
+    Route::delete('/menu-variations/{menuVariation}', [MenuVariationController::class, 'destroy']);
+    Route::post('/menu-variations/{menuVariation}/attach-items', [MenuVariationController::class, 'attachItems']);
+    Route::post('/menu-variations/{menuVariation}/detach-items', [MenuVariationController::class, 'detachItems']);
 
-    // Menu Option Group Options
-    Route::post('/menu-option-groups/{menuOptionGroup}/options', [MenuOptionGroupOptionController::class, 'store']);
-    Route::put('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'update']);
-    Route::delete('/menu-option-group-options/{menuOptionGroupOption}', [MenuOptionGroupOptionController::class, 'destroy']);
+    // Menu Variation Options
+    Route::post('/menu-variations/{menuVariation}/options', [MenuVariationOptionController::class, 'store']);
+    Route::put('/menu-variation-options/{menuVariationOption}', [MenuVariationOptionController::class, 'update']);
+    Route::delete('/menu-variation-options/{menuVariationOption}', [MenuVariationOptionController::class, 'destroy']);
+
+    // Menu Add-ons (atomic extras; price is a delta added on top)
+    Route::post('/menus/{menu}/addons', [MenuAddonController::class, 'store']);
+    Route::put('/menu-addons/{menuAddon}', [MenuAddonController::class, 'update']);
+    Route::delete('/menu-addons/{menuAddon}', [MenuAddonController::class, 'destroy']);
+    Route::post('/menu-addons/{menuAddon}/attach-items', [MenuAddonController::class, 'attachItems']);
+    Route::post('/menu-addons/{menuAddon}/detach-items', [MenuAddonController::class, 'detachItems']);
 
     // Orders
     Route::get('/restaurants/{restaurant}/orders', [OrderController::class, 'index']);

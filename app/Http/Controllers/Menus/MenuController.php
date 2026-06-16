@@ -45,8 +45,9 @@ class MenuController extends Controller
             'sections.icon',
             'sections.translations',
             'sections.items.translations',
-            'sections.items.optionGroups.translations',
-            'sections.items.optionGroups.options.translations',
+            'sections.items.variations.translations',
+            'sections.items.variations.options.translations',
+            'sections.items.addons.translations',
         ]);
 
         $confidenceMap = [];

@@ -53,7 +53,7 @@ class OrderItem extends Model
 
     public function variationOption(): BelongsTo
     {
-        return $this->belongsTo(MenuOptionGroupOption::class, 'variation_option_id');
+        return $this->belongsTo(MenuVariationOption::class, 'variation_option_id');
     }
 
     public function lineTotal(): float

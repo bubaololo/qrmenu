@@ -72,28 +72,26 @@ SET null when:
 `image_index` = 0-based index of the source image (0 if only one is supplied).
 `confidence` ∈ [0.0,1.0]: 1.0 for a clear isolated photo in an obvious card/row; 0.6–0.8 when pairing has minor ambiguity; if it would be below 0.5, prefer null over a guess.
 
-=== VARIATIONS vs OPTIONS ===
-`variations` = MUTUALLY EXCLUSIVE groups; customer picks EXACTLY ONE per group. Use for choices that change the identity, essence or price of the dish: portion size (S/M/L), temperature (hot/cold, often a snowflake icon for cold), spice level (1–3 chili icons), sauce choice (one-of), base (rice/noodles/bread), protein (chicken/beef/tofu), cooking method (fried/grilled/steamed), pieces per order ("1C", "6V").
-- `required=true` when customer must pick one to order.
-- `required=false` only when there is a default and the variant is a modifier (e.g. default hot, snowflake-priced cold is optional).
-- `allow_multiple` is always false.
+=== VARIATIONS vs ADD-ONS ===
+`variations` = MUTUALLY EXCLUSIVE groups; the customer picks EXACTLY ONE option per group. Use for a choice that selects along a single axis and changes the identity, essence or price of the dish (such as portion size, spice level, base, protein, or preparation). A dish may have more than one such axis — emit one group per axis.
 
-`options` = ADDITIVE extras; customer picks 0..N. Use for extra toppings (extra cheese, extra shot, extra egg), additional sauce as an add-on (not a choice), side extras.
+`addons` = ATOMIC additive extras; the customer picks any number (0..N), each independently. Each add-on is a single named line with its own price — never a group, never a "pick one of" set. Use for optional toppings, sides or supplements added on top of the dish.
+
+Decide by the choice structure, not the wording: if exactly one must be chosen along an axis, it is a variation; if each entry can be taken or left on its own, it is an add-on.
 
 === PRICE SEMANTICS ===
-`price_adjust` is read differently per block:
-- VARIATIONS → the FULL, absolute price printed for that choice; it REPLACES the dish price (not a delta). Use 0 only when a choice carries no price of its own.
-- OPTIONS (add-ons) → the amount ADDED on top of the dish price.
+`price` is read differently per block:
+- VARIATION option → the FULL, absolute price for that choice; it REPLACES the dish price (not a delta). Use 0 only when the choice carries no price of its own.
+- ADD-ON → the amount ADDED on top of the dish price.
 
-`variations[].type` MUST be EXACTLY one of: portion, size, spice_level, sauce, base, protein, temperature, cooking_method, flavor, unit, other. Do NOT invent.
-
-Write identical choices the SAME way everywhere (same wording, group_name, price) so identical sets collapse into one shared set instead of near-duplicates.
+Write identical choices the SAME way everywhere (same wording and price) so identical sets collapse into one shared set instead of near-duplicates.
 
 === EXTRAS SCOPE ===
-A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is an add-on group — never a menu item and never its own section. Emit it ONCE, at the level matching its scope:
-- applies to the whole menu (at menu start/end or its own page/column, no adjacent section) → top-level `global_options`.
-- applies to one section (placed before/after/inside it) → that section's `section_options`.
-- applies to a single dish only → that item's `options`.
+A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is a set of add-ons — never a menu item and never its own section. List each entry as an individual add-on, and emit the set ONCE at the level matching its scope. Decide scope by WHERE the block sits, not by its wording:
+- It belongs to the SECTION whose items share its column / page region — usually printed directly under, above or beside that section. Attach it to that section's `section_addons`. This is the default whenever the block sits within or next to a section.
+- Tied to a single dish only → that item's `addons`.
+- `global_addons` is the RARE exception: use it ONLY when the block stands alone with no section it could belong to (its own separate area with no nearby items). If a block could plausibly belong to a nearby section, attach it there — never promote it to the whole menu.
+When two sections sit side by side, each may carry its OWN extras block; keep every block with the section it sits under and never merge or share extras across sections.
 Never emit such a block as an item, and never drop it.
 
 === CATEGORY ICON ===
@@ -119,13 +117,13 @@ Closed list ({icon_count}):
     "primary_language": string
   },
   "menu_version": {"detected_date":"YYYY-MM-DD"|null,"source_images_count":integer},
-  "global_options": [{"group_name":string|null,"min_select":integer,"max_select":integer|null,"options":[{"name":string|null,"price_adjust":number}]}],
+  "global_addons": [{"name":string|null,"price":number}],
   "sections": [
     {
       "category_name": string|null,
       "category_icon": string|null,
       "sort_order": integer,
-      "section_options": [{"group_name":string|null,"min_select":integer,"max_select":integer|null,"options":[{"name":string|null,"price_adjust":number}]}],
+      "section_addons": [{"name":string|null,"price":number}],
       "items": [
         {
           "name": string|null,
@@ -137,21 +135,11 @@ Closed list ({icon_count}):
           "image_bbox": {"image_index":integer,"coords":[number,number,number,number],"confidence":number} | null,
           "variations": [
             {
-              "type": "portion|size|spice_level|sauce|base|protein|temperature|cooking_method|flavor|unit|other",
               "name": string|null,
-              "required": boolean,
-              "allow_multiple": false,
-              "options": [{"name":string|null,"price_adjust":number,"is_default":boolean}]
+              "options": [{"name":string|null,"price":number,"is_default":boolean}]
             }
           ],
-          "options": [
-            {
-              "group_name": string|null,
-              "min_select": integer,
-              "max_select": integer|null,
-              "options": [{"name":string|null,"price_adjust":number}]
-            }
-          ]
+          "addons": [{"name":string|null,"price":number}]
         }
       ]
     }
@@ -194,9 +182,9 @@ Context: {restaurant_name}, {city}, {country}
 Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 - S|id|section name
 - I|id|item name|item description (empty if none)
-- V|id(s)|variation option name (comma-separated IDs share same text)
-- G|id(s)|option group name
-- O|id(s)|option name
+- V|id(s)|variation name (comma-separated IDs share same text)
+- O|id(s)|variation option name
+- A|id(s)|add-on name
 
 === TRANSLATION RULES ===
 

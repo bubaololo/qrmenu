@@ -2,14 +2,14 @@
 
 namespace App\Actions;
 
-use App\Enums\OptionGroupKind;
 use App\Enums\PriceType;
 use App\Models\Icon;
 use App\Models\Menu;
+use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Observers\MenuItemObserver;
@@ -80,7 +80,7 @@ class SaveMenuAnalysisAction
                 sortOrderStart: 0,
                 imageOffset: 0,
                 sourceLocale: $sourceLocale,
-                globalOptions: is_array($menuData['global_options'] ?? null) ? $menuData['global_options'] : [],
+                globalAddons: $this->flattenAddons($menuData, 'global_addons', 'global_options'),
             );
 
             return $menu;
@@ -121,7 +121,7 @@ class SaveMenuAnalysisAction
                 sortOrderStart: $startSort,
                 imageOffset: $imageOffset,
                 sourceLocale: $sourceLocale,
-                globalOptions: is_array($chunkData['global_options'] ?? null) ? $chunkData['global_options'] : [],
+                globalAddons: $this->flattenAddons($chunkData, 'global_addons', 'global_options'),
             );
         })));
     }
@@ -138,12 +138,11 @@ class SaveMenuAnalysisAction
         int $sortOrderStart,
         int $imageOffset,
         ?string $sourceLocale,
-        array $globalOptions = [],
+        array $globalAddons = [],
     ): void {
-        // Collect item/option payloads across every section of this pass, then
-        // deduplicate option groups once at the menu level — identical variants
-        // and add-ons are shared by all items of the menu, regardless of section.
-        /** @var array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}> */
+        // Collect per-item variation/add-on payloads across all sections, then
+        // dedupe once at menu level so identical variations/add-ons are shared.
+        /** @var array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}> */
         $itemEntries = [];
 
         foreach ($sectionsData as $i => $sectionData) {
@@ -156,18 +155,17 @@ class SaveMenuAnalysisAction
             ));
         }
 
-        // Menu-scoped extras (`global_options`) apply to every item. Fold them
-        // into each item's add-on list so the dedup below creates ONE shared
-        // group attached to all items, instead of being dropped (the LLM emits
-        // these once at menu level per the EXTRAS SCOPE rule).
-        if ($globalOptions !== []) {
+        // Menu-scoped add-ons apply to every item — fold them into each item's
+        // add-on list so dedup creates ONE shared add-on attached to all items.
+        if ($globalAddons !== []) {
             foreach ($itemEntries as &$entry) {
-                $entry['options'] = array_merge($entry['options'], $globalOptions);
+                $entry['addons'] = array_merge($entry['addons'], $globalAddons);
             }
             unset($entry);
         }
 
-        $this->deduplicateAndAttachGroups($menu, $itemEntries, $sourceLocale);
+        $this->dedupeAttachVariations($menu, $itemEntries, $sourceLocale);
+        $this->dedupeAttachAddons($menu, $itemEntries, $sourceLocale);
     }
 
     /**
@@ -261,12 +259,11 @@ class SaveMenuAnalysisAction
     }
 
     /**
-     * Persist one section and its items, returning the per-item variation/option
-     * payloads so the caller can deduplicate and attach option groups at the
-     * menu level.
+     * Persist one section and its items, returning the per-item variation/add-on
+     * payloads so the caller can deduplicate and attach them at the menu level.
      *
      * @param  array<string, mixed>  $sectionData
-     * @return array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}>
+     * @return array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}>
      */
     private function createSection(Menu $menu, array $sectionData, int $sortOrder, int $imageOffset, ?string $sourceLocale): array
     {
@@ -285,22 +282,20 @@ class SaveMenuAnalysisAction
             $section->setTranslation('name', $locale, $name, isInitial: true);
         }
 
-        /** @var array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}> */
+        /** @var array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}> */
         $itemEntries = [];
 
-        // Section-scoped extras apply to every item in this section.
-        $sectionOptions = is_array($sectionData['section_options'] ?? null)
-            ? $sectionData['section_options']
-            : [];
+        // Section-scoped add-ons apply to every item in this section.
+        $sectionAddons = $this->flattenAddons($sectionData, 'section_addons', 'section_options');
 
         foreach ($sectionData['items'] ?? [] as $itemIndex => $itemData) {
             $item = $this->createItem($section, $itemData, $itemIndex, $locale, $imageOffset);
             $itemEntries[] = [
                 'item' => $item,
                 'variations' => $itemData['variations'] ?? [],
-                'options' => array_merge(
-                    $itemData['option_groups'] ?? $itemData['options'] ?? [],
-                    $sectionOptions,
+                'addons' => array_merge(
+                    $this->flattenAddons($itemData, 'addons', 'options'),
+                    $sectionAddons,
                 ),
             ];
         }
@@ -348,86 +343,55 @@ class SaveMenuAnalysisAction
     }
 
     /**
-     * Deduplicate variations and add-on groups across all items of the menu,
-     * create unique groups at menu level, and attach items via pivot. Groups
-     * already on the menu (e.g. from an earlier chunk) are reused instead of
-     * duplicated, so a set defined once is shared across sections.
+     * Dedupe pick-one variation axes across the menu's items and attach via the
+     * pivot. Variation option `price` is ABSOLUTE. Reuses axes already on the
+     * menu (repeated saves/chunks) instead of duplicating.
      *
-     * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, options: list<array<string, mixed>>}>  $itemEntries
+     * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}>  $itemEntries
      */
-    private function deduplicateAndAttachGroups(Menu $menu, array $itemEntries, ?string $locale): void
+    private function dedupeAttachVariations(Menu $menu, array $itemEntries, ?string $locale): void
     {
-        // registry: key => ['group' => ?MenuOptionGroup, 'data' => ?groupData, 'isVariation' => bool, 'itemIds' => int[]]
+        /** @var array<string, array{model: ?MenuVariation, data: ?array<string, mixed>, itemIds: list<int>}> */
         $registry = [];
 
-        // Seed with groups already attached to the menu so repeated saves/chunks
-        // reuse them rather than creating duplicates.
-        foreach ($menu->optionGroups()->with('options')->get() as $existing) {
-            $isVariation = $existing->kind === OptionGroupKind::Variant;
-            $key = $this->buildGroupKey([
+        foreach ($menu->variations()->with('options')->get() as $existing) {
+            $key = $this->buildVariationKey([
                 'name' => $existing->initialText('name'),
-                'options' => $existing->options->map(fn (MenuOptionGroupOption $o) => [
+                'options' => $existing->options->map(fn (MenuVariationOption $o) => [
                     'name' => $o->initialText('name'),
-                    'price_adjust' => $o->price_adjust,
+                    'price' => $o->price,
                 ])->all(),
-            ], $isVariation);
-            $registry[$key] = ['group' => $existing, 'data' => null, 'isVariation' => $isVariation, 'itemIds' => []];
+            ]);
+            $registry[$key] = ['model' => $existing, 'data' => null, 'itemIds' => []];
         }
 
         foreach ($itemEntries as $entry) {
-            $item = $entry['item'];
-
             foreach ($entry['variations'] as $varData) {
-                $key = $this->buildGroupKey($varData, true);
+                $key = $this->buildVariationKey($varData);
                 if (! isset($registry[$key])) {
-                    $registry[$key] = ['group' => null, 'data' => $varData, 'isVariation' => true, 'itemIds' => []];
+                    $registry[$key] = ['model' => null, 'data' => $varData, 'itemIds' => []];
                 }
-                $registry[$key]['itemIds'][] = $item->id;
-            }
-
-            foreach ($entry['options'] as $groupData) {
-                if (! isset($groupData['group_name']) && ! isset($groupData['name'])) {
-                    continue;
-                }
-                $key = $this->buildGroupKey($groupData, false);
-                if (! isset($registry[$key])) {
-                    $registry[$key] = ['group' => null, 'data' => $groupData, 'isVariation' => false, 'itemIds' => []];
-                }
-                $registry[$key]['itemIds'][] = $item->id;
+                $registry[$key]['itemIds'][] = $entry['item']->id;
             }
         }
 
-        $sortOrder = ((int) ($menu->optionGroups()->max('sort_order') ?? -1)) + 1;
+        $sortOrder = ((int) ($menu->variations()->max('sort_order') ?? -1)) + 1;
 
         foreach ($registry as $entry) {
             if (empty($entry['itemIds'])) {
-                continue; // pre-existing group with no new items to link
+                continue;
             }
-
-            $group = $entry['group'];
-            if ($group === null) {
-                $groupData = $entry['data'];
-                $isVariation = $entry['isVariation'];
-
-                $group = MenuOptionGroup::create([
-                    'menu_id' => $menu->id,
-                    'type' => isset($groupData['type']) && is_string($groupData['type']) ? $groupData['type'] : null,
-                    'kind' => $isVariation ? OptionGroupKind::Variant : OptionGroupKind::Addon,
-                    'required' => (bool) ($groupData['required'] ?? false),
-                    'allow_multiple' => (bool) ($groupData['allow_multiple'] ?? false),
-                    'min_select' => (int) ($groupData['min_select'] ?? 0),
-                    'max_select' => isset($groupData['max_select']) ? (int) $groupData['max_select'] : null,
-                    'sort_order' => $sortOrder++,
-                ]);
-
-                $groupName = MenuJson::extractText($groupData['group_name'] ?? $groupData['name'] ?? null);
-                if ($groupName !== null && $locale !== null) {
-                    $group->setTranslation('name', $locale, $groupName, isInitial: true);
+            $variation = $entry['model'];
+            if ($variation === null) {
+                $data = $entry['data'];
+                $variation = $menu->variations()->create(['sort_order' => $sortOrder++]);
+                $name = MenuJson::extractText($data['name'] ?? $data['group_name'] ?? null);
+                if ($name !== null && $locale !== null) {
+                    $variation->setTranslation('name', $locale, $name, isInitial: true);
                 }
-
-                foreach ($groupData['options'] ?? [] as $optIndex => $optData) {
-                    $option = $group->options()->create([
-                        'price_adjust' => $optData['price_adjust'] ?? 0,
+                foreach ($data['options'] ?? [] as $optIndex => $optData) {
+                    $option = $variation->options()->create([
+                        'price' => $optData['price'] ?? $optData['price_adjust'] ?? null,
                         'is_default' => (bool) ($optData['is_default'] ?? false),
                         'sort_order' => $optIndex,
                     ]);
@@ -437,8 +401,59 @@ class SaveMenuAnalysisAction
                     }
                 }
             }
+            $variation->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
+        }
+    }
 
-            $group->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
+    /**
+     * Dedupe atomic add-ons (name + delta price) across items and attach via the
+     * pivot. Reuses add-ons already on the menu instead of duplicating.
+     *
+     * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}>  $itemEntries
+     */
+    private function dedupeAttachAddons(Menu $menu, array $itemEntries, ?string $locale): void
+    {
+        /** @var array<string, array{model: ?MenuAddon, data: ?array<string, mixed>, itemIds: list<int>}> */
+        $registry = [];
+
+        foreach ($menu->addons()->get() as $existing) {
+            $key = $this->buildAddonKey(['name' => $existing->initialText('name'), 'price' => $existing->price]);
+            $registry[$key] = ['model' => $existing, 'data' => null, 'itemIds' => []];
+        }
+
+        foreach ($itemEntries as $entry) {
+            foreach ($entry['addons'] as $addonData) {
+                $name = MenuJson::extractText($addonData['name'] ?? null);
+                if ($name === null || trim($name) === '') {
+                    continue;
+                }
+                $key = $this->buildAddonKey($addonData);
+                if (! isset($registry[$key])) {
+                    $registry[$key] = ['model' => null, 'data' => $addonData, 'itemIds' => []];
+                }
+                $registry[$key]['itemIds'][] = $entry['item']->id;
+            }
+        }
+
+        $sortOrder = ((int) ($menu->addons()->max('sort_order') ?? -1)) + 1;
+
+        foreach ($registry as $entry) {
+            if (empty($entry['itemIds'])) {
+                continue;
+            }
+            $addon = $entry['model'];
+            if ($addon === null) {
+                $data = $entry['data'];
+                $addon = $menu->addons()->create([
+                    'price' => $data['price'] ?? $data['price_adjust'] ?? 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+                $name = MenuJson::extractText($data['name'] ?? null);
+                if ($name !== null && $locale !== null) {
+                    $addon->setTranslation('name', $locale, $name, isInitial: true);
+                }
+            }
+            $addon->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
         }
     }
 
@@ -468,20 +483,59 @@ class SaveMenuAnalysisAction
     }
 
     /**
-     * Build a deduplication key for a variation/option group.
+     * Dedup key for a variation axis: name + sorted (option name:price).
      *
      * @param  array<string, mixed>  $data
      */
-    private function buildGroupKey(array $data, bool $isVariation): string
+    private function buildVariationKey(array $data): string
     {
-        $name = strtolower(trim((string) (MenuJson::extractText($data['group_name'] ?? $data['name'] ?? '') ?? '')));
-        $type = $isVariation ? 'v' : 'o';
+        $name = strtolower(trim((string) (MenuJson::extractText($data['name'] ?? $data['group_name'] ?? '') ?? '')));
         $options = collect($data['options'] ?? [])
             ->map(fn ($o) => strtolower(trim((string) (MenuJson::extractText($o['name'] ?? '') ?? '')))
-                .':'.($o['price_adjust'] ?? 0))
+                .':'.($o['price'] ?? $o['price_adjust'] ?? 0))
             ->sort()
             ->implode('|');
 
-        return "{$type}:{$name}:{$options}";
+        return "v:{$name}:{$options}";
+    }
+
+    /**
+     * Dedup key for an atomic add-on: name + price.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function buildAddonKey(array $data): string
+    {
+        $name = strtolower(trim((string) (MenuJson::extractText($data['name'] ?? '') ?? '')));
+
+        return "a:{$name}:".($data['price'] ?? $data['price_adjust'] ?? 0);
+    }
+
+    /**
+     * Normalize add-ons from the new flat shape (`$flatKey`: [{name,price}]) or
+     * the legacy grouped shape (`$groupKey`: [{options:[{name,price_adjust}]}]),
+     * so the parser tolerates both prompt versions.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<array<string, mixed>>
+     */
+    private function flattenAddons(array $data, string $flatKey, string $groupKey): array
+    {
+        $flat = $data[$flatKey] ?? null;
+        if (is_array($flat)) {
+            return array_values(array_filter($flat, 'is_array'));
+        }
+
+        $out = [];
+        foreach ($data[$groupKey] ?? [] as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+            foreach ($group['options'] ?? [] as $opt) {
+                $out[] = ['name' => $opt['name'] ?? null, 'price' => $opt['price'] ?? $opt['price_adjust'] ?? 0];
+            }
+        }
+
+        return $out;
     }
 }

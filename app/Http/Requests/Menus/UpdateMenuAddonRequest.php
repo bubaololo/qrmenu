@@ -4,7 +4,7 @@ namespace App\Http\Requests\Menus;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateMenuOptionGroupOptionRequest extends FormRequest
+class UpdateMenuAddonRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,8 +16,7 @@ class UpdateMenuOptionGroupOptionRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
-            'price_adjust' => ['sometimes', 'nullable', 'numeric'],
-            'is_default' => ['sometimes', 'boolean'],
+            'price' => ['sometimes', 'nullable', 'numeric'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }

@@ -6,9 +6,9 @@ use App\Enums\PriceType;
 use App\Enums\RestaurantUserRole;
 use App\Models\Menu;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\TranslationField;
@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 /**
  * Coverage tests for menu editing edge cases not covered in MenuItemTest /
- * MenuSectionTest / MenuOptionGroupTest — primarily validation, locale handling,
+ * MenuSectionTest / MenuVariationTest — primarily validation, locale handling,
  * cascade delete on the application layer, and the section→item relationship.
  */
 class MenuCrudCoverageTest extends TestCase
@@ -213,21 +213,21 @@ class MenuCrudCoverageTest extends TestCase
     }
 
     #[Test]
-    public function test_destroy_option_group_cascades_to_options(): void
+    public function test_destroy_variation_cascades_to_options(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
-        $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
+        $variation = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $option = MenuVariationOption::factory()->create(['variation_id' => $variation->id]);
 
         $this->actingAs($user)
-            ->deleteJson("/api/v1/menu-option-groups/{$group->id}")
+            ->deleteJson("/api/v1/menu-variations/{$variation->id}")
             ->assertStatus(204);
 
-        $this->assertDatabaseMissing('menu_option_groups', ['id' => $group->id]);
-        $this->assertDatabaseMissing('menu_option_group_options', ['id' => $option->id]);
+        $this->assertDatabaseMissing('menu_variations', ['id' => $variation->id]);
+        $this->assertDatabaseMissing('menu_variation_options', ['id' => $option->id]);
     }
 
     #[Test]

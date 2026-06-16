@@ -6,8 +6,9 @@ use App\Enums\BillStatus;
 use App\Enums\OrderStatus;
 use App\Models\Bill;
 use App\Models\DiningTable;
+use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroupOption;
+use App\Models\MenuVariationOption;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Restaurant;
@@ -30,7 +31,7 @@ class PlaceOrderAction
      *         variation_option_id?: ?int,
      *         quantity: int,
      *         note?: ?string,
-     *         selected_options?: list<array{group_id: int, option_ids: list<int>}>
+     *         addon_ids?: list<int>
      *     }>
      * }  $payload
      */
@@ -70,13 +71,23 @@ class PlaceOrderAction
         $variationOptionIds = array_filter(array_column($payload['items'], 'variation_option_id'));
         $variationOptions = $variationOptionIds === []
             ? collect()
-            : MenuOptionGroupOption::whereIn('id', $variationOptionIds)->get()->keyBy('id');
+            : MenuVariationOption::whereIn('id', $variationOptionIds)->get()->keyBy('id');
+
+        $addonIds = [];
+        foreach ($payload['items'] as $entry) {
+            foreach ($entry['addon_ids'] ?? [] as $id) {
+                $addonIds[] = $id;
+            }
+        }
+        $addons = $addonIds === []
+            ? collect()
+            : MenuAddon::whereIn('id', array_unique($addonIds))->get()->keyBy('id');
 
         $token = $guestToken !== null && Str::isUuid($guestToken)
             ? $guestToken
             : (string) Str::uuid();
 
-        return DB::transaction(function () use ($restaurant, $table, $payload, $menuItems, $variationOptions, $token) {
+        return DB::transaction(function () use ($restaurant, $table, $payload, $menuItems, $variationOptions, $addons, $token) {
             $bill = Bill::query()
                 ->where('dining_table_id', $table->id)
                 ->where('status', BillStatus::Open->value)
@@ -105,13 +116,18 @@ class PlaceOrderAction
                 $variation = $entry['variation_option_id'] ?? null;
                 $variationOption = $variation !== null ? ($variationOptions[$variation] ?? null) : null;
 
-                $unitPrice = (float) ($menuItem->price_value ?? 0);
-                if ($variationOption) {
-                    $unitPrice += (float) $variationOption->price_adjust;
-                }
+                // A chosen variation option price is absolute (replaces the dish
+                // base price); add-on prices are deltas added on top.
+                $unitPrice = $variationOption !== null && $variationOption->price !== null
+                    ? (float) $variationOption->price
+                    : (float) ($menuItem->price_value ?? 0);
 
-                if (! empty($entry['selected_options'])) {
-                    $unitPrice += $this->sumSelectedOptionAdjustments($entry['selected_options']);
+                $selectedAddonIds = array_values(array_unique($entry['addon_ids'] ?? []));
+                foreach ($selectedAddonIds as $addonId) {
+                    $addon = $addons[$addonId] ?? null;
+                    if ($addon) {
+                        $unitPrice += (float) $addon->price;
+                    }
                 }
 
                 OrderItem::create([
@@ -121,7 +137,7 @@ class PlaceOrderAction
                     'quantity' => $entry['quantity'],
                     'unit_price' => round($unitPrice, 2),
                     'currency' => $bill->currency,
-                    'selected_options' => $entry['selected_options'] ?? null,
+                    'selected_options' => $selectedAddonIds === [] ? null : $selectedAddonIds,
                     'note' => $entry['note'] ?? null,
                 ]);
             }
@@ -141,24 +157,5 @@ class PlaceOrderAction
 
             return $order;
         });
-    }
-
-    /**
-     * @param  list<array{group_id: int, option_ids: list<int>}>  $selectedOptions
-     */
-    private function sumSelectedOptionAdjustments(array $selectedOptions): float
-    {
-        $optionIds = [];
-        foreach ($selectedOptions as $group) {
-            foreach ($group['option_ids'] as $id) {
-                $optionIds[] = $id;
-            }
-        }
-
-        if ($optionIds === []) {
-            return 0.0;
-        }
-
-        return (float) MenuOptionGroupOption::whereIn('id', $optionIds)->sum('price_adjust');
     }
 }

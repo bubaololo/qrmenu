@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\OptionGroupKind;
 use Database\Factories\MenuFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,23 +41,16 @@ class Menu extends Model
         return $this->hasMany(MenuSection::class)->orderBy('sort_order');
     }
 
-    /**
-     * Variant and add-on groups shared across all items of this menu. Items
-     * link to these through the menu_item_option_group pivot.
-     */
-    public function optionGroups(): HasMany
+    /** Pick-one variation axes shared across this menu's items. */
+    public function variations(): HasMany
     {
-        return $this->hasMany(MenuOptionGroup::class, 'menu_id')->orderBy('sort_order');
+        return $this->hasMany(MenuVariation::class, 'menu_id')->orderBy('sort_order');
     }
 
-    public function variants(): HasMany
-    {
-        return $this->optionGroups()->where('kind', OptionGroupKind::Variant);
-    }
-
+    /** Atomic additive add-ons shared across this menu's items. */
     public function addons(): HasMany
     {
-        return $this->optionGroups()->where('kind', OptionGroupKind::Addon);
+        return $this->hasMany(MenuAddon::class, 'menu_id')->orderBy('sort_order');
     }
 
     public function clonedFrom(): BelongsTo

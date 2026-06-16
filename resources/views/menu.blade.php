@@ -214,15 +214,15 @@
 
                                     if ($item->variations->isNotEmpty()) {
                                         $firstOpt = $item->variations->first()->options->first();
-                                        $displayPrice = $firstOpt
-                                            ? (float) $item->price_value + (float) $firstOpt->price_adjust
+                                        $displayPrice = ($firstOpt && $firstOpt->price !== null)
+                                            ? (float) $firstOpt->price
                                             : (float) $item->price_value;
                                     } else {
                                         $displayPrice = (float) $item->price_value;
                                     }
 
                                     $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
-                                    $hasOptions = $item->optionGroups->where('kind', \App\Enums\OptionGroupKind::Addon)->isNotEmpty();
+                                    $hasAddons = $item->addons->isNotEmpty();
 
                                     // Modal-only extras: fields menu.js needs that aren't visible in the card DOM.
                                     $extras = [];
@@ -234,38 +234,34 @@
                                     $extras['orderable'] = (bool) $item->is_orderable;
 
                                     if ($hasVariants) {
+                                        // Variation option price is absolute (replaces the dish price).
                                         $variants = [];
                                         foreach ($item->variations as $g) {
                                             foreach ($g->options as $opt) {
                                                 $variants[] = [
+                                                    'id' => $opt->id,
                                                     'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
-                                                    'price' => (float) $item->price_value + (float) $opt->price_adjust,
+                                                    'price' => $opt->price !== null ? (float) $opt->price : (float) $item->price_value,
                                                 ];
                                             }
                                         }
                                         $extras['variants'] = $variants;
                                     }
 
-                                    if ($hasOptions) {
-                                        $options = [];
-                                        foreach ($item->optionGroups->where('kind', \App\Enums\OptionGroupKind::Addon) as $g) {
-                                            $options[] = [
-                                                'id' => $g->id,
-                                                'name' => $g->translate('name', $lang) ?? $g->translate('name', $sourceLocale) ?? '',
-                                                'required' => $g->min_select > 0,
-                                                'type' => $g->max_select === 1 ? 'single' : 'multiple',
-                                                'max' => $g->max_select,
-                                                'choices' => $g->options->map(fn ($o) => [
-                                                    'id' => $o->id,
-                                                    'name' => $o->translate('name', $lang) ?? $o->translate('name', $sourceLocale) ?? '',
-                                                    'price' => (float) $o->price_adjust,
-                                                ])->all(),
+                                    if ($hasAddons) {
+                                        // Atomic add-ons: a flat list; price is a delta added on top.
+                                        $addons = [];
+                                        foreach ($item->addons as $a) {
+                                            $addons[] = [
+                                                'id' => $a->id,
+                                                'name' => $a->translate('name', $lang) ?? $a->translate('name', $sourceLocale) ?? '',
+                                                'price' => (float) $a->price,
                                             ];
                                         }
-                                        $extras['options'] = $options;
+                                        $extras['addons'] = $addons;
                                     }
 
-                                    $shouldEmbedExtras = $hasVariants || $hasOptions || isset($extras['description']);
+                                    $shouldEmbedExtras = $hasVariants || $hasAddons || isset($extras['description']);
                                 @endphp
                                 <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
                                     @if($item->image)

@@ -58,8 +58,10 @@ const App = {
       description: extras.description || null,
       price: typeof extras.price === 'number' ? extras.price : 0,
       orderable: extras.orderable !== false,
+      // variants: pick-exactly-one options; each price is ABSOLUTE.
       variants: extras.variants,
-      options: extras.options,
+      // addons: atomic extras (flat); each price is a DELTA.
+      addons: extras.addons,
     };
   },
 
@@ -217,16 +219,12 @@ const App = {
     this._sheet.editCartIndex = isEdit ? editCartIndex : null;
     this._sheet.variantIndex = cartEntry ? cartEntry.variantIndex : 0;
     this._sheet.qty = cartEntry ? cartEntry.qty : 1;
-    this._sheet.options = {};
-    if (item.options) {
-      item.options.forEach(group => {
-        this._sheet.options[group.id] = cartEntry && cartEntry.options && cartEntry.options[group.id]
-          ? [...cartEntry.options[group.id]]
-          : [];
-      });
-    }
+    // Flat list of selected atomic add-on ids.
+    this._sheet.addons = cartEntry && Array.isArray(cartEntry.addons)
+      ? [...cartEntry.addons]
+      : [];
 
-    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.options);
+    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.addons);
     const totalPrice = unitPrice * this._sheet.qty;
 
     // Clone the parsed-once template \u2014 far cheaper than innerHTML string parse.
@@ -267,49 +265,39 @@ const App = {
       variantsBlock.hidden = false;
     }
 
-    if (item.options && item.options.length) {
+    if (item.addons && item.addons.length) {
+      // Atomic add-ons render as one optional multi-select block: each add-on
+      // is an independent checkbox, picked 0..N, adding its delta price.
       const optionsContainer = fragment.querySelector('.sheet-options-container');
       const groupTpl = document.getElementById('tpl-option-group');
       const choiceTpl = document.getElementById('tpl-option-choice');
-      item.options.forEach(group => {
-        const grp = groupTpl.content.firstElementChild.cloneNode(true);
-        grp.dataset.optionGroup = group.id;
-        grp.dataset.optionType = group.type;
-        grp.dataset.optionMax = group.max || '';
-        if (group.required) grp.classList.add('sheet-option-required');
 
-        grp.querySelector('.option-group-name').textContent = group.name;
+      const grp = groupTpl.content.firstElementChild.cloneNode(true);
+      grp.dataset.optionGroup = 'addons';
 
-        const tag = grp.querySelector('.option-tag');
-        const maxHint = group.type === 'multiple' && group.max
-          ? ' \u00B7 ' + this.t('maxChoices').replace('{n}', group.max)
-          : '';
-        tag.textContent = (group.required ? this.t('required') : this.t('optional')) + maxHint;
-        tag.classList.add(group.required ? 'option-tag-required' : 'option-tag-optional');
+      grp.querySelector('.option-group-name').textContent = this.t('addons');
 
-        const choicesEl = grp.querySelector('.option-choices');
-        const selectedIds = this._sheet.options[group.id] || [];
-        group.choices.forEach(choice => {
-          const chc = choiceTpl.content.firstElementChild.cloneNode(true);
-          chc.dataset.optionGroup = group.id;
-          chc.dataset.choiceId = choice.id;
-          if (selectedIds.includes(choice.id)) chc.classList.add('option-choice-selected');
+      const tag = grp.querySelector('.option-tag');
+      tag.textContent = this.t('optional');
+      tag.classList.add('option-tag-optional');
 
-          // Inner check marker: radio for single-select, checkbox for multi-select
-          chc.querySelector('.option-choice-check').classList.add(
-            group.type === 'single' ? 'option-radio' : 'option-checkbox'
-          );
-
-          chc.querySelector('.option-choice-name').textContent = choice.name;
-          if (choice.price > 0) {
-            const priceEl = chc.querySelector('.option-choice-price');
-            priceEl.textContent = '+' + this.formatPrice(choice.price);
-            priceEl.hidden = false;
-          }
-          choicesEl.appendChild(chc);
-        });
-        optionsContainer.appendChild(grp);
+      const choicesEl = grp.querySelector('.option-choices');
+      item.addons.forEach(addon => {
+        const chc = choiceTpl.content.firstElementChild.cloneNode(true);
+        chc.dataset.choiceId = addon.id;
+        if (this._sheet.addons.includes(addon.id)) {
+          chc.classList.add('option-choice-selected');
+        }
+        chc.querySelector('.option-choice-check').classList.add('option-checkbox');
+        chc.querySelector('.option-choice-name').textContent = addon.name;
+        if (addon.price > 0) {
+          const priceEl = chc.querySelector('.option-choice-price');
+          priceEl.textContent = '+' + this.formatPrice(addon.price);
+          priceEl.hidden = false;
+        }
+        choicesEl.appendChild(chc);
       });
+      optionsContainer.appendChild(grp);
       optionsContainer.hidden = false;
     }
 
@@ -338,28 +326,27 @@ const App = {
     }
   },
 
-  _getOptionsExtra(item, opts) {
-    if (!item.options || !opts) return 0;
-    let extra = 0;
-    item.options.forEach(group => {
-      const selected = opts[group.id] || [];
-      group.choices.forEach(choice => {
-        if (selected.includes(choice.id)) extra += choice.price;
-      });
-    });
-    return extra;
+  _getAddonsExtra(item, addonIds) {
+    if (!item.addons || !addonIds || !addonIds.length) return 0;
+    return item.addons.reduce(
+      (sum, a) => (addonIds.includes(a.id) ? sum + a.price : sum),
+      0,
+    );
   },
 
-  _computeUnitPrice(item, variantIndex, opts) {
-    const basePrice = item.variants ? item.variants[variantIndex].price : item.price;
-    return basePrice + this._getOptionsExtra(item, opts);
+  _computeUnitPrice(item, variantIndex, addonIds) {
+    // Variant option price is ABSOLUTE (replaces base); add-ons add a delta.
+    const basePrice = item.variants && item.variants.length
+      ? item.variants[variantIndex].price
+      : item.price;
+    return basePrice + this._getAddonsExtra(item, addonIds);
   },
 
   _updateSheetPrice() {
     const item = this._findItem(this._sheet.itemId);
     if (!item) return;
 
-    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.options);
+    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.addons);
     const totalPrice = unitPrice * this._sheet.qty;
 
     const btn = document.querySelector('.add-to-cart-btn');
@@ -375,24 +362,12 @@ const App = {
   },
 
   _updateSheetValidation() {
-    const item = this._findItem(this._sheet.itemId);
-    if (!item || !item.options) return;
-    let allValid = true;
-    item.options.forEach(group => {
-      const selected = this._sheet.options[group.id] || [];
-      const groupEl = document.querySelector('.sheet-option-group[data-option-group="' + group.id + '"]');
-      if (!groupEl) return;
-      if (group.required && selected.length === 0) {
-        allValid = false;
-        groupEl.classList.add('sheet-option-invalid');
-      } else {
-        groupEl.classList.remove('sheet-option-invalid');
-      }
-    });
+    // Add-ons are always optional and a variant defaults to the first option,
+    // so there is nothing that can leave the sheet in an invalid state.
     const btn = document.querySelector('.add-to-cart-btn');
     if (btn) {
-      btn.disabled = !allValid;
-      btn.classList.toggle('add-to-cart-btn-disabled', !allValid);
+      btn.disabled = false;
+      btn.classList.remove('add-to-cart-btn-disabled');
     }
   },
 
@@ -497,53 +472,42 @@ const App = {
     }
   },
 
-  _getCartOptionNames(item, opts) {
-    if (!item.options || !opts) return '';
-    const names = [];
-    item.options.forEach(group => {
-      const sel = opts[group.id] || [];
-      group.choices.forEach(choice => {
-        if (sel.includes(choice.id)) {
-          names.push(choice.name);
-        }
-      });
-    });
-    return names.join(', ');
+  _getCartOptionNames(item, addonIds) {
+    if (!item.addons || !addonIds || !addonIds.length) return '';
+    return item.addons
+      .filter(a => addonIds.includes(a.id))
+      .map(a => a.name)
+      .join(', ');
   },
 
-  _getWaiterOptionHtml(item, opts) {
-    if (!item.options || !opts) return '';
-    const groups = [];
-    item.options.forEach(group => {
-      const sel = opts[group.id] || [];
-      const chosen = group.choices.filter(c => sel.includes(c.id));
-      if (!chosen.length) return;
-      const tags = chosen.map(c => {
-        const priceTag = c.price ? ' +' + this.formatPrice(c.price) : '';
-        return '<span class="waiter-opt-tag">+ ' + c.name + priceTag + '</span>';
-      }).join('');
-      groups.push('<div class="waiter-opt-group"><span class="waiter-opt-label">' + group.name + ':</span>' + tags + '</div>');
-    });
-    return groups.length ? '<div class="waiter-opts">' + groups.join('') + '</div>' : '';
+  _getWaiterOptionHtml(item, addonIds) {
+    if (!item.addons || !addonIds || !addonIds.length) return '';
+    const chosen = item.addons.filter(a => addonIds.includes(a.id));
+    if (!chosen.length) return '';
+    const tags = chosen.map(a => {
+      const priceTag = a.price ? ' +' + this.formatPrice(a.price) : '';
+      return '<span class="waiter-opt-tag">+ ' + a.name + priceTag + '</span>';
+    }).join('');
+    return '<div class="waiter-opts"><div class="waiter-opt-group">' + tags + '</div></div>';
   },
 
-  addToCart(itemId, variantIndex, qty, selectedOptions) {
+  addToCart(itemId, variantIndex, qty, selectedAddons) {
     const item = this._findItem(itemId);
     if (!item) return;
 
-    const opts = selectedOptions || {};
-    const unitPrice = this._computeUnitPrice(item, variantIndex, opts);
+    const addons = Array.isArray(selectedAddons) ? selectedAddons : [];
+    const unitPrice = this._computeUnitPrice(item, variantIndex, addons);
 
-    const optKey = JSON.stringify(opts);
+    const addonKey = JSON.stringify([...addons].sort());
     const existing = this.cart.find(c =>
       c.itemId === itemId &&
       c.variantIndex === variantIndex &&
-      JSON.stringify(c.options || {}) === optKey
+      JSON.stringify([...(c.addons || [])].sort()) === addonKey
     );
     if (existing) {
       existing.qty += qty;
     } else {
-      this.cart.push({ itemId, variantIndex, qty, unitPrice, options: opts });
+      this.cart.push({ itemId, variantIndex, qty, unitPrice, addons });
     }
 
     this.updateCartFab();
@@ -555,11 +519,11 @@ const App = {
     const item = this._findItem(entry.itemId);
     if (!item) return;
 
-    const opts = this._sheet.options || {};
+    const addons = Array.isArray(this._sheet.addons) ? this._sheet.addons : [];
     entry.variantIndex = this._sheet.variantIndex;
     entry.qty = this._sheet.qty;
-    entry.unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, opts);
-    entry.options = opts;
+    entry.unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, addons);
+    entry.addons = addons;
 
     this.updateCartFab();
   },
@@ -696,7 +660,10 @@ const App = {
       node.querySelector('.cart-item-inner').dataset.swipeIndex = index;
 
       const info = node.querySelector('.cart-item-info');
-      if (item.variants || (item.options && item.options.length)) {
+      if (
+        (item.variants && item.variants.length) ||
+        (item.addons && item.addons.length)
+      ) {
         info.classList.add('cart-item-editable');
       }
 
@@ -711,7 +678,7 @@ const App = {
         variantEl.hidden = false;
       }
 
-      const optionNames = this._getCartOptionNames(item, entry.options);
+      const optionNames = this._getCartOptionNames(item, entry.addons);
       if (optionNames) {
         const optionsEl = node.querySelector('.cart-item-variant--options');
         optionsEl.textContent = optionNames;
@@ -742,14 +709,11 @@ const App = {
   /**
    * Build API payload matching POST /api/v1/public/orders schema.
    *
-   * Variations live in their own option-group with `is_variation: true`; the
-   * Blade controller flattens them into `item.variants[]` per item, indexed
-   * by position. To map a chosen variant back to a `variation_option_id`, we
-   * look at the source item's option-groups (kept in window.__ITEMS_RAW__ if
-   * available) — but the simplified itemsJson doesn't expose option IDs for
-   * variants. So we send the variant index as a hint via selected_options,
-   * and rely on the server to snapshot the price from menu_items.price_value.
-   * For items without variations the omission is fine.
+   * The Blade controller embeds each variant option with its real id
+   * (`item.variants[i].id`) and each add-on with its id (`item.addons[].id`).
+   * We map the chosen variant index back to its `variation_option_id` (whose
+   * price is absolute) and send the selected add-on ids as `addon_ids` (each a
+   * delta). Items without a variant simply omit `variation_option_id`.
    */
   _buildApiOrderPayload() {
     const cfg = window.__CONFIG__ || {};
@@ -758,23 +722,18 @@ const App = {
       table_uniqid: cfg.tableUniqid || null,
       items: this.cart.map(e => {
         const item = this._findItem(e.itemId);
-        const groups = (item && item.options) ? item.options : [];
-        const selectedOptions = [];
-        if (e.options) {
-          Object.keys(e.options).forEach(groupId => {
-            const ids = e.options[groupId] || [];
-            if (ids.length > 0) {
-              selectedOptions.push({
-                group_id: Number(groupId),
-                option_ids: ids.map(Number),
-              });
-            }
-          });
-        }
+        const variant =
+          item && item.variants && item.variants.length
+            ? item.variants[e.variantIndex]
+            : null;
+        const addonIds = Array.isArray(e.addons) ? e.addons.map(Number) : [];
         return {
           menu_item_id: e.itemId,
           quantity: e.qty,
-          selected_options: selectedOptions.length ? selectedOptions : null,
+          ...(variant && variant.id != null
+            ? { variation_option_id: Number(variant.id) }
+            : {}),
+          addon_ids: addonIds,
         };
       }),
     };
@@ -875,7 +834,7 @@ const App = {
       const variantName = item.variants && item.variants[entry.variantIndex]
         ? item.variants[entry.variantIndex].name
         : '';
-      const optHtml = this._getWaiterOptionHtml(item, entry.options);
+      const optHtml = this._getWaiterOptionHtml(item, entry.addons);
       const lineTotal = entry.unitPrice * entry.qty;
 
       return '<div class="waiter-item">' +
@@ -1100,36 +1059,21 @@ const App = {
         return;
       }
 
-      // Option choice click
+      // Add-on choice click — atomic toggle (0..N), independent of others.
       const optionChoice = e.target.closest('.option-choice');
       if (optionChoice) {
-        const groupId = Number(optionChoice.dataset.optionGroup);
-        const choiceId = Number(optionChoice.dataset.choiceId);
-        const groupEl = document.querySelector('.sheet-option-group[data-option-group="' + groupId + '"]');
-        const type = groupEl.dataset.optionType;
-        const max = groupEl.dataset.optionMax ? Number(groupEl.dataset.optionMax) : null;
-        const selected = this._sheet.options[groupId] || [];
-
-        if (type === 'single') {
-          this._sheet.options[groupId] = [choiceId];
+        const addonId = Number(optionChoice.dataset.choiceId);
+        const idx = this._sheet.addons.indexOf(addonId);
+        if (idx >= 0) {
+          this._sheet.addons.splice(idx, 1);
         } else {
-          const idx = selected.indexOf(choiceId);
-          if (idx >= 0) {
-            selected.splice(idx, 1);
-          } else {
-            if (max && selected.length >= max) return;
-            selected.push(choiceId);
-          }
-          this._sheet.options[groupId] = selected;
+          this._sheet.addons.push(addonId);
         }
-
-        groupEl.querySelectorAll('.option-choice').forEach(el => {
-          const cid = Number(el.dataset.choiceId);
-          const isSelected = this._sheet.options[groupId].includes(cid);
-          el.classList.toggle('option-choice-selected', isSelected);
-        });
+        optionChoice.classList.toggle(
+          'option-choice-selected',
+          this._sheet.addons.includes(addonId),
+        );
         this._updateSheetPrice();
-        this._updateSheetValidation();
         return;
       }
 
@@ -1155,7 +1099,7 @@ const App = {
             this._renderCartEditView();
           }
         } else {
-          this.addToCart(this._sheet.itemId, this._sheet.variantIndex, this._sheet.qty, this._sheet.options);
+          this.addToCart(this._sheet.itemId, this._sheet.variantIndex, this._sheet.qty, this._sheet.addons);
           const item = this._findItem(this._sheet.itemId);
           if (item) this._showAddedFeedback(item.name, addBtn);
           this.closeBottomSheet();
@@ -1177,7 +1121,9 @@ const App = {
         const entry = this.cart[index];
         if (entry) {
           const item = this._findItem(entry.itemId);
-          const hasConfig = (item && item.variants) || (item && item.options && item.options.length);
+          const hasConfig =
+            (item && item.variants && item.variants.length) ||
+            (item && item.addons && item.addons.length);
           if (hasConfig) {
             this.openBottomSheet(entry.itemId, index);
             return;

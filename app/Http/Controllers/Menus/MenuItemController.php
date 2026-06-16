@@ -98,6 +98,46 @@ class MenuItemController extends Controller
     }
 
     /**
+     * Duplicate an item: copies attributes + translations and reuses the same
+     * variation/add-on pivot attachments. The source-locale name gets a "(копия)"
+     * marker. Returns the new item immediately (instant copy, no editor step).
+     */
+    public function clone(MenuItem $menuItem): JsonResponse
+    {
+        Gate::authorize('update', $menuItem->section->menu);
+
+        $menuItem->load('translations');
+
+        $clone = $menuItem->replicate();
+        $clone->save();
+
+        foreach ($menuItem->translations as $translation) {
+            $clone->translations()->create([
+                'locale' => $translation->locale,
+                'field_id' => $translation->field_id,
+                'value' => $translation->value,
+                'is_initial' => $translation->is_initial,
+            ]);
+        }
+
+        $nameInitial = $clone->translations()
+            ->whereHas('translationField', fn ($query) => $query->where('name', 'name'))
+            ->where('is_initial', true)
+            ->first();
+
+        if ($nameInitial) {
+            $nameInitial->update(['value' => $nameInitial->value.' (копия)']);
+        }
+
+        $clone->variations()->sync($menuItem->variations()->pluck('menu_variations.id')->all());
+        $clone->addons()->sync($menuItem->addons()->pluck('menu_addons.id')->all());
+
+        return (new MenuItemResource($clone->fresh()))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    /**
      * Bulk reorder items within a section.
      */
     public function reorder(ReorderRequest $request, MenuSection $menuSection): AnonymousResourceCollection

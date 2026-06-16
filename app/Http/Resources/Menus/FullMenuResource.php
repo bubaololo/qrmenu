@@ -3,7 +3,6 @@
 namespace App\Http\Resources\Menus;
 
 use App\Actions\BuildPublicMenuUrl;
-use App\Enums\OptionGroupKind;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -62,27 +61,25 @@ class FullMenuResource extends JsonResource
                     'thumb_url' => $item->thumb_url,
                     'sort_order' => $item->sort_order,
                     'confidence' => $this->confidenceMap[$item->id] ?? null,
-                    'option_groups' => $item->optionGroups->map(fn ($group) => [
-                        'id' => $group->id,
-                        'name' => $group->translate('name', $locale),
-                        // Null-safe: a group with no/invalid kind must not 500 the
-                        // whole menu. `is_variation` is emitted for the current
-                        // frontend contract and derived from whichever schema this
-                        // DB is on (legacy `is_variation` column, or the `kind` enum).
-                        'kind' => $group->kind?->value,
-                        'is_variation' => $group->is_variation ?? ($group->kind === OptionGroupKind::Variant),
-                        'required' => $group->required,
-                        'allow_multiple' => $group->allow_multiple,
-                        'min_select' => $group->min_select,
-                        'max_select' => $group->max_select,
-                        'sort_order' => $group->sort_order,
-                        'options' => $group->options->map(fn ($opt) => [
+                    // Pick-one variation axes (option price is ABSOLUTE — replaces dish price).
+                    'variations' => $item->variations->map(fn ($variation) => [
+                        'id' => $variation->id,
+                        'name' => $variation->translate('name', $locale),
+                        'sort_order' => $variation->sort_order,
+                        'options' => $variation->options->map(fn ($opt) => [
                             'id' => $opt->id,
                             'name' => $opt->translate('name', $locale),
-                            'price_adjust' => $opt->price_adjust,
+                            'price' => $opt->price,
                             'is_default' => $opt->is_default,
                             'sort_order' => $opt->sort_order,
                         ]),
+                    ]),
+                    // Atomic additive add-ons (price is a DELTA added to the dish price).
+                    'addons' => $item->addons->map(fn ($addon) => [
+                        'id' => $addon->id,
+                        'name' => $addon->translate('name', $locale),
+                        'price' => $addon->price,
+                        'sort_order' => $addon->sort_order,
                     ]),
                 ]),
             ]),

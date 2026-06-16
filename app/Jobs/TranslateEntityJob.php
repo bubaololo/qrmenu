@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Enums\OptionGroupKind;
 use App\Llm\DeepSeekTextProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\Menu;
+use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Prompt;
 use App\Models\Restaurant;
 use App\Services\AnalysisEventBroker;
@@ -238,14 +238,18 @@ class TranslateEntityJob implements ShouldQueue
                 (string) $entity->initialText('name'),
                 (string) $entity->initialText('description'),
             ),
-            $entity instanceof MenuOptionGroup => sprintf(
-                '%s|%d|%s',
-                $entity->kind === OptionGroupKind::Variant ? 'V' : 'G',
+            $entity instanceof MenuVariation => sprintf(
+                'V|%d|%s',
                 $entity->getKey(),
                 (string) $entity->initialText('name'),
             ),
-            $entity instanceof MenuOptionGroupOption => sprintf(
+            $entity instanceof MenuVariationOption => sprintf(
                 'O|%d|%s',
+                $entity->getKey(),
+                (string) $entity->initialText('name'),
+            ),
+            $entity instanceof MenuAddon => sprintf(
+                'A|%d|%s',
                 $entity->getKey(),
                 (string) $entity->initialText('name'),
             ),
@@ -277,8 +281,8 @@ class TranslateEntityJob implements ShouldQueue
             switch ($type) {
                 case 'S':
                 case 'V':
-                case 'G':
                 case 'O':
+                case 'A':
                     if ($this->field !== 'name') {
                         break;
                     }
@@ -316,8 +320,9 @@ class TranslateEntityJob implements ShouldQueue
         return match (true) {
             $this->entity instanceof MenuItem => $this->entity->section?->menu,
             $this->entity instanceof MenuSection => $this->entity->menu,
-            $this->entity instanceof MenuOptionGroup => $this->entity->menu,
-            $this->entity instanceof MenuOptionGroupOption => $this->entity->group?->menu,
+            $this->entity instanceof MenuVariation => $this->entity->menu,
+            $this->entity instanceof MenuVariationOption => $this->entity->variation?->menu,
+            $this->entity instanceof MenuAddon => $this->entity->menu,
             default => null,
         };
     }

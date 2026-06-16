@@ -26,7 +26,7 @@ class TranslateChunkJob implements ShouldQueue
     private const PROMPT_TYPE = 'menu_translator';
 
     /**
-     * @param  list<string>  $chunkLines  TSV lines for this chunk (S|, I|, V|, G|, O|, R| entries)
+     * @param  list<string>  $chunkLines  TSV lines for this chunk (S|, I|, V|, O|, A|, R| entries)
      */
     public function __construct(
         public Menu $menu,
@@ -59,7 +59,8 @@ class TranslateChunkJob implements ShouldQueue
         $this->menu->load([
             'restaurant',
             'sections.items',
-            'optionGroups.options',
+            'variations.options',
+            'addons',
         ]);
 
         $idMap = $this->buildIdMap();
@@ -157,7 +158,7 @@ class TranslateChunkJob implements ShouldQueue
     /** @return array<string, array<int, Model>> */
     private function buildIdMap(): array
     {
-        $map = ['sections' => [], 'items' => [], 'groups' => [], 'options' => []];
+        $map = ['sections' => [], 'items' => [], 'variations' => [], 'options' => [], 'addons' => []];
 
         foreach ($this->menu->sections as $section) {
             $map['sections'][$section->id] = $section;
@@ -166,12 +167,16 @@ class TranslateChunkJob implements ShouldQueue
             }
         }
 
-        // Option groups are shared at menu level, not per section.
-        foreach ($this->menu->optionGroups as $group) {
-            $map['groups'][$group->id] = $group;
-            foreach ($group->options as $opt) {
+        // Variations and add-ons are shared at menu level, not per section.
+        foreach ($this->menu->variations as $variation) {
+            $map['variations'][$variation->id] = $variation;
+            foreach ($variation->options as $opt) {
                 $map['options'][$opt->id] = $opt;
             }
+        }
+
+        foreach ($this->menu->addons as $addon) {
+            $map['addons'][$addon->id] = $addon;
         }
 
         return $map;
@@ -224,12 +229,11 @@ class TranslateChunkJob implements ShouldQueue
                     break;
 
                 case 'V':
-                case 'G':
                     $id = (int) ($parts[1] ?? 0);
                     $name = $parts[2] ?? '';
-                    $group = $idMap['groups'][$id] ?? null;
-                    if ($group && $name !== '') {
-                        $group->setTranslation('name', $this->targetLocale, $name, isInitial: false);
+                    $variation = $idMap['variations'][$id] ?? null;
+                    if ($variation && $name !== '') {
+                        $variation->setTranslation('name', $this->targetLocale, $name, isInitial: false);
                         $count++;
                     }
                     break;
@@ -240,6 +244,16 @@ class TranslateChunkJob implements ShouldQueue
                     $opt = $idMap['options'][$id] ?? null;
                     if ($opt && $name !== '') {
                         $opt->setTranslation('name', $this->targetLocale, $name, isInitial: false);
+                        $count++;
+                    }
+                    break;
+
+                case 'A':
+                    $id = (int) ($parts[1] ?? 0);
+                    $name = $parts[2] ?? '';
+                    $addon = $idMap['addons'][$id] ?? null;
+                    if ($addon && $name !== '') {
+                        $addon->setTranslation('name', $this->targetLocale, $name, isInitial: false);
                         $count++;
                     }
                     break;

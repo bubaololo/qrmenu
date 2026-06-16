@@ -8,9 +8,9 @@ use App\Models\DiningTable;
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Restaurant;
@@ -98,8 +98,8 @@ class CascadeDeleteFilesTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
-        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
-        $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
+        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $option = MenuVariationOption::factory()->create(['variation_id' => $group->id]);
 
         $item->setTranslation('name', 'en', 'Pho', true);
         $group->setTranslation('name', 'en', 'Size', true);
@@ -117,8 +117,8 @@ class CascadeDeleteFilesTest extends TestCase
         $this->assertDatabaseMissing('menus', ['id' => $menu->id]);
         $this->assertDatabaseMissing('menu_sections', ['id' => $section->id]);
         $this->assertDatabaseMissing('menu_items', ['id' => $item->id]);
-        $this->assertDatabaseMissing('menu_option_groups', ['id' => $group->id]);
-        $this->assertDatabaseMissing('menu_option_group_options', ['id' => $option->id]);
+        $this->assertDatabaseMissing('menu_variations', ['id' => $group->id]);
+        $this->assertDatabaseMissing('menu_variation_options', ['id' => $option->id]);
         $this->assertDatabaseMissing('zones', ['id' => $zone->id]);
         $this->assertDatabaseMissing('dining_tables', ['id' => $table->id]);
         $this->assertDatabaseMissing('bills', ['id' => $bill->id]);

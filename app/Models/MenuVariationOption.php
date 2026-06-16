@@ -3,14 +3,18 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
-use Database\Factories\MenuOptionGroupOptionFactory;
+use Database\Factories\MenuVariationOptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class MenuOptionGroupOption extends Model
+/**
+ * One choice within a {@see MenuVariation}. `price` is ABSOLUTE — the full
+ * price of the dish when this choice is selected.
+ */
+class MenuVariationOption extends Model
 {
-    /** @use HasFactory<MenuOptionGroupOptionFactory> */
+    /** @use HasFactory<MenuVariationOptionFactory> */
     use HasFactory;
 
     use HasTranslations;
@@ -19,8 +23,8 @@ class MenuOptionGroupOption extends Model
     protected $appends = ['name'];
 
     protected $fillable = [
-        'group_id',
-        'price_adjust',
+        'variation_id',
+        'price',
         'is_default',
         'sort_order',
     ];
@@ -30,8 +34,8 @@ class MenuOptionGroupOption extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (MenuOptionGroupOption $option) {
-            $locale = $option->group?->section?->menu?->source_locale;
+        static::saved(function (MenuVariationOption $option) {
+            $locale = $option->variation?->menu?->source_locale;
             if ($option->pendingName !== null && $locale !== null) {
                 $option->setTranslation('name', $locale, $option->pendingName, true);
                 $option->pendingName = null;
@@ -42,7 +46,7 @@ class MenuOptionGroupOption extends Model
     protected function casts(): array
     {
         return [
-            'price_adjust' => 'decimal:2',
+            'price' => 'decimal:2',
             'is_default' => 'boolean',
             'sort_order' => 'integer',
         ];
@@ -58,8 +62,8 @@ class MenuOptionGroupOption extends Model
         $this->pendingName = $value;
     }
 
-    public function group(): BelongsTo
+    public function variation(): BelongsTo
     {
-        return $this->belongsTo(MenuOptionGroup::class, 'group_id');
+        return $this->belongsTo(MenuVariation::class, 'variation_id');
     }
 }

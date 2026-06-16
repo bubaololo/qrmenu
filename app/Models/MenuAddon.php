@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
-use App\Enums\OptionGroupKind;
 use App\Models\Concerns\HasTranslations;
-use Database\Factories\MenuOptionGroupFactory;
+use Database\Factories\MenuAddonFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class MenuOptionGroup extends Model
+/**
+ * An atomic, additive extra (e.g. "Extra cheese"). `price` is a DELTA added on
+ * top of the dish price. Reused across items of the menu via menu_item_addon.
+ */
+class MenuAddon extends Model
 {
-    /** @use HasFactory<MenuOptionGroupFactory> */
+    /** @use HasFactory<MenuAddonFactory> */
     use HasFactory;
 
     use HasTranslations;
@@ -23,12 +25,7 @@ class MenuOptionGroup extends Model
 
     protected $fillable = [
         'menu_id',
-        'type',
-        'kind',
-        'required',
-        'allow_multiple',
-        'min_select',
-        'max_select',
+        'price',
         'sort_order',
     ];
 
@@ -37,11 +34,11 @@ class MenuOptionGroup extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (MenuOptionGroup $group) {
-            $locale = $group->menu?->source_locale;
-            if ($group->pendingName !== null && $locale !== null) {
-                $group->setTranslation('name', $locale, $group->pendingName, true);
-                $group->pendingName = null;
+        static::saved(function (MenuAddon $addon) {
+            $locale = $addon->menu?->source_locale;
+            if ($addon->pendingName !== null && $locale !== null) {
+                $addon->setTranslation('name', $locale, $addon->pendingName, true);
+                $addon->pendingName = null;
             }
         });
     }
@@ -49,11 +46,7 @@ class MenuOptionGroup extends Model
     protected function casts(): array
     {
         return [
-            'kind' => OptionGroupKind::class,
-            'required' => 'boolean',
-            'allow_multiple' => 'boolean',
-            'min_select' => 'integer',
-            'max_select' => 'integer',
+            'price' => 'decimal:2',
             'sort_order' => 'integer',
         ];
     }
@@ -73,13 +66,8 @@ class MenuOptionGroup extends Model
         return $this->belongsTo(Menu::class, 'menu_id');
     }
 
-    public function options(): HasMany
-    {
-        return $this->hasMany(MenuOptionGroupOption::class, 'group_id')->orderBy('sort_order');
-    }
-
     public function items(): BelongsToMany
     {
-        return $this->belongsToMany(MenuItem::class, 'menu_item_option_group', 'group_id', 'item_id');
+        return $this->belongsToMany(MenuItem::class, 'menu_item_addon', 'addon_id', 'item_id');
     }
 }

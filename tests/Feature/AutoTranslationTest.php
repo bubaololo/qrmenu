@@ -7,9 +7,9 @@ use App\Jobs\TranslateEntityJob;
 use App\Jobs\TranslateMenuJob;
 use App\Models\Menu;
 use App\Models\MenuItem;
-use App\Models\MenuOptionGroup;
-use App\Models\MenuOptionGroupOption;
 use App\Models\MenuSection;
+use App\Models\MenuVariation;
+use App\Models\MenuVariationOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\TranslationField;
@@ -209,12 +209,12 @@ class AutoTranslationTest extends TestCase
 
         $menu = $this->makeTranslatedMenu();
         $section = $menu->sections()->first();
-        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
+        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
         $group->setTranslation('name', 'vi', 'Đồ uống', isInitial: true);
 
         Bus::assertDispatched(
             TranslateEntityJob::class,
-            fn (TranslateEntityJob $job) => $job->entity instanceof MenuOptionGroup
+            fn (TranslateEntityJob $job) => $job->entity instanceof MenuVariation
                 && $job->entity->is($group),
         );
     }
@@ -226,13 +226,13 @@ class AutoTranslationTest extends TestCase
 
         $menu = $this->makeTranslatedMenu();
         $section = $menu->sections()->first();
-        $group = MenuOptionGroup::factory()->create(['menu_id' => $section->menu_id]);
-        $option = MenuOptionGroupOption::factory()->create(['group_id' => $group->id]);
+        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $option = MenuVariationOption::factory()->create(['variation_id' => $group->id]);
         $option->setTranslation('name', 'vi', 'Cay', isInitial: true);
 
         Bus::assertDispatched(
             TranslateEntityJob::class,
-            fn (TranslateEntityJob $job) => $job->entity instanceof MenuOptionGroupOption
+            fn (TranslateEntityJob $job) => $job->entity instanceof MenuVariationOption
                 && $job->entity->is($option),
         );
     }

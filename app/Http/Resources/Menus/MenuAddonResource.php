@@ -2,29 +2,23 @@
 
 namespace App\Http\Resources\Menus;
 
-use App\Models\MenuOptionGroup;
+use App\Models\MenuAddon;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
- * @mixin MenuOptionGroup
+ * @mixin MenuAddon
  */
-class MenuOptionGroupResource extends JsonApiResource
+class MenuAddonResource extends JsonApiResource
 {
     /** @var array<int, string> */
     public $attributes = [
         'name',
-        'type',
-        'kind',
-        'required',
-        'allow_multiple',
-        'min_select',
-        'max_select',
+        'price',
         'sort_order',
     ];
 
     /** @var array<int, string> */
     public $relationships = [
-        'options',
         'items',
     ];
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\OptionGroupKind;
 use App\Enums\PriceType;
 use App\Models\Concerns\HasTranslations;
 use Database\Factories\MenuItemFactory;
@@ -131,20 +130,16 @@ class MenuItem extends Model
         return $this->belongsTo(MenuSection::class, 'section_id');
     }
 
-    public function optionGroups(): BelongsToMany
-    {
-        return $this->belongsToMany(MenuOptionGroup::class, 'menu_item_option_group', 'item_id', 'group_id')
-            ->orderBy('sort_order');
-    }
-
     public function variations(): BelongsToMany
     {
-        return $this->optionGroups()->where('kind', OptionGroupKind::Variant);
+        return $this->belongsToMany(MenuVariation::class, 'menu_item_variation', 'item_id', 'variation_id')
+            ->orderBy('sort_order');
     }
 
     public function addons(): BelongsToMany
     {
-        return $this->optionGroups()->where('kind', OptionGroupKind::Addon);
+        return $this->belongsToMany(MenuAddon::class, 'menu_item_addon', 'item_id', 'addon_id')
+            ->orderBy('sort_order');
     }
 
     /** @param  Builder<MenuItem>  $query */
