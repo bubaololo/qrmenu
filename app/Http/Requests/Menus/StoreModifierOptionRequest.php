@@ -20,8 +20,11 @@ class StoreModifierOptionRequest extends FormRequest
             'is_default' => ['nullable', 'boolean'],
             'default_qty' => ['nullable', 'integer', 'min:0'],
             'max_qty' => ['nullable', 'integer', 'min:1'],
-            'linked_menu_item_id' => ['nullable', 'integer', 'exists:menu_items,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            // Size-dependent price matrix: price per driver option.
+            'prices' => ['sometimes', 'array'],
+            'prices.*.driver_option_id' => ['required_with:prices', 'integer', 'exists:modifier_options,id'],
+            'prices.*.price' => ['required_with:prices', 'numeric'],
         ];
     }
 }

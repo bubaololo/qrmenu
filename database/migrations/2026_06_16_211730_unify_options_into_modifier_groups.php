@@ -13,10 +13,9 @@ use Illuminate\Support\Facades\Schema;
  *   - An "Extras"    => group(pricing_mode=add, multi, min=0, max=null).
  *
  * Selection constraints (min/max/required), per-item overrides (the junction),
- * per-option quantity, nesting (parent_option_id), and combos/inventory
- * (linked_menu_item_id) all live here. The quantity/charge/portion/linked
- * columns ship now but inert — phases 2 & 3 activate them with no further
- * item-table migration.
+ * per-option quantity, and nesting (parent_option_id) all live here. The
+ * quantity/charge/portion columns ship now but inert — phases 2 & 3 activate
+ * them with no further item-table migration.
  *
  * Existing variations/add-ons are migrated (translations preserved). Orders
  * snapshot into the new recursive order_item_modifiers table going forward;
@@ -54,12 +53,9 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
             $table->unsignedSmallInteger('default_qty')->default(1); // phase 2
             $table->unsignedSmallInteger('max_qty')->default(1);     // phase 2 (>1 enables the stepper)
-            // Combos + future inventory anchor (phase 3).
-            $table->foreignId('linked_menu_item_id')->nullable()->constrained('menu_items')->nullOnDelete();
             $table->integer('sort_order')->default(0);
             $table->timestamps();
             $table->index('group_id');
-            $table->index('linked_menu_item_id');
         });
 
         // Self-referential nesting FK now that both tables exist.

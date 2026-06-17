@@ -8,9 +8,11 @@ use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\ModifierGroup;
 use App\Models\ModifierOption;
+use App\Models\ModifierOptionPrice;
 use App\Models\Restaurant;
 use App\Models\TranslationField;
 use App\Models\User;
+use App\Services\Orders\ModifierPricingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -619,5 +621,152 @@ class ModifierGroupTest extends TestCase
         $this->actingAs($stranger)
             ->putJson("/api/v1/menu-items/{$item->id}/modifier-groups/{$group->id}", ['required_override' => true])
             ->assertStatus(403);
+    }
+
+    /**
+     * Build a pizza-like item: a Size replace group (S=100 / L=200 absolute) and
+     * a driven Extras add group with "cheese" (base 25; +20 on S, +40 on L).
+     *
+     * @return array{item: MenuItem, size: ModifierGroup, small: ModifierOption, large: ModifierOption, extras: ModifierGroup, cheese: ModifierOption}
+     */
+    private function makeDrivenPizza(Menu $menu): array
+    {
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id, 'price_value' => 0]);
+
+        $size = ModifierGroup::factory()->variation()->create(['menu_id' => $menu->id]);
+        $small = ModifierOption::factory()->create(['group_id' => $size->id, 'price' => 100, 'sort_order' => 0]);
+        $large = ModifierOption::factory()->create(['group_id' => $size->id, 'price' => 200, 'sort_order' => 1]);
+
+        $extras = ModifierGroup::factory()->create([
+            'menu_id' => $menu->id,
+            'price_driver_group_id' => $size->id,
+        ]);
+        $cheese = ModifierOption::factory()->create(['group_id' => $extras->id, 'price' => 25]);
+        ModifierOptionPrice::create(['option_id' => $cheese->id, 'driver_option_id' => $small->id, 'price' => 20]);
+        ModifierOptionPrice::create(['option_id' => $cheese->id, 'driver_option_id' => $large->id, 'price' => 40]);
+
+        $item->modifierGroups()->attach([$size->id, $extras->id]);
+        $item->load([
+            'modifierGroups.options.driverPrices',
+            'modifierGroups.translations',
+            'modifierGroups.options.translations',
+        ]);
+
+        return compact('item', 'size', 'small', 'large', 'extras', 'cheese');
+    }
+
+    #[Test]
+    public function test_add_price_varies_by_chosen_driver_option(): void
+    {
+        $menu = Menu::factory()->create();
+        ['item' => $item, 'size' => $size, 'small' => $small, 'large' => $large, 'extras' => $extras, 'cheese' => $cheese] = $this->makeDrivenPizza($menu);
+        $pricing = app(ModifierPricingService::class);
+
+        // Large (200) + cheese-on-large (40) = 240.
+        $large = $pricing->price($item, [
+            ['group_id' => $size->id, 'option_id' => $large->id, 'qty' => 1],
+            ['group_id' => $extras->id, 'option_id' => $cheese->id, 'qty' => 1],
+        ], 'en');
+        $this->assertEqualsWithDelta(240.0, $large['unit_price'], 0.001);
+
+        // Small (100) + cheese-on-small (20) = 120.
+        $small = $pricing->price($item, [
+            ['group_id' => $size->id, 'option_id' => $small->id, 'qty' => 1],
+            ['group_id' => $extras->id, 'option_id' => $cheese->id, 'qty' => 1],
+        ], 'en');
+        $this->assertEqualsWithDelta(120.0, $small['unit_price'], 0.001);
+    }
+
+    #[Test]
+    public function test_add_price_falls_back_to_base_without_driver_or_row(): void
+    {
+        $menu = Menu::factory()->create();
+        ['item' => $item, 'size' => $size, 'small' => $small, 'extras' => $extras, 'cheese' => $cheese] = $this->makeDrivenPizza($menu);
+        $pricing = app(ModifierPricingService::class);
+
+        // No size chosen → cheese falls back to its base 25 (item base 0).
+        $noDriver = $pricing->price($item, [
+            ['group_id' => $extras->id, 'option_id' => $cheese->id, 'qty' => 1],
+        ], 'en');
+        $this->assertEqualsWithDelta(25.0, $noDriver['unit_price'], 0.001);
+
+        // A driver option with NO matrix row → fall back to base 25 (+ size 100).
+        $bare = ModifierOption::factory()->create(['group_id' => $size->id, 'price' => 150]);
+        $item->load(['modifierGroups.options.driverPrices']);
+        $fallback = $pricing->price($item, [
+            ['group_id' => $size->id, 'option_id' => $bare->id, 'qty' => 1],
+            ['group_id' => $extras->id, 'option_id' => $cheese->id, 'qty' => 1],
+        ], 'en');
+        $this->assertEqualsWithDelta(175.0, $fallback['unit_price'], 0.001);
+    }
+
+    #[Test]
+    public function test_store_group_rejects_non_single_select_driver(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id]);
+        // A multi-select group cannot be a price driver.
+        $multi = ModifierGroup::factory()->create(['menu_id' => $menu->id, 'selection_type' => 'multi']);
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/menus/{$menu->id}/modifier-groups", [
+                'name' => 'Extras',
+                'pricing_mode' => 'add',
+                'price_driver_group_id' => $multi->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('price_driver_group_id');
+    }
+
+    #[Test]
+    public function test_option_price_matrix_round_trips_and_drops_foreign_driver(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+
+        $size = ModifierGroup::factory()->variation()->create(['menu_id' => $menu->id]);
+        $small = ModifierOption::factory()->create(['group_id' => $size->id, 'price' => 100]);
+        $large = ModifierOption::factory()->create(['group_id' => $size->id, 'price' => 200]);
+        // An option in an unrelated group — must be dropped from the matrix.
+        $foreign = ModifierOption::factory()->create([
+            'group_id' => ModifierGroup::factory()->create(['menu_id' => $menu->id])->id,
+        ]);
+
+        $extras = ModifierGroup::factory()->create(['menu_id' => $menu->id, 'price_driver_group_id' => $size->id]);
+
+        $cheeseId = $this->actingAs($user)
+            ->postJson("/api/v1/modifier-groups/{$extras->id}/options", [
+                'name' => 'Cheese',
+                'price' => 25,
+                'prices' => [
+                    ['driver_option_id' => $small->id, 'price' => 20],
+                    ['driver_option_id' => $large->id, 'price' => 40],
+                    ['driver_option_id' => $foreign->id, 'price' => 99],
+                ],
+            ])
+            ->assertStatus(201)
+            ->json('data.id');
+
+        // Only the two valid driver rows persist; the foreign one is dropped.
+        $this->assertDatabaseHas('modifier_option_prices', ['option_id' => $cheeseId, 'driver_option_id' => $small->id, 'price' => 20]);
+        $this->assertDatabaseHas('modifier_option_prices', ['option_id' => $cheeseId, 'driver_option_id' => $large->id, 'price' => 40]);
+        $this->assertDatabaseMissing('modifier_option_prices', ['option_id' => $cheeseId, 'driver_option_id' => $foreign->id]);
+
+        // Library index exposes the group's driver (attribute) + the option
+        // matrix (in the JSON:API `included` options).
+        $json = $this->actingAs($user)
+            ->getJson("/api/v1/menus/{$menu->id}/modifier-groups?include=options")
+            ->assertOk()
+            ->json();
+
+        $extrasData = collect($json['data'])->firstWhere('id', (string) $extras->id);
+        $this->assertSame($size->id, $extrasData['attributes']['price_driver_group_id']);
+
+        $cheese = collect($json['included'] ?? [])->firstWhere('id', (string) $cheeseId);
+        $this->assertNotNull($cheese);
+        $this->assertCount(2, $cheese['attributes']['prices']);
     }
 }

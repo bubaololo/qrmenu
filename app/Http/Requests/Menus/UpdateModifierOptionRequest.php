@@ -20,8 +20,11 @@ class UpdateModifierOptionRequest extends FormRequest
             'is_default' => ['sometimes', 'boolean'],
             'default_qty' => ['sometimes', 'integer', 'min:0'],
             'max_qty' => ['sometimes', 'integer', 'min:1'],
-            'linked_menu_item_id' => ['sometimes', 'nullable', 'integer', 'exists:menu_items,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            // Size-dependent price matrix: price per driver option.
+            'prices' => ['sometimes', 'array'],
+            'prices.*.driver_option_id' => ['required_with:prices', 'integer', 'exists:modifier_options,id'],
+            'prices.*.price' => ['required_with:prices', 'numeric'],
         ];
     }
 }

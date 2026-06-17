@@ -91,6 +91,7 @@ class FullMenuResource extends JsonResource
             'required' => (bool) ($group->pivot?->required_override ?? $group->required),
             'charge_above' => $group->charge_above,
             'portion_denominator' => $group->portion_denominator,
+            'price_driver_group_id' => $group->price_driver_group_id,
             'sort_order' => $group->pivot?->sort_order ?? $group->sort_order,
             // Raw per-item overrides (null = inherit) for the admin editor; the
             // guest uses the effective values above. Null for nested groups.
@@ -108,8 +109,13 @@ class FullMenuResource extends JsonResource
                 'is_default' => $opt->is_default,
                 'default_qty' => $opt->default_qty,
                 'max_qty' => $opt->max_qty,
-                'linked_menu_item_id' => $opt->linked_menu_item_id,
                 'sort_order' => $opt->sort_order,
+                'prices' => $opt->relationLoaded('driverPrices')
+                    ? $opt->driverPrices->map(fn ($p) => [
+                        'driver_option_id' => $p->driver_option_id,
+                        'price' => $p->price,
+                    ])->values()
+                    : [],
                 'child_groups' => $opt->relationLoaded('childGroups')
                     ? $opt->childGroups->map(fn ($child) => $this->serializeGroup($child, $locale))->values()
                     : [],

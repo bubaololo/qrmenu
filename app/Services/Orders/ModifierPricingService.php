@@ -48,6 +48,12 @@ class ModifierPricingService
         $groupsById = $availableGroups->keyBy('id');
         $freeOptionIds = $this->freeOptionIds($availableGroups, $selections);
 
+        // Chosen option per group at this level — drives size-dependent add prices.
+        $chosenOptionByGroup = [];
+        foreach ($selections as $selection) {
+            $chosenOptionByGroup[(int) $selection['group_id']] = (int) $selection['option_id'];
+        }
+
         $absolute = null;
         $additive = 0.0;
         $nodes = [];
@@ -64,9 +70,23 @@ class ModifierPricingService
             $portionFraction = $portionNumerator !== null ? ((int) $portionNumerator / $portionDenominator) : 1.0;
 
             $isReplace = $group->pricing_mode === ModifierPricingMode::Replace;
-            $ownUnit = $isReplace
-                ? ($option->price !== null ? (float) $option->price : $base)
-                : (float) ($option->price ?? 0);
+            if ($isReplace) {
+                $ownUnit = $option->price !== null ? (float) $option->price : $base;
+            } else {
+                $ownUnit = (float) ($option->price ?? 0);
+                // Size-dependent pricing: if this add group is driven by another
+                // group, use the per-driver-option price when the driver is
+                // chosen and a row exists (else fall back to the flat price).
+                if ($group->price_driver_group_id !== null) {
+                    $driverOptionId = $chosenOptionByGroup[$group->price_driver_group_id] ?? null;
+                    if ($driverOptionId !== null) {
+                        $override = $option->driverPrices->firstWhere('driver_option_id', $driverOptionId);
+                        if ($override !== null) {
+                            $ownUnit = (float) $override->price;
+                        }
+                    }
+                }
+            }
 
             $chargeableQty = in_array($option->id, $freeOptionIds[$group->id] ?? [], true) ? 0 : $qty;
             $ownAmount = $ownUnit * $chargeableQty * $portionFraction;

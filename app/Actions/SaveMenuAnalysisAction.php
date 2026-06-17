@@ -443,7 +443,7 @@ class SaveMenuAnalysisAction
                 if ($name === null || trim($name) === '') {
                     continue;
                 }
-                $price = $addonData['price'] ?? $addonData['price_adjust'] ?? 0;
+                $price = $this->lowEndPrice($addonData['price'] ?? $addonData['price_adjust'] ?? 0);
                 $dedup = strtolower(trim($name)).':'.$price;
                 if (isset($seen[$dedup])) {
                     continue;
@@ -491,6 +491,23 @@ class SaveMenuAnalysisAction
             }
             $group->items()->syncWithoutDetaching(array_unique($set['itemIds']));
         }
+    }
+
+    /**
+     * Coerce a recognized add-on price to a number, taking the LOW end when the
+     * model emits a range like "20000-40000" (size-dependent prices are then set
+     * manually in the library). Already-numeric values pass through.
+     */
+    private function lowEndPrice(mixed $raw): float|int
+    {
+        if (is_numeric($raw)) {
+            return $raw + 0;
+        }
+        if (is_string($raw) && preg_match('/\d[\d.,]*/', $raw, $matches) === 1) {
+            return (float) str_replace(',', '', $matches[0]);
+        }
+
+        return 0;
     }
 
     /** A localized default name for a synthesized "Extras" add-on group. */

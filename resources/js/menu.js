@@ -353,6 +353,10 @@ const App = {
           tag.classList.add('option-tag-optional');
         }
 
+        // For size-driven groups the per-option surcharge depends on the chosen
+        // driver (size) option; show the delta for whichever driver option is
+        // selected right now (falls back to the flat price when none / no row).
+        const driverOptionId = this._driverChoiceId(group, item, this._sheet.selections);
         const choicesEl = grp.querySelector('.option-choices');
         group.options.forEach(opt => {
           const chc = choiceTpl.content.firstElementChild.cloneNode(true);
@@ -362,9 +366,10 @@ const App = {
           }
           chc.querySelector('.option-choice-check').classList.add('option-checkbox');
           chc.querySelector('.option-choice-name').textContent = opt.name;
-          if (opt.price > 0) {
+          const delta = this._addOptionDelta(opt, driverOptionId);
+          if (delta > 0) {
             const priceEl = chc.querySelector('.option-choice-price');
-            priceEl.textContent = '+' + this.formatPrice(opt.price);
+            priceEl.textContent = '+' + this.formatPrice(delta);
             priceEl.hidden = false;
           }
           choicesEl.appendChild(chc);
@@ -399,13 +404,38 @@ const App = {
     }
   },
 
-  // All `add`-group options selected across the item, by id.
-  _getAddonsExtra(item, addonIds) {
+  // Delta for one chosen `add` option given the active driver option (if the
+  // group is size-driven). Mirrors menu-core/pricing.ts `optionDelta`.
+  _addOptionDelta(option, driverOptionId) {
+    if (driverOptionId != null && option.prices && option.prices.length) {
+      const row = option.prices.find(p => p.driver_option_id === driverOptionId);
+      if (row) return row.price || 0;
+    }
+    return option.price || 0;
+  },
+
+  // The chosen option id of an `add` group's price-driver group, or undefined.
+  // The driver is a single-select (replace) group, tracked in `selections`.
+  // Mirrors menu-core/pricing.ts `driverChoiceId`.
+  _driverChoiceId(group, item, selections) {
+    if (group.price_driver_group_id == null) return undefined;
+    const driverGroup = (item.modifierGroups || []).find(
+      g => g.id === group.price_driver_group_id
+    );
+    if (!driverGroup) return undefined;
+    const opt = this._selectedOption(driverGroup, selections);
+    return opt ? opt.id : undefined;
+  },
+
+  // All `add`-group options selected across the item, by id. When a group is
+  // size-driven, each option's delta is its per-driver-option price.
+  _getAddonsExtra(item, addonIds, selections) {
     if (!addonIds || !addonIds.length) return 0;
     let sum = 0;
     this._addGroups(item).forEach(g => {
+      const driverOptionId = this._driverChoiceId(g, item, selections);
       (g.options || []).forEach(o => {
-        if (addonIds.includes(o.id)) sum += (o.price || 0);
+        if (addonIds.includes(o.id)) sum += this._addOptionDelta(o, driverOptionId);
       });
     });
     return sum;
@@ -422,7 +452,13 @@ const App = {
    *   unit = ( the single `replace` group's chosen option price, falling back to
    *            item.price when that option price is null or no replace group is
    *            chosen )
-   *        + Σ over every chosen `add` option of ( option.price * qty )   // qty=1 in phase 1
+   *        + Σ over every chosen `add` option of ( delta * qty )          // qty=1 in phase 1
+   *
+   * where `delta` is the option's flat `price`, EXCEPT for an `add` group with a
+   * `price_driver_group_id`: then it's the option's `prices` row matching the
+   * chosen option of the driver group (falling back to the flat `price` when no
+   * driver option is chosen or no matching row exists). Driver-aware resolution
+   * mirrors menu-core/pricing.ts `optionDelta`/`driverChoiceId`.
    */
   _previewUnitPrice(item, selections, addonIds) {
     let base = item.price;
@@ -430,7 +466,7 @@ const App = {
       const opt = this._selectedOption(group, selections);
       if (opt && opt.price != null) base = opt.price;
     });
-    return base + this._getAddonsExtra(item, addonIds);
+    return base + this._getAddonsExtra(item, addonIds, selections);
   },
 
   // Back-compat alias retained for any external callers.

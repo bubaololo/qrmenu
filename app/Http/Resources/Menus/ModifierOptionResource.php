@@ -17,8 +17,9 @@ class ModifierOptionResource extends JsonApiResource
         'is_default',
         'default_qty',
         'max_qty',
-        'linked_menu_item_id',
         'sort_order',
+        // Size-dependent matrix: [{driver_option_id, price}] (empty when flat).
+        'prices',
     ];
 
     /** @var array<int, string> */

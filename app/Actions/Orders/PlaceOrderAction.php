@@ -63,6 +63,7 @@ class PlaceOrderAction
             'modifierGroups.options',
             'modifierGroups.translations',
             'modifierGroups.options.translations',
+            'modifierGroups.options.driverPrices',
         ])
             ->whereIn('id', $menuItemIds)
             ->where('is_visible', true)

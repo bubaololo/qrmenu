@@ -13,10 +13,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * One choice within a {@see ModifierGroup}. `price` is interpreted by the
  * parent group's pricing_mode: ABSOLUTE when `replace` (null falls back to the
  * dish's price_value), a signed DELTA when `add` (null = 0).
- *
- * `linked_menu_item_id` lets an option be sourced from another menu item
- * (combos) — its name falls back to that item's name and the pricing/selection
- * walker pulls in that item's own groups (phase 3).
  */
 class ModifierOption extends Model
 {
@@ -26,7 +22,7 @@ class ModifierOption extends Model
     use HasTranslations;
 
     /** @var array<int, string> */
-    protected $appends = ['name'];
+    protected $appends = ['name', 'prices'];
 
     protected $fillable = [
         'group_id',
@@ -34,7 +30,6 @@ class ModifierOption extends Model
         'is_default',
         'default_qty',
         'max_qty',
-        'linked_menu_item_id',
         'sort_order',
     ];
 
@@ -76,12 +71,7 @@ class ModifierOption extends Model
 
     public function getNameAttribute(): ?string
     {
-        $own = $this->localizedText('name');
-        if ($own !== null && $own !== '') {
-            return $own;
-        }
-
-        return $this->relationLoaded('linkedItem') ? $this->linkedItem?->name : null;
+        return $this->localizedText('name');
     }
 
     public function setNameAttribute(?string $value): void
@@ -89,19 +79,44 @@ class ModifierOption extends Model
         $this->pendingName = $value;
     }
 
+    /**
+     * Per-driver-option prices as a flat array (the size-dependent matrix).
+     * Empty unless `driverPrices` is eager-loaded.
+     *
+     * @return list<array{driver_option_id: int, price: string}>
+     */
+    public function getPricesAttribute(): array
+    {
+        if (! $this->relationLoaded('driverPrices')) {
+            return [];
+        }
+
+        return $this->driverPrices
+            ->map(fn (ModifierOptionPrice $p) => [
+                'driver_option_id' => $p->driver_option_id,
+                'price' => $p->price,
+            ])
+            ->all();
+    }
+
     public function group(): BelongsTo
     {
         return $this->belongsTo(ModifierGroup::class, 'group_id');
-    }
-
-    public function linkedItem(): BelongsTo
-    {
-        return $this->belongsTo(MenuItem::class, 'linked_menu_item_id');
     }
 
     /** Groups revealed when this option is chosen (recursive nesting edge). */
     public function childGroups(): HasMany
     {
         return $this->hasMany(ModifierGroup::class, 'parent_option_id')->orderBy('sort_order');
+    }
+
+    /**
+     * Per-driver-option prices (size-dependent pricing). Each row overrides this
+     * option's price when a given driver option is also chosen; absent rows fall
+     * back to {@see static::$price}.
+     */
+    public function driverPrices(): HasMany
+    {
+        return $this->hasMany(ModifierOptionPrice::class, 'option_id');
     }
 }

@@ -21,6 +21,9 @@ class ModifierGroupResource extends JsonApiResource
         'charge_above',
         'portion_denominator',
         'sort_order',
+        // Size-dependent pricing: the single-select driver group whose chosen
+        // option drives this group's option prices (null = flat pricing).
+        'price_driver_group_id',
         // Usage count — populated by `->withCount('items')` on the index
         // endpoint; null on responses that don't load it.
         'items_count',

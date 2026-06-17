@@ -23,6 +23,7 @@ class UpdateModifierGroupRequest extends FormRequest
             'required' => ['sometimes', 'boolean'],
             'charge_above' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'portion_denominator' => ['sometimes', 'integer', 'min:1', 'max:255'],
+            'price_driver_group_id' => ['sometimes', 'nullable', 'integer', 'exists:modifier_groups,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }

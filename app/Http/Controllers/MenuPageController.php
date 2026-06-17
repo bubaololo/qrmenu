@@ -66,6 +66,7 @@ class MenuPageController extends Controller
             'menu.sections.items.translations' => $scope,
             'menu.sections.items.modifierGroups.translations' => $scope,
             'menu.sections.items.modifierGroups.options.translations' => $scope,
+            'menu.sections.items.modifierGroups.options.driverPrices' => fn ($q) => $q,
         ]);
 
         $menu = $restaurant->menu;

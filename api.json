@@ -5194,6 +5194,12 @@
                         ],
                         "format": "date-time"
                     },
+                    "price_driver_group_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "name": {
                         "type": "string"
                     }
@@ -5212,6 +5218,7 @@
                     "sort_order",
                     "created_at",
                     "updated_at",
+                    "price_driver_group_id",
                     "name"
                 ],
                 "title": "ModifierGroupResource"
@@ -5240,12 +5247,6 @@
                     "max_qty": {
                         "type": "integer"
                     },
-                    "linked_menu_item_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
                     "sort_order": {
                         "type": "integer"
                     },
@@ -5265,6 +5266,9 @@
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "prices": {
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -5274,11 +5278,11 @@
                     "is_default",
                     "default_qty",
                     "max_qty",
-                    "linked_menu_item_id",
                     "sort_order",
                     "created_at",
                     "updated_at",
-                    "name"
+                    "name",
+                    "prices"
                 ],
                 "title": "ModifierOptionResource"
             },
@@ -5968,6 +5972,12 @@
                         "minimum": 1,
                         "maximum": 255
                     },
+                    "price_driver_group_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "sort_order": {
                         "type": [
                             "integer",
@@ -6015,18 +6025,27 @@
                         ],
                         "minimum": 1
                     },
-                    "linked_menu_item_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
                     "sort_order": {
                         "type": [
                             "integer",
                             "null"
                         ],
                         "minimum": 0
+                    },
+                    "prices": {
+                        "type": "array",
+                        "description": "Size-dependent price matrix: price per driver option.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "driver_option_id": {
+                                    "type": "integer"
+                                },
+                                "price": {
+                                    "type": "number"
+                                }
+                            }
+                        }
                     }
                 },
                 "required": [
@@ -6514,6 +6533,12 @@
                         "minimum": 1,
                         "maximum": 255
                     },
+                    "price_driver_group_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "sort_order": {
                         "type": "integer",
                         "minimum": 0
@@ -6545,15 +6570,24 @@
                         "type": "integer",
                         "minimum": 1
                     },
-                    "linked_menu_item_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
                     "sort_order": {
                         "type": "integer",
                         "minimum": 0
+                    },
+                    "prices": {
+                        "type": "array",
+                        "description": "Size-dependent price matrix: price per driver option.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "driver_option_id": {
+                                    "type": "integer"
+                                },
+                                "price": {
+                                    "type": "number"
+                                }
+                            }
+                        }
                     }
                 },
                 "title": "UpdateModifierOptionRequest"

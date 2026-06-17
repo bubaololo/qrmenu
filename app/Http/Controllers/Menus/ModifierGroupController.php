@@ -15,6 +15,7 @@ use App\Models\ModifierGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class ModifierGroupController extends Controller
 {
@@ -30,7 +31,7 @@ class ModifierGroupController extends Controller
         Gate::authorize('view', $menu);
 
         $groups = $menu->modifierGroups()
-            ->with(['translations', 'options.translations'])
+            ->with(['translations', 'options.translations', 'options.driverPrices'])
             ->withCount('items')
             ->get();
 
@@ -45,6 +46,7 @@ class ModifierGroupController extends Controller
         Gate::authorize('update', $menu);
 
         $validated = $request->validated();
+        $this->assertDriverGroup($validated, $menu);
 
         $group = ModifierGroup::create([
             'menu_id' => $menu->id,
@@ -67,6 +69,7 @@ class ModifierGroupController extends Controller
         Gate::authorize('update', $modifierGroup->menu);
 
         $validated = $request->validated();
+        $this->assertDriverGroup($validated, $modifierGroup->menu, $modifierGroup->id);
 
         if (isset($validated['name'])) {
             [$locale, $isInitial] = $this->resolveLocale($modifierGroup->menu);
@@ -147,6 +150,32 @@ class ModifierGroupController extends Controller
     }
 
     /**
+     * Guard the size-dependent driver: it must be a single-select group of the
+     * same menu and not the group itself.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertDriverGroup(array $validated, Menu $menu, ?int $selfId = null): void
+    {
+        if (! array_key_exists('price_driver_group_id', $validated) || $validated['price_driver_group_id'] === null) {
+            return;
+        }
+
+        $valid = ModifierGroup::query()
+            ->whereKey($validated['price_driver_group_id'])
+            ->where('menu_id', $menu->id)
+            ->where('selection_type', 'single')
+            ->when($selfId !== null, fn ($q) => $q->whereKeyNot($selfId))
+            ->exists();
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'price_driver_group_id' => 'The price driver must be a single-select group of the same menu.',
+            ]);
+        }
+    }
+
+    /**
      * Map validated input to group columns, keeping selection_min and `required`
      * in agreement (selection_min is authoritative — a required group needs at
      * least one selection).
@@ -157,7 +186,7 @@ class ModifierGroupController extends Controller
     private function groupAttributes(array $validated, ?ModifierGroup $existing = null): array
     {
         $attributes = [];
-        foreach (['pricing_mode', 'selection_type', 'selection_min', 'selection_max', 'required', 'charge_above', 'portion_denominator', 'sort_order'] as $key) {
+        foreach (['pricing_mode', 'selection_type', 'selection_min', 'selection_max', 'required', 'charge_above', 'portion_denominator', 'price_driver_group_id', 'sort_order'] as $key) {
             if (array_key_exists($key, $validated)) {
                 $attributes[$key] = $validated[$key];
             }

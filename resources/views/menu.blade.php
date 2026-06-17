@@ -264,10 +264,22 @@
                                                 $price = $opt->price !== null
                                                     ? (float) $opt->price
                                                     : ($pricingMode === 'replace' ? (float) $item->price_value : 0.0);
+                                                // Size-dependent add-on prices: one row per driver option
+                                                // (`{driver_option_id, price}`). Empty unless this group has
+                                                // a `price_driver_group_id`. menu.js applies them with the
+                                                // SAME driver-aware rule as menu-core/pricing.ts.
+                                                $optionPrices = [];
+                                                foreach ($opt->prices as $row) {
+                                                    $optionPrices[] = [
+                                                        'driver_option_id' => (int) $row['driver_option_id'],
+                                                        'price' => (float) $row['price'],
+                                                    ];
+                                                }
                                                 $options[] = [
                                                     'id' => $opt->id,
                                                     'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
                                                     'price' => $price,
+                                                    'prices' => $optionPrices,
                                                     'is_default' => (bool) $opt->is_default,
                                                     'max_qty' => (int) ($opt->max_qty ?? 1),
                                                 ];
@@ -280,6 +292,8 @@
                                                 'selection_min' => $selMin,
                                                 'selection_max' => $selMax !== null ? (int) $selMax : null,
                                                 'required' => $required,
+                                                // Size-dependent add-on pricing driver (`null` ⇒ flat).
+                                                'price_driver_group_id' => $g->price_driver_group_id !== null ? (int) $g->price_driver_group_id : null,
                                                 'sort_order' => $sortOrder,
                                                 'options' => $options,
                                             ];

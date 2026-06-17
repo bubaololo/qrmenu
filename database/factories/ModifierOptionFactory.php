@@ -22,7 +22,6 @@ class ModifierOptionFactory extends Factory
             'is_default' => false,
             'default_qty' => 1,
             'max_qty' => 1,
-            'linked_menu_item_id' => null,
             'sort_order' => 0,
         ];
     }

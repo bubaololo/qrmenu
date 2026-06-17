@@ -35,6 +35,7 @@ class ModifierGroup extends Model
     protected $fillable = [
         'menu_id',
         'parent_option_id',
+        'price_driver_group_id',
         'pricing_mode',
         'selection_type',
         'selection_min',
@@ -121,6 +122,15 @@ class ModifierGroup extends Model
     public function parentOption(): BelongsTo
     {
         return $this->belongsTo(ModifierOption::class, 'parent_option_id');
+    }
+
+    /**
+     * The (single-select) group whose chosen option drives this group's option
+     * prices (size-dependent pricing); null = flat pricing.
+     */
+    public function priceDriverGroup(): BelongsTo
+    {
+        return $this->belongsTo(ModifierGroup::class, 'price_driver_group_id');
     }
 
     /**
