@@ -5,10 +5,9 @@ namespace Tests\Feature;
 use App\Enums\RestaurantUserRole;
 use App\Jobs\TranslateEntityJob;
 use App\Models\Menu;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
+use App\Models\ModifierGroup;
 use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,7 +28,7 @@ class MenuItemCloneTest extends TestCase
     }
 
     #[Test]
-    public function test_clone_duplicates_item_and_reuses_variation_and_addon_pivots(): void
+    public function test_clone_duplicates_item_and_reuses_modifier_group_pivots(): void
     {
         $restaurant = Restaurant::factory()->create();
         $user = $this->asOwnerOf($restaurant);
@@ -37,10 +36,9 @@ class MenuItemCloneTest extends TestCase
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
         $item->setTranslation('name', 'en', 'Burger', isInitial: true);
-        $variation = MenuVariation::factory()->create(['menu_id' => $menu->id]);
-        $addon = MenuAddon::factory()->create(['menu_id' => $menu->id]);
-        $item->variations()->attach($variation->id);
-        $item->addons()->attach($addon->id);
+        $sizeGroup = ModifierGroup::factory()->variation()->create(['menu_id' => $menu->id]);
+        $extrasGroup = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
+        $item->modifierGroups()->attach([$sizeGroup->id, $extrasGroup->id]);
 
         $response = $this->actingAs($user)
             ->postJson("/api/v1/menu-items/{$item->id}/clone")
@@ -50,12 +48,13 @@ class MenuItemCloneTest extends TestCase
         $this->assertNotSame($item->id, $cloneId);
 
         $clone = MenuItem::findOrFail($cloneId);
-        $this->assertSame('Burger (копия)', $clone->translate('name', 'en'));
-        // The same shared variation/add-on are reused via pivot (not duplicated).
-        $this->assertSame([$variation->id], $clone->variations()->pluck('menu_variations.id')->all());
-        $this->assertSame([$addon->id], $clone->addons()->pluck('menu_addons.id')->all());
-        $this->assertSame(1, MenuVariation::count());
-        $this->assertSame(1, MenuAddon::count());
+        $this->assertSame('Burger (copy)', $clone->translate('name', 'en'));
+        // The same shared modifier groups are reused via pivot (not duplicated).
+        $this->assertEqualsCanonicalizing(
+            [$sizeGroup->id, $extrasGroup->id],
+            $clone->modifierGroups()->pluck('modifier_groups.id')->all(),
+        );
+        $this->assertSame(2, ModifierGroup::count());
     }
 
     #[Test]

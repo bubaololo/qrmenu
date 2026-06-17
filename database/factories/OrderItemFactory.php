@@ -18,11 +18,9 @@ class OrderItemFactory extends Factory
         return [
             'order_id' => Order::factory(),
             'menu_item_id' => MenuItem::factory(),
-            'variation_option_id' => null,
             'quantity' => fake()->numberBetween(1, 4),
             'unit_price' => fake()->randomFloat(2, 1, 50),
             'currency' => 'USD',
-            'selected_options' => null,
             'kitchen_status' => OrderItemKitchenStatus::Waiting,
         ];
     }

@@ -60,9 +60,8 @@ class TranslateMenuJob implements ShouldQueue
         $this->menu->load([
             'sections.initialTranslations',
             'sections.items.initialTranslations',
-            'variations.initialTranslations',
-            'variations.options.initialTranslations',
-            'addons.initialTranslations',
+            'modifierGroups.initialTranslations',
+            'modifierGroups.options.initialTranslations',
             'restaurant',
         ]);
 
@@ -166,9 +165,8 @@ class TranslateMenuJob implements ShouldQueue
      *
      * S|section_id|Section Name
      * I|item_id|Item Name|Item Description
-     * V|variation_id|Variation Name  (pick-one axis, e.g. Size)
-     * O|option_id|Option Name        (a choice within a variation)
-     * A|addon_id|Add-on Name         (atomic extra)
+     * G|group_id|Group Name          (a modifier group, e.g. Size / Extras)
+     * O|option_id|Option Name        (a choice within a group)
      * R|field|value
      *
      * @return list<string>
@@ -188,20 +186,16 @@ class TranslateMenuJob implements ShouldQueue
             }
         }
 
-        // Variations and add-ons are shared across the whole menu, so emit them once.
-        foreach ($this->menu->variations as $variation) {
-            $variationName = $variation->initialText('name') ?? '';
-            $lines[] = "V|{$variation->id}|{$variationName}";
+        // Modifier groups (variations + add-ons) are shared across the whole
+        // menu, so emit them once.
+        foreach ($this->menu->modifierGroups as $group) {
+            $groupName = $group->initialText('name') ?? '';
+            $lines[] = "G|{$group->id}|{$groupName}";
 
-            foreach ($variation->options as $opt) {
+            foreach ($group->options as $opt) {
                 $optName = $opt->initialText('name') ?? '';
                 $lines[] = "O|{$opt->id}|{$optName}";
             }
-        }
-
-        foreach ($this->menu->addons as $addon) {
-            $addonName = $addon->initialText('name') ?? '';
-            $lines[] = "A|{$addon->id}|{$addonName}";
         }
 
         return $lines;

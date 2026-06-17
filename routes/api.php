@@ -4,13 +4,12 @@ use App\Http\Controllers\DiningTables\DiningTableController;
 use App\Http\Controllers\IconController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MenuAnalysisController;
-use App\Http\Controllers\Menus\MenuAddonController;
 use App\Http\Controllers\Menus\MenuController;
 use App\Http\Controllers\Menus\MenuItemController;
 use App\Http\Controllers\Menus\MenuSectionController;
 use App\Http\Controllers\Menus\MenuTranslationController;
-use App\Http\Controllers\Menus\MenuVariationController;
-use App\Http\Controllers\Menus\MenuVariationOptionController;
+use App\Http\Controllers\Menus\ModifierGroupController;
+use App\Http\Controllers\Menus\ModifierOptionController;
 use App\Http\Controllers\Orders\BillController;
 use App\Http\Controllers\Orders\OrderController;
 use App\Http\Controllers\Orders\OrderItemController;
@@ -117,24 +116,21 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::delete('/menu-items/{menuItem}', [MenuItemController::class, 'destroy']);
     Route::post('/menu-items/{menuItem}/clone', [MenuItemController::class, 'clone']);
 
-    // Menu Variations (pick-exactly-one axis; option price is absolute)
-    Route::post('/menus/{menu}/variations', [MenuVariationController::class, 'store']);
-    Route::put('/menu-variations/{menuVariation}', [MenuVariationController::class, 'update']);
-    Route::delete('/menu-variations/{menuVariation}', [MenuVariationController::class, 'destroy']);
-    Route::post('/menu-variations/{menuVariation}/attach-items', [MenuVariationController::class, 'attachItems']);
-    Route::post('/menu-variations/{menuVariation}/detach-items', [MenuVariationController::class, 'detachItems']);
+    // Modifier groups (Size / Extras / …) — shared across the menu. A group's
+    // pricing_mode decides whether its option price replaces the base or adds.
+    Route::get('/menus/{menu}/modifier-groups', [ModifierGroupController::class, 'index']);
+    Route::post('/menus/{menu}/modifier-groups', [ModifierGroupController::class, 'store']);
+    Route::put('/modifier-groups/{modifierGroup}', [ModifierGroupController::class, 'update']);
+    Route::delete('/modifier-groups/{modifierGroup}', [ModifierGroupController::class, 'destroy']);
+    Route::post('/modifier-groups/{modifierGroup}/attach-items', [ModifierGroupController::class, 'attachItems']);
+    Route::post('/modifier-groups/{modifierGroup}/detach-items', [ModifierGroupController::class, 'detachItems']);
+    // Per-item override of an attached group's selection rule (pivot only).
+    Route::put('/menu-items/{menuItem}/modifier-groups/{modifierGroup}', [ModifierGroupController::class, 'updateItemOverrides']);
 
-    // Menu Variation Options
-    Route::post('/menu-variations/{menuVariation}/options', [MenuVariationOptionController::class, 'store']);
-    Route::put('/menu-variation-options/{menuVariationOption}', [MenuVariationOptionController::class, 'update']);
-    Route::delete('/menu-variation-options/{menuVariationOption}', [MenuVariationOptionController::class, 'destroy']);
-
-    // Menu Add-ons (atomic extras; price is a delta added on top)
-    Route::post('/menus/{menu}/addons', [MenuAddonController::class, 'store']);
-    Route::put('/menu-addons/{menuAddon}', [MenuAddonController::class, 'update']);
-    Route::delete('/menu-addons/{menuAddon}', [MenuAddonController::class, 'destroy']);
-    Route::post('/menu-addons/{menuAddon}/attach-items', [MenuAddonController::class, 'attachItems']);
-    Route::post('/menu-addons/{menuAddon}/detach-items', [MenuAddonController::class, 'detachItems']);
+    // Modifier options (choices within a group)
+    Route::post('/modifier-groups/{modifierGroup}/options', [ModifierOptionController::class, 'store']);
+    Route::put('/modifier-options/{modifierOption}', [ModifierOptionController::class, 'update']);
+    Route::delete('/modifier-options/{modifierOption}', [ModifierOptionController::class, 'destroy']);
 
     // Orders
     Route::get('/restaurants/{restaurant}/orders', [OrderController::class, 'index']);

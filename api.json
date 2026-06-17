@@ -424,6 +424,30 @@
                 }
             }
         },
+        "/broadcasting/auth": {
+            "get": {
+                "operationId": "broadcast.authenticate",
+                "summary": "Authenticate the request for channel access",
+                "tags": [
+                    "Broadcast"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/user/confirm-password": {
             "post": {
                 "operationId": "password.confirm.store",
@@ -1176,7 +1200,7 @@
                                         "type": "string",
                                         "format": "binary",
                                         "contentMediaType": "application/octet-stream",
-                                        "maxLength": 10240
+                                        "maxLength": 51200
                                     }
                                 },
                                 "required": [
@@ -1669,7 +1693,7 @@
                                             "type": "string",
                                             "format": "binary",
                                             "contentMediaType": "application/octet-stream",
-                                            "maxLength": 10240
+                                            "maxLength": 51200
                                         },
                                         "minItems": 1
                                     }
@@ -2043,44 +2067,34 @@
                 }
             }
         },
-        "/v1/menu-sections/{menuSection}/option-groups": {
+        "/v1/menu-items/{menuItem}/clone": {
             "post": {
-                "operationId": "menuOptionGroup.store",
-                "summary": "Create an option group in a section",
+                "operationId": "menuItem.clone",
+                "summary": "Duplicate an item: copies attributes + translations and reuses the same\nvariation/add-on pivot attachments. The source-locale name gets a \"(\u043a\u043e\u043f\u0438\u044f)\"\nmarker. Returns the new item immediately (instant copy, no editor step)",
                 "tags": [
-                    "MenuOptionGroup"
+                    "MenuItem"
                 ],
                 "parameters": [
                     {
-                        "name": "menuSection",
+                        "name": "menuItem",
                         "in": "path",
                         "required": true,
-                        "description": "The menu section ID",
+                        "description": "The menu item ID",
                         "schema": {
                             "type": "integer"
                         }
                     }
                 ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StoreMenuOptionGroupRequest"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "201": {
-                        "description": "`MenuOptionGroupResource`",
+                        "description": "`MenuItemResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupResource"
+                                            "$ref": "#/components/schemas/MenuItemResource"
                                         }
                                     },
                                     "required": [
@@ -2089,381 +2103,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-option-groups/{menuOptionGroup}": {
-            "put": {
-                "operationId": "menuOptionGroup.update",
-                "summary": "Update an option group",
-                "tags": [
-                    "MenuOptionGroup"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroup",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateMenuOptionGroupRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`MenuOptionGroupResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "menuOptionGroup.destroy",
-                "summary": "Delete an option group",
-                "tags": [
-                    "MenuOptionGroup"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroup",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No content"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-option-groups/{menuOptionGroup}/attach-items": {
-            "post": {
-                "operationId": "menuOptionGroup.attachItems",
-                "summary": "Attach items to an option group via pivot",
-                "tags": [
-                    "MenuOptionGroup"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroup",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/AttachDetachItemsRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`MenuOptionGroupResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-option-groups/{menuOptionGroup}/detach-items": {
-            "post": {
-                "operationId": "menuOptionGroup.detachItems",
-                "summary": "Detach items from an option group",
-                "tags": [
-                    "MenuOptionGroup"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroup",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/AttachDetachItemsRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`MenuOptionGroupResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-option-groups/{menuOptionGroup}/options": {
-            "post": {
-                "operationId": "menuOptionGroupOption.store",
-                "summary": "Create an option in a group",
-                "tags": [
-                    "MenuOptionGroupOption"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroup",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StoreMenuOptionGroupOptionRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "`MenuOptionGroupOptionResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupOptionResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-option-group-options/{menuOptionGroupOption}": {
-            "put": {
-                "operationId": "menuOptionGroupOption.update",
-                "summary": "Update an option",
-                "tags": [
-                    "MenuOptionGroupOption"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroupOption",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group option ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateMenuOptionGroupOptionRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`MenuOptionGroupOptionResource`",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/MenuOptionGroupOptionResource"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "menuOptionGroupOption.destroy",
-                "summary": "Delete an option",
-                "tags": [
-                    "MenuOptionGroupOption"
-                ],
-                "parameters": [
-                    {
-                        "name": "menuOptionGroupOption",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu option group option ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No content"
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -2766,11 +2405,19 @@
                                                             ]
                                                         }
                                                     ]
+                                                },
+                                                "initial_locale": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The menu's one original language; identical to source_locale.\nKept for frontend compatibility (it gates create flows on this)."
                                                 }
                                             },
                                             "required": [
                                                 "source_locale",
-                                                "primary_language"
+                                                "primary_language",
+                                                "initial_locale"
                                             ]
                                         }
                                     },
@@ -2874,6 +2521,560 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/menus/{menu}/modifier-groups": {
+            "get": {
+                "operationId": "modifierGroup.index",
+                "summary": "List a menu's top-level modifier groups (the library), each with its\noptions and a usage count (`items_count`). Request `?include=options`\nto embed the options in the JSON:API document",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "menu",
+                        "in": "path",
+                        "required": true,
+                        "description": "The menu ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ModifierGroupResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "modifierGroup.store",
+                "summary": "Create a modifier group (Size, Extras, \u2026) shared across the menu",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "menu",
+                        "in": "path",
+                        "required": true,
+                        "description": "The menu ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreModifierGroupRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierGroupResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/modifier-groups/{modifierGroup}": {
+            "put": {
+                "operationId": "modifierGroup.update",
+                "summary": "Update a modifier group",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateModifierGroupRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierGroupResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "modifierGroup.destroy",
+                "summary": "Delete a modifier group (and, via cascade, its options and nested groups)",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/modifier-groups/{modifierGroup}/attach-items": {
+            "post": {
+                "operationId": "modifierGroup.attachItems",
+                "summary": "Attach items to a group via the pivot (scoped to the group's own menu)",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AttachDetachItemsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierGroupResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/modifier-groups/{modifierGroup}/detach-items": {
+            "post": {
+                "operationId": "modifierGroup.detachItems",
+                "summary": "Detach items from a group",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AttachDetachItemsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierGroupResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/menu-items/{menuItem}/modifier-groups/{modifierGroup}": {
+            "put": {
+                "operationId": "modifierGroup.updateItemOverrides",
+                "summary": "Update the per-item override of an attached group's selection rule\n(required / min / max / hidden / order) \u2014 does NOT touch the shared\ngroup. `null` for an override means \"inherit the group's default\"",
+                "tags": [
+                    "ModifierGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "menuItem",
+                        "in": "path",
+                        "required": true,
+                        "description": "The menu item ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateItemModifierGroupRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ModifierGroupResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierGroupResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/modifier-groups/{modifierGroup}/options": {
+            "post": {
+                "operationId": "modifierOption.store",
+                "summary": "Create an option within a group. Price meaning follows the group's\npricing_mode (absolute when replace, delta when add)",
+                "tags": [
+                    "ModifierOption"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreModifierOptionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ModifierOptionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierOptionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/modifier-options/{modifierOption}": {
+            "put": {
+                "operationId": "modifierOption.update",
+                "summary": "Update an option",
+                "tags": [
+                    "ModifierOption"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierOption",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier option ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateModifierOptionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ModifierOptionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ModifierOptionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "modifierOption.destroy",
+                "summary": "Delete an option (and, via cascade, any nested groups it opens)",
+                "tags": [
+                    "ModifierOption"
+                ],
+                "parameters": [
+                    {
+                        "name": "modifierOption",
+                        "in": "path",
+                        "required": true,
+                        "description": "The modifier option ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -3446,6 +3647,158 @@
                 }
             }
         },
+        "/v1/push/vapid-public-key": {
+            "get": {
+                "operationId": "push.vapid",
+                "summary": "Expose the VAPID public key so the SPA can build its applicationServerKey.\nPublic on purpose \u2014 it is a public key \u2014 and fetched (rather than baked into\na VITE_ var) so rotating it never requires a frontend rebuild",
+                "tags": [
+                    "PushSubscription"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "public_key": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "public_key"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/push/subscribe": {
+            "post": {
+                "operationId": "pushSubscription.store",
+                "summary": "Store (or refresh) the current user's push subscription",
+                "tags": [
+                    "PushSubscription"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorePushSubscriptionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "pushSubscription.destroy",
+                "summary": "Remove a push subscription by endpoint (browser unsubscribed / opted out)",
+                "tags": [
+                    "PushSubscription"
+                ],
+                "parameters": [
+                    {
+                        "name": "endpoint",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 2048
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/push/test": {
+            "post": {
+                "operationId": "pushTest.send",
+                "tags": [
+                    "PushTest"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SendTestPushRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "subscriptions": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Queued, but the user has no push subscriptions yet (enable notifications in the PWA first)."
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "subscriptions",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/register": {
             "post": {
                 "operationId": "register.store",
@@ -3782,32 +4135,12 @@
                 }
             }
         },
-        "/v1/menus/{menu}/translations/{locale}/events": {
+        "/v1/users": {
             "get": {
-                "operationId": "menu-translations.events",
-                "description": "Intentionally public \u2014 anonymous QR-scanning users on the public menu\npage need to know when translations land so the page can refresh.\nTopic content is harmless (chunk counts, no menu data).",
-                "summary": "Stream events for a translation run (`menu-translation.{menuId}.{locale}` topic)",
+                "operationId": "user.index",
+                "summary": "List all users (id + email) for the admin-only push test harness",
                 "tags": [
-                    "SseEvents"
-                ],
-                "parameters": [
-                    {
-                        "name": "menu",
-                        "in": "path",
-                        "required": true,
-                        "description": "The menu ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "locale",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                    "User"
                 ],
                 "responses": {
                     "200": {
@@ -3815,42 +4148,30 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    }
-                }
-            }
-        },
-        "/v1/menu-analyses/{uuid}/events": {
-            "get": {
-                "operationId": "menu-analyses.events",
-                "description": "Per-pack progress: started \u2192 chunk-complete (\u00d7N) \u2192 completed/failed.",
-                "summary": "Stream events for a menu analysis (`menu-analysis.{uuid}` topic)",
-                "tags": [
-                    "SseEvents"
-                ],
-                "parameters": [
-                    {
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "email": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "email"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -3874,48 +4195,6 @@
                                 }
                             }
                         }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/v1/restaurants/{restaurant}/orders/events": {
-            "get": {
-                "operationId": "restaurant-orders.events",
-                "description": "Long-lived stream; never terminates on its own (kitchen/waiter dashboards\nstay subscribed for the whole shift). Disconnect happens when the client\nnavigates away or the idle cap kicks in.",
-                "summary": "Stream order events for a restaurant (`restaurant-orders.{id}` topic)",
-                "tags": [
-                    "SseEvents"
-                ],
-                "parameters": [
-                    {
-                        "name": "restaurant",
-                        "in": "path",
-                        "required": true,
-                        "description": "The restaurant ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -4408,6 +4687,12 @@
                     "restaurant_id": {
                         "type": "integer"
                     },
+                    "restaurant_menu_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "source_locale": {
                         "type": [
                             "string",
@@ -4425,7 +4710,7 @@
                             {
                                 "type": "string",
                                 "enum": [
-                                    "und"
+                                    "en"
                                 ]
                             }
                         ]
@@ -4552,87 +4837,9 @@
                                                     "null"
                                                 ]
                                             },
-                                            "option_groups": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "id": {
-                                                            "type": "integer"
-                                                        },
-                                                        "name": {
-                                                            "type": [
-                                                                "string",
-                                                                "null"
-                                                            ]
-                                                        },
-                                                        "is_variation": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "required": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "allow_multiple": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "min_select": {
-                                                            "type": "integer"
-                                                        },
-                                                        "max_select": {
-                                                            "type": [
-                                                                "integer",
-                                                                "null"
-                                                            ]
-                                                        },
-                                                        "sort_order": {
-                                                            "type": "integer"
-                                                        },
-                                                        "options": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "id": {
-                                                                        "type": "integer"
-                                                                    },
-                                                                    "name": {
-                                                                        "type": [
-                                                                            "string",
-                                                                            "null"
-                                                                        ]
-                                                                    },
-                                                                    "price_adjust": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "is_default": {
-                                                                        "type": "boolean"
-                                                                    },
-                                                                    "sort_order": {
-                                                                        "type": "integer"
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "id",
-                                                                    "name",
-                                                                    "price_adjust",
-                                                                    "is_default",
-                                                                    "sort_order"
-                                                                ]
-                                                            }
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "id",
-                                                        "name",
-                                                        "is_variation",
-                                                        "required",
-                                                        "allow_multiple",
-                                                        "min_select",
-                                                        "max_select",
-                                                        "sort_order",
-                                                        "options"
-                                                    ]
-                                                }
+                                            "modifier_groups": {
+                                                "type": "string",
+                                                "description": "Modifier groups: a 'replace' group's option price is the\nABSOLUTE base; an 'add' group's option price is a DELTA."
                                             }
                                         },
                                         "required": [
@@ -4652,7 +4859,7 @@
                                             "thumb_url",
                                             "sort_order",
                                             "confidence",
-                                            "option_groups"
+                                            "modifier_groups"
                                         ]
                                     }
                                 }
@@ -4671,6 +4878,7 @@
                 "required": [
                     "id",
                     "restaurant_id",
+                    "restaurant_menu_url",
                     "source_locale",
                     "locale",
                     "detected_date",
@@ -4814,124 +5022,6 @@
                 ],
                 "title": "MenuItemResource"
             },
-            "MenuOptionGroupOptionResource": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "group_id": {
-                        "type": "integer"
-                    },
-                    "price_adjust": {
-                        "type": "string"
-                    },
-                    "is_default": {
-                        "type": "boolean"
-                    },
-                    "sort_order": {
-                        "type": "integer"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "id",
-                    "group_id",
-                    "price_adjust",
-                    "is_default",
-                    "sort_order",
-                    "created_at",
-                    "updated_at",
-                    "name"
-                ],
-                "title": "MenuOptionGroupOptionResource"
-            },
-            "MenuOptionGroupResource": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "section_id": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "is_variation": {
-                        "type": "boolean"
-                    },
-                    "required": {
-                        "type": "boolean"
-                    },
-                    "allow_multiple": {
-                        "type": "boolean"
-                    },
-                    "min_select": {
-                        "type": "integer"
-                    },
-                    "max_select": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "sort_order": {
-                        "type": "integer"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "id",
-                    "section_id",
-                    "type",
-                    "is_variation",
-                    "required",
-                    "allow_multiple",
-                    "min_select",
-                    "max_select",
-                    "sort_order",
-                    "created_at",
-                    "updated_at",
-                    "name"
-                ],
-                "title": "MenuOptionGroupResource"
-            },
             "MenuResource": {
                 "type": "object",
                 "properties": {
@@ -5045,6 +5135,162 @@
                 ],
                 "title": "MenuSectionResource"
             },
+            "ModifierGroupResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "menu_id": {
+                        "type": "integer"
+                    },
+                    "parent_option_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "pricing_mode": {
+                        "$ref": "#/components/schemas/ModifierPricingMode"
+                    },
+                    "selection_type": {
+                        "type": "string"
+                    },
+                    "selection_min": {
+                        "type": "integer"
+                    },
+                    "selection_max": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "required": {
+                        "type": "boolean"
+                    },
+                    "charge_above": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "portion_denominator": {
+                        "type": "integer"
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "menu_id",
+                    "parent_option_id",
+                    "pricing_mode",
+                    "selection_type",
+                    "selection_min",
+                    "selection_max",
+                    "required",
+                    "charge_above",
+                    "portion_denominator",
+                    "sort_order",
+                    "created_at",
+                    "updated_at",
+                    "name"
+                ],
+                "title": "ModifierGroupResource"
+            },
+            "ModifierOptionResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "group_id": {
+                        "type": "integer"
+                    },
+                    "price": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_default": {
+                        "type": "boolean"
+                    },
+                    "default_qty": {
+                        "type": "integer"
+                    },
+                    "max_qty": {
+                        "type": "integer"
+                    },
+                    "linked_menu_item_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "group_id",
+                    "price",
+                    "is_default",
+                    "default_qty",
+                    "max_qty",
+                    "linked_menu_item_id",
+                    "sort_order",
+                    "created_at",
+                    "updated_at",
+                    "name"
+                ],
+                "title": "ModifierOptionResource"
+            },
+            "ModifierPricingMode": {
+                "type": "string",
+                "description": "How a modifier group's option price composes into the line price. - Replace: the chosen option price is the ABSOLUTE unit price (replaces the    dish base). Used for a \"Size\" axis. A replace group is single-select.  - Add: each chosen option price is a signed DELTA added on top. Used for    \"Extras\". Multi-select.\n",
+                "enum": [
+                    "replace",
+                    "add"
+                ],
+                "title": "ModifierPricingMode"
+            },
             "OrderItemKitchenStatus": {
                 "type": "string",
                 "enum": [
@@ -5068,12 +5314,6 @@
                     "menu_item_id": {
                         "type": "integer"
                     },
-                    "variation_option_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
                     "quantity": {
                         "type": "integer"
                     },
@@ -5082,13 +5322,6 @@
                     },
                     "currency": {
                         "type": "string"
-                    },
-                    "selected_options": {
-                        "type": [
-                            "array",
-                            "null"
-                        ],
-                        "items": {}
                     },
                     "kitchen_status": {
                         "$ref": "#/components/schemas/OrderItemKitchenStatus"
@@ -5139,11 +5372,9 @@
                     "id",
                     "order_id",
                     "menu_item_id",
-                    "variation_option_id",
                     "quantity",
                     "unit_price",
                     "currency",
-                    "selected_options",
                     "kitchen_status",
                     "started_cooking_at",
                     "ready_at",
@@ -5368,10 +5599,16 @@
                         ]
                     },
                     "name": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "address": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "image_url": {
                         "type": "string"
@@ -5423,6 +5660,30 @@
                     "email"
                 ],
                 "title": "SendPasswordResetLinkRequest"
+            },
+            "SendTestPushRequest": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "body": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "user_id",
+                    "body"
+                ],
+                "title": "SendTestPushRequest"
             },
             "SplitBillRequest": {
                 "type": "object",
@@ -5516,13 +5777,14 @@
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "description": {
                         "type": [
                             "string",
                             "null"
-                        ]
+                        ],
+                        "maxLength": 500
                     },
                     "starred": {
                         "type": [
@@ -5593,97 +5855,6 @@
                 ],
                 "title": "StoreMenuItemRequest"
             },
-            "StoreMenuOptionGroupOptionRequest": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "price_adjust": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "is_default": {
-                        "type": [
-                            "boolean",
-                            "null"
-                        ]
-                    },
-                    "sort_order": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ],
-                        "minimum": 0
-                    }
-                },
-                "required": [
-                    "name"
-                ],
-                "title": "StoreMenuOptionGroupOptionRequest"
-            },
-            "StoreMenuOptionGroupRequest": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "type": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "maxLength": 100
-                    },
-                    "is_variation": {
-                        "type": [
-                            "boolean",
-                            "null"
-                        ]
-                    },
-                    "required": {
-                        "type": [
-                            "boolean",
-                            "null"
-                        ]
-                    },
-                    "allow_multiple": {
-                        "type": [
-                            "boolean",
-                            "null"
-                        ]
-                    },
-                    "min_select": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "max_select": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "sort_order": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ],
-                        "minimum": 0
-                    }
-                },
-                "required": [
-                    "name"
-                ],
-                "title": "StoreMenuOptionGroupRequest"
-            },
             "StoreMenuRequest": {
                 "type": "object",
                 "properties": {
@@ -5709,7 +5880,7 @@
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "sort_order": {
                         "type": [
@@ -5736,6 +5907,132 @@
                     "name"
                 ],
                 "title": "StoreMenuSectionRequest"
+            },
+            "StoreModifierGroupRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "pricing_mode": {
+                        "type": "string",
+                        "enum": [
+                            "replace",
+                            "add"
+                        ]
+                    },
+                    "selection_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "single",
+                            "multi",
+                            "portion"
+                        ]
+                    },
+                    "selection_min": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "selection_max": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "required": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "charge_above": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "portion_denominator": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 255
+                    },
+                    "sort_order": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "pricing_mode"
+                ],
+                "title": "StoreModifierGroupRequest"
+            },
+            "StoreModifierOptionRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "price": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "is_default": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "default_qty": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "max_qty": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "linked_menu_item_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sort_order": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "StoreModifierOptionRequest"
             },
             "StorePublicOrderRequest": {
                 "type": "object",
@@ -5765,12 +6062,6 @@
                                 "menu_item_id": {
                                     "type": "integer"
                                 },
-                                "variation_option_id": {
-                                    "type": [
-                                        "integer",
-                                        "null"
-                                    ]
-                                },
                                 "quantity": {
                                     "type": "integer",
                                     "minimum": 1,
@@ -5783,29 +6074,14 @@
                                     ],
                                     "maxLength": 255
                                 },
-                                "selected_options": {
+                                "selections": {
                                     "type": [
                                         "array",
                                         "null"
                                     ],
+                                    "description": "Recursive selection tree \u2014 shape only; ownership, cardinality and\nquantity caps are enforced server-side against the menu graph in\nPlaceOrderAction via OrderSelectionValidator.",
                                     "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "group_id": {
-                                                "type": "integer"
-                                            },
-                                            "option_ids": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "integer"
-                                                },
-                                                "minItems": 1
-                                            }
-                                        },
-                                        "required": [
-                                            "group_id",
-                                            "option_ids"
-                                        ]
+                                        "type": "string"
                                     }
                                 }
                             },
@@ -5825,6 +6101,36 @@
                 ],
                 "title": "StorePublicOrderRequest"
             },
+            "StorePushSubscriptionRequest": {
+                "type": "object",
+                "properties": {
+                    "endpoint": {
+                        "type": "string",
+                        "maxLength": 2048
+                    },
+                    "key": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "token": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "encoding": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50
+                    }
+                },
+                "required": [
+                    "endpoint",
+                    "key",
+                    "token"
+                ],
+                "title": "StorePushSubscriptionRequest"
+            },
             "StoreRestaurantRequest": {
                 "type": "object",
                 "properties": {
@@ -5833,14 +6139,14 @@
                             "string",
                             "null"
                         ],
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "address": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 500
+                        "maxLength": 255
                     },
                     "city": {
                         "type": [
@@ -5861,7 +6167,7 @@
                             "string",
                             "null"
                         ],
-                        "maxLength": 50
+                        "maxLength": 32
                     },
                     "currency": {
                         "type": [
@@ -5942,7 +6248,7 @@
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 60
                     },
                     "color": {
                         "type": "string",
@@ -6017,18 +6323,53 @@
                 },
                 "title": "UpdateDiningTableRequest"
             },
+            "UpdateItemModifierGroupRequest": {
+                "type": "object",
+                "description": "Per-item overrides of an attached modifier group's selection rule. Each\n`*_override` is nullable \u2014 send `null` to inherit the group's own default.",
+                "properties": {
+                    "selection_min_override": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "selection_max_override": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "required_override": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "is_hidden": {
+                        "type": "boolean"
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "title": "UpdateItemModifierGroupRequest"
+            },
             "UpdateMenuItemRequest": {
                 "type": "object",
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "description": {
                         "type": [
                             "string",
                             "null"
-                        ]
+                        ],
+                        "maxLength": 500
                     },
                     "starred": {
                         "type": "boolean"
@@ -6084,70 +6425,6 @@
                 },
                 "title": "UpdateMenuItemRequest"
             },
-            "UpdateMenuOptionGroupOptionRequest": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "price_adjust": {
-                        "type": [
-                            "number",
-                            "null"
-                        ]
-                    },
-                    "is_default": {
-                        "type": "boolean"
-                    },
-                    "sort_order": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                },
-                "title": "UpdateMenuOptionGroupOptionRequest"
-            },
-            "UpdateMenuOptionGroupRequest": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "type": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "maxLength": 100
-                    },
-                    "is_variation": {
-                        "type": "boolean"
-                    },
-                    "required": {
-                        "type": "boolean"
-                    },
-                    "allow_multiple": {
-                        "type": "boolean"
-                    },
-                    "min_select": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "max_select": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ],
-                        "minimum": 0
-                    },
-                    "sort_order": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                },
-                "title": "UpdateMenuOptionGroupRequest"
-            },
             "UpdateMenuRequest": {
                 "type": "object",
                 "properties": {
@@ -6170,7 +6447,7 @@
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "sort_order": {
                         "type": "integer",
@@ -6188,6 +6465,98 @@
                     }
                 },
                 "title": "UpdateMenuSectionRequest"
+            },
+            "UpdateModifierGroupRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "pricing_mode": {
+                        "type": "string",
+                        "enum": [
+                            "replace",
+                            "add"
+                        ]
+                    },
+                    "selection_type": {
+                        "type": "string",
+                        "enum": [
+                            "single",
+                            "multi",
+                            "portion"
+                        ]
+                    },
+                    "selection_min": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "selection_max": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "required": {
+                        "type": "boolean"
+                    },
+                    "charge_above": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "portion_denominator": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 255
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "title": "UpdateModifierGroupRequest"
+            },
+            "UpdateModifierOptionRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "price": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "is_default": {
+                        "type": "boolean"
+                    },
+                    "default_qty": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "max_qty": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "linked_menu_item_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sort_order": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "title": "UpdateModifierOptionRequest"
             },
             "UpdateOrderItemKitchenStatusRequest": {
                 "type": "object",
@@ -6228,14 +6597,14 @@
                             "string",
                             "null"
                         ],
-                        "maxLength": 255
+                        "maxLength": 100
                     },
                     "address": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 500
+                        "maxLength": 255
                     },
                     "city": {
                         "type": [
@@ -6256,7 +6625,7 @@
                             "string",
                             "null"
                         ],
-                        "maxLength": 50
+                        "maxLength": 32
                     },
                     "currency": {
                         "type": [
@@ -6337,7 +6706,7 @@
                 "properties": {
                     "name": {
                         "type": "string",
-                        "maxLength": 255
+                        "maxLength": 60
                     },
                     "color": {
                         "type": "string",
@@ -6470,8 +6839,8 @@
                     }
                 }
             },
-            "ModelNotFoundException": {
-                "description": "Not found",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -6489,8 +6858,8 @@
                     }
                 }
             },
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "ModelNotFoundException": {
+                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {

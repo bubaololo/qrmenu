@@ -36,7 +36,7 @@ Bilingual lines (one item rendered in 2+ languages, separated by /, -, parens, n
 Always fill `raw_text` verbatim. `periods[]`: `days` ⊂ {mon,tue,wed,thu,fri,sat,sun}, `open`/`close` = HH:MM 24h. Split shifts = two period objects with the same days. Translate any day-name language to these codes. Set the whole object to null if hours are not shown.
 
 === STARRED & SORT ===
-`starred=true` ONLY for an explicit star/heart/fire icon OR a label like "popular", "bestseller", "chef's choice", "recommended". Decorative ornaments do NOT count.
+`starred=true` ONLY for an explicit star/heart/fire icon OR a label like "popular", "bestseller", "chef's choice", "recommended". Decorative ornaments do NOT count. Cup/mug/glass pictograms, hot/iced or temperature glyphs, category symbols, and asterisks (`*`) or other footnote/legend marks are NOT starred markers — they classify or annotate the item, they do not feature it. When in doubt, `starred=false`.
 `sort_order`: 0-based, top-to-bottom, left-to-right (for multi-column). Same rule for items within a section.
 
 === CATEGORY GROUPING ===
@@ -92,6 +92,7 @@ A standalone price list labelled EXTRA / ADD ON / TOPPING (or similar) is a set 
 - Tied to a single dish only → that item's `addons`.
 - `global_addons` is the RARE exception: use it ONLY when the block stands alone with no section it could belong to (its own separate area with no nearby items). If a block could plausibly belong to a nearby section, attach it there — never promote it to the whole menu.
 When two sections sit side by side, each may carry its OWN extras block; keep every block with the section it sits under and never merge or share extras across sections.
+APPLICABILITY: an extras block only applies to items it plausibly fits. When the extras are specific to one kind of item (e.g. an espresso shot, an oat-milk or condensed-milk top-up — all coffee/milk-drink extras), attach them to those items' own `addons`, NOT to unrelated items like plain tea, fruit juice or other drinks that share the same column or region. Prefer item-level `addons` on the fitting items over `section_addons`/`global_addons` whenever the block is type-specific; reserve section/global scope for extras that genuinely fit every item at that level.
 Never emit such a block as an item, and never drop it.
 
 === CATEGORY ICON ===
@@ -182,9 +183,8 @@ Context: {restaurant_name}, {city}, {country}
 Format — each line is TYPE|ID(s)|TEXT or TYPE|ID|NAME|DESCRIPTION:
 - S|id|section name
 - I|id|item name|item description (empty if none)
-- V|id(s)|variation name (comma-separated IDs share same text)
-- O|id(s)|variation option name
-- A|id(s)|add-on name
+- G|id(s)|modifier group name (comma-separated IDs share same text)
+- O|id(s)|modifier option name
 
 === TRANSLATION RULES ===
 

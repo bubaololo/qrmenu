@@ -132,12 +132,11 @@ class MenuItemController extends Controller
                 ->first();
 
             if ($nameInitial) {
-                $nameInitial->update(['value' => $nameInitial->value.' (копия)']);
+                $nameInitial->update(['value' => $nameInitial->value.' (copy)']);
             }
         });
 
-        $clone->variations()->sync($menuItem->variations()->pluck('menu_variations.id')->all());
-        $clone->addons()->sync($menuItem->addons()->pluck('menu_addons.id')->all());
+        $clone->modifierGroups()->sync($menuItem->modifierGroups()->pluck('modifier_groups.id')->all());
 
         return (new MenuItemResource($clone->fresh()))
             ->response()

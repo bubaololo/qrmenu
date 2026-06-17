@@ -6,8 +6,8 @@ use App\Enums\RestaurantUserRole;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -198,15 +198,15 @@ class MenuTest extends TestCase
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'en']);
         $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
         $item = MenuItem::factory()->create(['section_id' => $section->id]);
-        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $section->menu_id]);
         $group->items()->attach($item->id);
-        MenuVariationOption::factory()->count(2)->create(['variation_id' => $group->id]);
+        ModifierOption::factory()->count(2)->create(['group_id' => $group->id]);
 
         $this->actingAs($user)
             ->getJson("/api/v1/menus/{$menu->id}")
             ->assertStatus(200)
             ->assertJsonPath('data.sections.0.id', $section->id)
             ->assertJsonPath('data.sections.0.items.0.id', $item->id)
-            ->assertJsonCount(2, 'data.sections.0.items.0.variations.0.options');
+            ->assertJsonCount(2, 'data.sections.0.items.0.modifier_groups.0.options');
     }
 }

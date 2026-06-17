@@ -64,9 +64,8 @@ class MenuPageController extends Controller
             'menu.sections.translations' => $scope,
             'menu.sections.items' => $visibleItem,
             'menu.sections.items.translations' => $scope,
-            'menu.sections.items.variations.translations' => $scope,
-            'menu.sections.items.variations.options.translations' => $scope,
-            'menu.sections.items.addons.translations' => $scope,
+            'menu.sections.items.modifierGroups.translations' => $scope,
+            'menu.sections.items.modifierGroups.options.translations' => $scope,
         ]);
 
         $menu = $restaurant->menu;

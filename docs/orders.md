@@ -49,7 +49,7 @@ Place an order from the public Blade menu (or any external client).
     {
       "menu_item_id": 42,
       "quantity": 2,
-      "variation_option_id": 7,
+      "variation_option_ids": [7, 19],
       "addon_ids": [11, 12],
       "note": "no salt"
     }
@@ -65,39 +65,40 @@ Place an order from the public Blade menu (or any external client).
 | `table_uniqid` | ✓ | Must belong to a zone of the same restaurant. |
 | `items[].menu_item_id` | ✓ | Must belong to an active section of the restaurant's single menu, with both `is_visible=true` and `is_orderable=true` on the item. Hidden items (`is_visible=false`) and "out of stock" items (`is_orderable=false`) are rejected. |
 | `items[].quantity` | ✓ | 1..99 |
-| `items[].variation_option_id` | – | Chosen variation option id (`menu_variation_options.id`). Its price is **absolute** — it *replaces* the dish base price. |
+| `items[].variation_option_ids` | – | Chosen variation option ids — **one per axis** (`menu_variation_options.id`). The option on the **primary** axis (the variation with the lowest `sort_order`) is **absolute** (replaces the dish base); every other axis' option is a signed **delta**. |
+| `items[].variation_option_id` | – | Legacy single-axis form, still accepted. Equivalent to a one-element `variation_option_ids`. In responses it mirrors the **primary** axis option. |
 | `items[].addon_ids` | – | Array of chosen atomic add-on ids (`menu_addons.id`). Each price is a **delta** added on top. |
 | `items[].note`, top-level `note` | – | ≤255 / ≤500 chars. |
 | `items[]` | ✓ | 1..100 entries. |
 
-> **Cart prices are not trusted** — the server snapshots `(variation_option.price ?? menu_items.price_value) + Σaddon.price` into `order_items.unit_price`. Anything the client sends in price fields is ignored. The chosen `addon_ids` are stored verbatim in `order_items.selected_options` (a JSON array of add-on ids).
+> **Cart prices are not trusted** — the server snapshots `primaryOption.price (?? menu_items.price_value) + Σ secondaryOption.price + Σ addon.price` into `order_items.unit_price`. Anything the client sends in price fields is ignored. The chosen option ids are stored in `order_items.variation_option_ids` (JSON array; `variation_option_id` holds the primary mirror) and the chosen `addon_ids` verbatim in `order_items.selected_options`.
 
-#### How `variation_option_id` and `addon_ids` differ
+#### How variations and add-ons differ
 
 The menu models two distinct, separately-stored shapes:
 
 | shape | what it represents | how to send | price semantics |
 | --- | --- | --- | --- |
-| **Variation** (`menu_variations` + `menu_variation_options`) | A pick-exactly-one axis (Size, Choice, Hot/Iced). Selects the "main" form of the dish. | A single `variation_option_id` per item. | **Absolute** — replaces the dish base price. |
+| **Variation** (`menu_variations` + `menu_variation_options`) | One or more pick-exactly-one axes (Size, Hot/Iced, Spice). Each axis requires exactly one choice. | One option id **per axis** in `variation_option_ids[]`. | **Primary axis absolute** (replaces base); **other axes delta**. |
 | **Add-on** (`menu_addons`) | Independent atomic extras (toppings, "+ shot", "+ oat milk"). Pick any number, 0..N. | Each chosen id in `addon_ids[]`. | **Delta** — added on top. |
 
-Worked example: an item with base 35 000, variation option `Lớn` (absolute 45 000) and two add-ons `+shot` (25 000) and `+oat milk` (5 000):
+Worked example: an item whose primary axis is Size — option `Lớn` (absolute 45 000) — and whose secondary axis is Temperature — option `Iced` (delta +5 000) — plus add-on `+shot` (25 000):
 
 ```json
 {
   "menu_item_id": 1,
   "quantity": 2,
-  "variation_option_id": 2,
-  "addon_ids": [3, 4]
+  "variation_option_ids": [2, 9],
+  "addon_ids": [3]
 }
 ```
 
 ```
-unit_price = 45 000 (variation, replaces base) + 25 000 + 5 000 = 75 000
-line_total = 75 000 × 2                                          = 150 000
+unit_price = 45 000 (primary, replaces base) + 5 000 (secondary delta) + 25 000 (addon) = 75 000
+line_total = 75 000 × 2                                                                  = 150 000
 ```
 
-The server validates that `variation_option_id` exists in `menu_variation_options` and each `addon_ids[]` exists in `menu_addons` (it does not currently enforce that they're attached to the specific item).
+The server validates that each id in `variation_option_ids[]` exists in `menu_variation_options` and each `addon_ids[]` exists in `menu_addons` (it does not currently enforce that they're attached to the specific item, nor one-per-axis).
 
 **Response 201:**
 

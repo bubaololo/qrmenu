@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\Zone;
@@ -29,10 +29,10 @@ class CascadeDeleteTest extends TestCase
     /** @var array<int, MenuItem> */
     private array $items = [];
 
-    /** @var array<int, MenuVariation> */
+    /** @var array<int, ModifierGroup> */
     private array $groups = [];
 
-    /** @var array<int, MenuVariationOption> */
+    /** @var array<int, ModifierOption> */
     private array $options = [];
 
     /** @var array<int, Zone> */
@@ -71,17 +71,19 @@ class CascadeDeleteTest extends TestCase
                 $item->setTranslation('description', 'en', "Desc $s.$i", true);
                 $this->items[] = $item;
             }
+        }
 
-            foreach (range(1, 3) as $g) {
-                $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
-                $group->setTranslation('name', 'en', "Group $s.$g", true);
-                $this->groups[] = $group;
+        // Modifier groups are menu-level (shared across items/sections), not
+        // nested under a section.
+        foreach (range(1, 6) as $g) {
+            $group = ModifierGroup::factory()->create(['menu_id' => $this->menu->id]);
+            $group->setTranslation('name', 'en', "Group $g", true);
+            $this->groups[] = $group;
 
-                foreach (range(1, 2) as $o) {
-                    $option = MenuVariationOption::factory()->create(['variation_id' => $group->id]);
-                    $option->setTranslation('name', 'en', "Opt $s.$g.$o", true);
-                    $this->options[] = $option;
-                }
+            foreach (range(1, 2) as $o) {
+                $option = ModifierOption::factory()->create(['group_id' => $group->id]);
+                $option->setTranslation('name', 'en', "Opt $g.$o", true);
+                $this->options[] = $option;
             }
         }
     }
@@ -117,8 +119,8 @@ class CascadeDeleteTest extends TestCase
 
         $this->assertSame(0, $this->countTranslationsFor(MenuSection::class, $this->sections));
         $this->assertSame(0, $this->countTranslationsFor(MenuItem::class, $this->items));
-        $this->assertSame(0, $this->countTranslationsFor(MenuVariation::class, $this->groups));
-        $this->assertSame(0, $this->countTranslationsFor(MenuVariationOption::class, $this->options));
+        $this->assertSame(0, $this->countTranslationsFor(ModifierGroup::class, $this->groups));
+        $this->assertSame(0, $this->countTranslationsFor(ModifierOption::class, $this->options));
 
         $this->assertSame(
             $restaurantTranslations,
@@ -133,13 +135,10 @@ class CascadeDeleteTest extends TestCase
     }
 
     #[Test]
-    public function test_delete_section_cleans_descendants_and_preserves_siblings(): void
+    public function test_delete_section_cleans_item_descendants_and_preserves_siblings(): void
     {
         $section = $this->sections[0];
         $sectionItems = collect($this->items)->where('section_id', $section->id);
-        $sectionGroups = collect($this->groups)->where('section_id', $section->id);
-        $sectionOptions = collect($this->options)
-            ->whereIn('variation_id', $sectionGroups->pluck('id'));
 
         $other = $this->sections[1];
 
@@ -148,24 +147,25 @@ class CascadeDeleteTest extends TestCase
         $this->assertSame(0, Translation::where('translatable_type', MenuSection::class)
             ->where('translatable_id', $section->id)->count());
         $this->assertSame(0, $this->countTranslationsFor(MenuItem::class, $sectionItems));
-        $this->assertSame(0, $this->countTranslationsFor(MenuVariation::class, $sectionGroups));
-        $this->assertSame(0, $this->countTranslationsFor(MenuVariationOption::class, $sectionOptions));
 
         $this->assertGreaterThan(0, Translation::where('translatable_type', MenuSection::class)
             ->where('translatable_id', $other->id)->count());
+
+        // Menu-level modifier groups are untouched by a section delete.
+        $this->assertGreaterThan(0, $this->countTranslationsFor(ModifierGroup::class, $this->groups));
     }
 
     #[Test]
-    public function test_delete_option_group_cleans_options_translations(): void
+    public function test_delete_modifier_group_cleans_options_translations(): void
     {
         $group = $this->groups[0];
-        $groupOptions = collect($this->options)->where('variation_id', $group->id);
+        $groupOptions = collect($this->options)->where('group_id', $group->id);
 
         $group->delete();
 
-        $this->assertSame(0, Translation::where('translatable_type', MenuVariation::class)
+        $this->assertSame(0, Translation::where('translatable_type', ModifierGroup::class)
             ->where('translatable_id', $group->id)->count());
-        $this->assertSame(0, $this->countTranslationsFor(MenuVariationOption::class, $groupOptions));
+        $this->assertSame(0, $this->countTranslationsFor(ModifierOption::class, $groupOptions));
     }
 
     #[Test]
@@ -185,12 +185,12 @@ class CascadeDeleteTest extends TestCase
     public function test_delete_option_cleans_own_translations(): void
     {
         $option = $this->options[0];
-        $this->assertGreaterThan(0, Translation::where('translatable_type', MenuVariationOption::class)
+        $this->assertGreaterThan(0, Translation::where('translatable_type', ModifierOption::class)
             ->where('translatable_id', $option->id)->count());
 
         $option->delete();
 
-        $this->assertSame(0, Translation::where('translatable_type', MenuVariationOption::class)
+        $this->assertSame(0, Translation::where('translatable_type', ModifierOption::class)
             ->where('translatable_id', $option->id)->count());
     }
 

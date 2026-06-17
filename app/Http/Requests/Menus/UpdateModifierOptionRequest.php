@@ -4,7 +4,7 @@ namespace App\Http\Requests\Menus;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateMenuVariationOptionRequest extends FormRequest
+class UpdateModifierOptionRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,9 +15,12 @@ class UpdateMenuVariationOptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:'.config('limits.name')],
+            'name' => ['sometimes', 'required', 'string', 'max:'.config('limits.name')],
             'price' => ['sometimes', 'nullable', 'numeric'],
             'is_default' => ['sometimes', 'boolean'],
+            'default_qty' => ['sometimes', 'integer', 'min:0'],
+            'max_qty' => ['sometimes', 'integer', 'min:1'],
+            'linked_menu_item_id' => ['sometimes', 'nullable', 'integer', 'exists:menu_items,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }

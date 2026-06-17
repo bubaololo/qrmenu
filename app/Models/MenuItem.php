@@ -130,16 +130,16 @@ class MenuItem extends Model
         return $this->belongsTo(MenuSection::class, 'section_id');
     }
 
-    public function variations(): BelongsToMany
+    /**
+     * Modifier groups attached to this item (Size, Extras, …). The pivot
+     * carries per-item overrides of the group's selection rules; ordering is
+     * by the pivot's sort_order.
+     */
+    public function modifierGroups(): BelongsToMany
     {
-        return $this->belongsToMany(MenuVariation::class, 'menu_item_variation', 'item_id', 'variation_id')
-            ->orderBy('sort_order');
-    }
-
-    public function addons(): BelongsToMany
-    {
-        return $this->belongsToMany(MenuAddon::class, 'menu_item_addon', 'item_id', 'addon_id')
-            ->orderBy('sort_order');
+        return $this->belongsToMany(ModifierGroup::class, 'menu_item_modifier_group', 'item_id', 'group_id')
+            ->withPivot(['selection_min_override', 'selection_max_override', 'required_override', 'is_hidden', 'sort_order'])
+            ->orderByPivot('sort_order');
     }
 
     /** @param  Builder<MenuItem>  $query */

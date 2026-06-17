@@ -3,8 +3,7 @@
 namespace App\Filament\Resources\Menus\RelationManagers;
 
 use App\Enums\PriceType;
-use App\Models\MenuAddon;
-use App\Models\MenuVariation;
+use App\Models\ModifierGroup;
 use App\Services\ImageProcessor;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -148,31 +147,17 @@ class SectionsRelationManager extends RelationManager
                             ->label('Original Price Text')
                             ->maxLength(255),
 
-                        Select::make('variations')
-                            ->label('Варианты (выбор одного)')
-                            ->helperText('Готовые оси выбора из этого меню (например «Размер»). Переиспользуются между блюдами.')
+                        Select::make('modifierGroups')
+                            ->label('Группы модификаторов')
+                            ->helperText('Готовые группы из этого меню (например «Размер» или «Добавки»). Переиспользуются между блюдами.')
                             ->relationship(
-                                name: 'variations',
+                                name: 'modifierGroups',
                                 titleAttribute: 'id',
                                 modifyQueryUsing: fn (Builder $query, RelationManager $livewire) => $query
-                                    ->where('menu_id', $livewire->getOwnerRecord()->getKey()),
+                                    ->where('menu_id', $livewire->getOwnerRecord()->getKey())
+                                    ->whereNull('parent_option_id'),
                             )
-                            ->getOptionLabelFromRecordUsing(fn (MenuVariation $record): string => $record->name ?? '—')
-                            ->multiple()
-                            ->preload()
-                            ->searchable()
-                            ->columnSpanFull(),
-
-                        Select::make('addons')
-                            ->label('Добавки (поштучно)')
-                            ->helperText('Атомарные добавки из этого меню. Переиспользуются между блюдами.')
-                            ->relationship(
-                                name: 'addons',
-                                titleAttribute: 'id',
-                                modifyQueryUsing: fn (Builder $query, RelationManager $livewire) => $query
-                                    ->where('menu_id', $livewire->getOwnerRecord()->getKey()),
-                            )
-                            ->getOptionLabelFromRecordUsing(fn (MenuAddon $record): string => trim(($record->name ?? '—').' · '.$record->price))
+                            ->getOptionLabelFromRecordUsing(fn (ModifierGroup $record): string => trim(($record->name ?? '—').' · '.$record->pricing_mode->value))
                             ->multiple()
                             ->preload()
                             ->searchable()

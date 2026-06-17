@@ -20,7 +20,8 @@ const App = {
   // Bottom sheet state
   _sheet: {
     itemId: null,
-    variantIndex: 0,
+    // One chosen option id per variation axis: { [groupId]: optionId }.
+    selections: {},
     qty: 1
   },
 
@@ -58,11 +59,49 @@ const App = {
       description: extras.description || null,
       price: typeof extras.price === 'number' ? extras.price : 0,
       orderable: extras.orderable !== false,
-      // variants: pick-exactly-one options; each price is ABSOLUTE.
-      variants: extras.variants,
-      // addons: atomic extras (flat); each price is a DELTA.
-      addons: extras.addons,
+      // modifierGroups: unified tree. A `replace` group is the old variation
+      // (option price ABSOLUTE, replaces base); an `add` group is the old
+      // add-on (option price DELTA). See menu-core/types.ts.
+      modifierGroups: extras.modifierGroups || [],
     };
+  },
+
+  _replaceGroups(item) {
+    return (item.modifierGroups || []).filter(g => g.pricing_mode === 'replace');
+  },
+
+  _addGroups(item) {
+    return (item.modifierGroups || []).filter(g => g.pricing_mode === 'add');
+  },
+
+  // Preselect one option per REQUIRED single-select `replace` group: the
+  // is_default option, else the first. Mirrors menu-core's defaultSelections.
+  // Selections shape: { [groupId]: optionId } (single pick) for replace groups.
+  _defaultSelections(item) {
+    const selections = {};
+    this._replaceGroups(item).forEach(g => {
+      if (!g.options || !g.options.length) return;
+      if (g.selection_type !== 'single' || !g.required) return;
+      const def = g.options.find(o => o.is_default) || g.options[0];
+      selections[g.id] = def.id;
+    });
+    return selections;
+  },
+
+  _selectedOption(group, selections) {
+    if (!group.options || !group.options.length) return null;
+    const id = selections ? selections[group.id] : undefined;
+    if (id == null) return null;
+    return group.options.find(o => o.id === id) || null;
+  },
+
+  // Names of the chosen `replace` options — the order's headline configuration.
+  _getSelectionNames(item, selections) {
+    return this._replaceGroups(item)
+      .map(g => this._selectedOption(g, selections))
+      .filter(Boolean)
+      .map(o => o.name)
+      .join(', ');
   },
 
   // ---- Lifecycle ----
@@ -217,14 +256,16 @@ const App = {
 
     this._sheet.itemId = itemId;
     this._sheet.editCartIndex = isEdit ? editCartIndex : null;
-    this._sheet.variantIndex = cartEntry ? cartEntry.variantIndex : 0;
+    this._sheet.selections = cartEntry && cartEntry.selections
+      ? { ...cartEntry.selections }
+      : this._defaultSelections(item);
     this._sheet.qty = cartEntry ? cartEntry.qty : 1;
     // Flat list of selected atomic add-on ids.
     this._sheet.addons = cartEntry && Array.isArray(cartEntry.addons)
       ? [...cartEntry.addons]
       : [];
 
-    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.addons);
+    const unitPrice = this._previewUnitPrice(item, this._sheet.selections, this._sheet.addons);
     const totalPrice = unitPrice * this._sheet.qty;
 
     // Clone the parsed-once template \u2014 far cheaper than innerHTML string parse.
@@ -250,54 +291,86 @@ const App = {
       descEl.hidden = false;
     }
 
-    if (item.variants && item.variants.length) {
+    const replaceGroups = this._replaceGroups(item);
+    if (replaceGroups.length) {
+      // `replace` groups render as single-select chip rows (radio per group).
+      // Each option's price is ABSOLUTE, so it's shown plainly (no +delta).
       const variantsBlock = fragment.querySelector('.sheet-variants');
-      const chipsContainer = fragment.querySelector('.variant-chips');
+      const labelTpl = variantsBlock.querySelector('.sheet-variants-label');
+      const chipsTpl = variantsBlock.querySelector('.variant-chips');
       const chipTpl = document.getElementById('tpl-variant-chip');
-      const hasDifferentPrices = new Set(item.variants.map(v => v.price)).size > 1;
-      item.variants.forEach((v, i) => {
-        const chip = chipTpl.content.firstElementChild.cloneNode(true);
-        chip.textContent = v.name + (hasDifferentPrices ? ' \u00B7 ' + this.formatPrice(v.price) : '');
-        chip.dataset.variantIndex = i;
-        if (i === this._sheet.variantIndex) chip.classList.add('variant-chip-active');
-        chipsContainer.appendChild(chip);
+      variantsBlock.replaceChildren();
+
+      replaceGroups.forEach(group => {
+        if (!group.options || !group.options.length) return;
+        const hasDifferentPrices = new Set(group.options.map(o => o.price)).size > 1;
+
+        const label = labelTpl.cloneNode(true);
+        label.textContent = group.name || labelTpl.textContent;
+        variantsBlock.appendChild(label);
+
+        const chipsContainer = chipsTpl.cloneNode(false);
+        group.options.forEach(opt => {
+          const chip = chipTpl.content.firstElementChild.cloneNode(true);
+          const suffix = hasDifferentPrices ? ' \u00B7 ' + this.formatPrice(opt.price) : '';
+          chip.textContent = opt.name + suffix;
+          chip.dataset.groupId = group.id;
+          chip.dataset.optionId = opt.id;
+          if (this._sheet.selections[group.id] === opt.id) {
+            chip.classList.add('variant-chip-active');
+          }
+          chipsContainer.appendChild(chip);
+        });
+        variantsBlock.appendChild(chipsContainer);
       });
+
       variantsBlock.hidden = false;
     }
 
-    if (item.addons && item.addons.length) {
-      // Atomic add-ons render as one optional multi-select block: each add-on
-      // is an independent checkbox, picked 0..N, adding its delta price.
+    const addGroups = this._addGroups(item);
+    if (addGroups.length) {
+      // `add` groups render as optional multi-select blocks: each option is an
+      // independent checkbox, picked 0..N, adding its delta price.
       const optionsContainer = fragment.querySelector('.sheet-options-container');
       const groupTpl = document.getElementById('tpl-option-group');
       const choiceTpl = document.getElementById('tpl-option-choice');
 
-      const grp = groupTpl.content.firstElementChild.cloneNode(true);
-      grp.dataset.optionGroup = 'addons';
+      addGroups.forEach(group => {
+        if (!group.options || !group.options.length) return;
+        const grp = groupTpl.content.firstElementChild.cloneNode(true);
+        grp.dataset.optionGroup = group.id;
 
-      grp.querySelector('.option-group-name').textContent = this.t('addons');
+        grp.querySelector('.option-group-name').textContent = group.name || this.t('addons');
 
-      const tag = grp.querySelector('.option-tag');
-      tag.textContent = this.t('optional');
-      tag.classList.add('option-tag-optional');
-
-      const choicesEl = grp.querySelector('.option-choices');
-      item.addons.forEach(addon => {
-        const chc = choiceTpl.content.firstElementChild.cloneNode(true);
-        chc.dataset.choiceId = addon.id;
-        if (this._sheet.addons.includes(addon.id)) {
-          chc.classList.add('option-choice-selected');
+        const tag = grp.querySelector('.option-tag');
+        // A required add group ("pick exactly one, free") shows as required;
+        // anything optional (selection_min === 0) shows as optional.
+        if (group.required) {
+          tag.textContent = this.t('required');
+          tag.classList.add('option-tag-required');
+        } else {
+          tag.textContent = this.t('optional');
+          tag.classList.add('option-tag-optional');
         }
-        chc.querySelector('.option-choice-check').classList.add('option-checkbox');
-        chc.querySelector('.option-choice-name').textContent = addon.name;
-        if (addon.price > 0) {
-          const priceEl = chc.querySelector('.option-choice-price');
-          priceEl.textContent = '+' + this.formatPrice(addon.price);
-          priceEl.hidden = false;
-        }
-        choicesEl.appendChild(chc);
+
+        const choicesEl = grp.querySelector('.option-choices');
+        group.options.forEach(opt => {
+          const chc = choiceTpl.content.firstElementChild.cloneNode(true);
+          chc.dataset.choiceId = opt.id;
+          if (this._sheet.addons.includes(opt.id)) {
+            chc.classList.add('option-choice-selected');
+          }
+          chc.querySelector('.option-choice-check').classList.add('option-checkbox');
+          chc.querySelector('.option-choice-name').textContent = opt.name;
+          if (opt.price > 0) {
+            const priceEl = chc.querySelector('.option-choice-price');
+            priceEl.textContent = '+' + this.formatPrice(opt.price);
+            priceEl.hidden = false;
+          }
+          choicesEl.appendChild(chc);
+        });
+        optionsContainer.appendChild(grp);
       });
-      optionsContainer.appendChild(grp);
       optionsContainer.hidden = false;
     }
 
@@ -326,27 +399,50 @@ const App = {
     }
   },
 
+  // All `add`-group options selected across the item, by id.
   _getAddonsExtra(item, addonIds) {
-    if (!item.addons || !addonIds || !addonIds.length) return 0;
-    return item.addons.reduce(
-      (sum, a) => (addonIds.includes(a.id) ? sum + a.price : sum),
-      0,
-    );
+    if (!addonIds || !addonIds.length) return 0;
+    let sum = 0;
+    this._addGroups(item).forEach(g => {
+      (g.options || []).forEach(o => {
+        if (addonIds.includes(o.id)) sum += (o.price || 0);
+      });
+    });
+    return sum;
   },
 
-  _computeUnitPrice(item, variantIndex, addonIds) {
-    // Variant option price is ABSOLUTE (replaces base); add-ons add a delta.
-    const basePrice = item.variants && item.variants.length
-      ? item.variants[variantIndex].price
-      : item.price;
-    return basePrice + this._getAddonsExtra(item, addonIds);
+  /**
+   * Unit price preview. MUST stay in sync with
+   * frontend/src/lib/menu-core/pricing.ts `previewUnitPrice`. The single source
+   * of truth for this rule lives in menu-core; this is a deliberate, isolated
+   * replica because the guest bundle is built by a separate Vite/Laravel
+   * pipeline that does not import the TS frontend module. If you change the
+   * pricing rule there, change it here too (and vice-versa).
+   *
+   *   unit = ( the single `replace` group's chosen option price, falling back to
+   *            item.price when that option price is null or no replace group is
+   *            chosen )
+   *        + Σ over every chosen `add` option of ( option.price * qty )   // qty=1 in phase 1
+   */
+  _previewUnitPrice(item, selections, addonIds) {
+    let base = item.price;
+    this._replaceGroups(item).forEach(group => {
+      const opt = this._selectedOption(group, selections);
+      if (opt && opt.price != null) base = opt.price;
+    });
+    return base + this._getAddonsExtra(item, addonIds);
+  },
+
+  // Back-compat alias retained for any external callers.
+  _computeUnitPrice(item, selections, addonIds) {
+    return this._previewUnitPrice(item, selections, addonIds);
   },
 
   _updateSheetPrice() {
     const item = this._findItem(this._sheet.itemId);
     if (!item) return;
 
-    const unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, this._sheet.addons);
+    const unitPrice = this._previewUnitPrice(item, this._sheet.selections, this._sheet.addons);
     const totalPrice = unitPrice * this._sheet.qty;
 
     const btn = document.querySelector('.add-to-cart-btn');
@@ -362,12 +458,24 @@ const App = {
   },
 
   _updateSheetValidation() {
-    // Add-ons are always optional and a variant defaults to the first option,
-    // so there is nothing that can leave the sheet in an invalid state.
+    // `replace` groups default to an option, so they're always satisfied. An
+    // `add` group can be required (e.g. "pick exactly one, free choice") and a
+    // capped one (selection_max) must not be exceeded — both gate the button.
+    const item = this._findItem(this._sheet.itemId);
+    let valid = true;
+    if (item) {
+      this._addGroups(item).forEach(group => {
+        const ids = (group.options || []).map(o => o.id);
+        const count = (this._sheet.addons || []).filter(id => ids.includes(id)).length;
+        const min = group.required ? Math.max(1, group.selection_min || 0) : (group.selection_min || 0);
+        if (count < min) valid = false;
+        if (group.selection_max != null && count > group.selection_max) valid = false;
+      });
+    }
     const btn = document.querySelector('.add-to-cart-btn');
     if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('add-to-cart-btn-disabled');
+      btn.disabled = !valid;
+      btn.classList.toggle('add-to-cart-btn-disabled', !valid);
     }
   },
 
@@ -472,17 +580,24 @@ const App = {
     }
   },
 
+  // Flatten every option across the item's `add` groups (the old add-ons).
+  _allAddOptions(item) {
+    const out = [];
+    this._addGroups(item).forEach(g => (g.options || []).forEach(o => out.push(o)));
+    return out;
+  },
+
   _getCartOptionNames(item, addonIds) {
-    if (!item.addons || !addonIds || !addonIds.length) return '';
-    return item.addons
-      .filter(a => addonIds.includes(a.id))
-      .map(a => a.name)
+    if (!addonIds || !addonIds.length) return '';
+    return this._allAddOptions(item)
+      .filter(o => addonIds.includes(o.id))
+      .map(o => o.name)
       .join(', ');
   },
 
   _getWaiterOptionHtml(item, addonIds) {
-    if (!item.addons || !addonIds || !addonIds.length) return '';
-    const chosen = item.addons.filter(a => addonIds.includes(a.id));
+    if (!addonIds || !addonIds.length) return '';
+    const chosen = this._allAddOptions(item).filter(o => addonIds.includes(o.id));
     if (!chosen.length) return '';
     const tags = chosen.map(a => {
       const priceTag = a.price ? ' +' + this.formatPrice(a.price) : '';
@@ -491,23 +606,32 @@ const App = {
     return '<div class="waiter-opts"><div class="waiter-opt-group">' + tags + '</div></div>';
   },
 
-  addToCart(itemId, variantIndex, qty, selectedAddons) {
+  // Stable key for a selections map so identical picks dedup in the cart.
+  _selectionsKey(selections) {
+    return JSON.stringify(
+      Object.keys(selections || {}).sort().map(k => [k, selections[k]]),
+    );
+  },
+
+  addToCart(itemId, selections, qty, selectedAddons) {
     const item = this._findItem(itemId);
     if (!item) return;
 
     const addons = Array.isArray(selectedAddons) ? selectedAddons : [];
-    const unitPrice = this._computeUnitPrice(item, variantIndex, addons);
+    const sel = selections ? { ...selections } : {};
+    const unitPrice = this._previewUnitPrice(item, sel, addons);
 
     const addonKey = JSON.stringify([...addons].sort());
+    const selKey = this._selectionsKey(sel);
     const existing = this.cart.find(c =>
       c.itemId === itemId &&
-      c.variantIndex === variantIndex &&
+      this._selectionsKey(c.selections) === selKey &&
       JSON.stringify([...(c.addons || [])].sort()) === addonKey
     );
     if (existing) {
       existing.qty += qty;
     } else {
-      this.cart.push({ itemId, variantIndex, qty, unitPrice, addons });
+      this.cart.push({ itemId, selections: sel, qty, unitPrice, addons });
     }
 
     this.updateCartFab();
@@ -520,9 +644,9 @@ const App = {
     if (!item) return;
 
     const addons = Array.isArray(this._sheet.addons) ? this._sheet.addons : [];
-    entry.variantIndex = this._sheet.variantIndex;
+    entry.selections = { ...this._sheet.selections };
     entry.qty = this._sheet.qty;
-    entry.unitPrice = this._computeUnitPrice(item, this._sheet.variantIndex, addons);
+    entry.unitPrice = this._previewUnitPrice(item, entry.selections, addons);
     entry.addons = addons;
 
     this.updateCartFab();
@@ -660,18 +784,13 @@ const App = {
       node.querySelector('.cart-item-inner').dataset.swipeIndex = index;
 
       const info = node.querySelector('.cart-item-info');
-      if (
-        (item.variants && item.variants.length) ||
-        (item.addons && item.addons.length)
-      ) {
+      if (item.modifierGroups && item.modifierGroups.length) {
         info.classList.add('cart-item-editable');
       }
 
       node.querySelector('.cart-item-name').textContent = item.name;
 
-      const variantName = item.variants && item.variants[entry.variantIndex]
-        ? item.variants[entry.variantIndex].name
-        : '';
+      const variantName = this._getSelectionNames(item, entry.selections);
       if (variantName) {
         const variantEl = node.querySelector('.cart-item-variant--variant');
         variantEl.textContent = variantName;
@@ -709,11 +828,12 @@ const App = {
   /**
    * Build API payload matching POST /api/v1/public/orders schema.
    *
-   * The Blade controller embeds each variant option with its real id
-   * (`item.variants[i].id`) and each add-on with its id (`item.addons[].id`).
-   * We map the chosen variant index back to its `variation_option_id` (whose
-   * price is absolute) and send the selected add-on ids as `addon_ids` (each a
-   * delta). Items without a variant simply omit `variation_option_id`.
+   * Each cart item emits a flat `selections` list:
+   *   { group_id, option_id, qty }
+   * built from the chosen `replace`-group picks (one per group) and the
+   * selected `add`-group option ids. We resolve each option's owning group via
+   * the embedded modifier_groups tree. Phase 1: no children, qty defaults to 1.
+   * Mirrors menu-core/pricing.ts `buildOrderPayloadSelections`.
    */
   _buildApiOrderPayload() {
     const cfg = window.__CONFIG__ || {};
@@ -722,18 +842,40 @@ const App = {
       table_uniqid: cfg.tableUniqid || null,
       items: this.cart.map(e => {
         const item = this._findItem(e.itemId);
-        const variant =
-          item && item.variants && item.variants.length
-            ? item.variants[e.variantIndex]
-            : null;
-        const addonIds = Array.isArray(e.addons) ? e.addons.map(Number) : [];
+        const selections = [];
+
+        // Replace-group picks: { [groupId]: optionId }.
+        const picks = e.selections || {};
+        Object.keys(picks).forEach(groupId => {
+          const optionId = picks[groupId];
+          if (optionId == null) return;
+          selections.push({
+            group_id: Number(groupId),
+            option_id: Number(optionId),
+            qty: 1,
+          });
+        });
+
+        // Add-group option ids: resolve each to its owning group.
+        const addonIds = Array.isArray(e.addons) ? e.addons : [];
+        if (addonIds.length && item) {
+          this._addGroups(item).forEach(g => {
+            (g.options || []).forEach(o => {
+              if (addonIds.includes(o.id)) {
+                selections.push({
+                  group_id: Number(g.id),
+                  option_id: Number(o.id),
+                  qty: 1,
+                });
+              }
+            });
+          });
+        }
+
         return {
           menu_item_id: e.itemId,
           quantity: e.qty,
-          ...(variant && variant.id != null
-            ? { variation_option_id: Number(variant.id) }
-            : {}),
-          addon_ids: addonIds,
+          selections,
         };
       }),
     };
@@ -831,9 +973,7 @@ const App = {
       const item = this._findItem(entry.itemId);
       if (!item) return '';
       const name = item.name;
-      const variantName = item.variants && item.variants[entry.variantIndex]
-        ? item.variants[entry.variantIndex].name
-        : '';
+      const variantName = this._getSelectionNames(item, entry.selections);
       const optHtml = this._getWaiterOptionHtml(item, entry.addons);
       const lineTotal = entry.unitPrice * entry.qty;
 
@@ -1048,18 +1188,22 @@ const App = {
         return this._closeAllSheets();
       }
 
-      // Variant chip selection
+      // Variant chip selection — one pick per axis (radio within its group).
       const variantChip = e.target.closest('.variant-chip');
       if (variantChip) {
-        const idx = Number(variantChip.dataset.variantIndex);
-        this._sheet.variantIndex = idx;
-        document.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('variant-chip-active'));
+        const groupId = Number(variantChip.dataset.groupId);
+        const optionId = Number(variantChip.dataset.optionId);
+        this._sheet.selections[groupId] = optionId;
+        const row = variantChip.closest('.variant-chips') || document;
+        row.querySelectorAll('.variant-chip').forEach(c => c.classList.remove('variant-chip-active'));
         variantChip.classList.add('variant-chip-active');
         this._updateSheetPrice();
+        this._updateSheetValidation();
         return;
       }
 
-      // Add-on choice click — atomic toggle (0..N), independent of others.
+      // Add-group choice click — toggle (0..N), independent of others. A capped
+      // group (selection_max) refuses extra picks once full.
       const optionChoice = e.target.closest('.option-choice');
       if (optionChoice) {
         const addonId = Number(optionChoice.dataset.choiceId);
@@ -1067,6 +1211,16 @@ const App = {
         if (idx >= 0) {
           this._sheet.addons.splice(idx, 1);
         } else {
+          const item = this._findItem(this._sheet.itemId);
+          const group = item && this._addGroups(item).find(
+            g => (g.options || []).some(o => o.id === addonId),
+          );
+          if (group && group.selection_max != null) {
+            const ids = group.options.map(o => o.id);
+            const count = this._sheet.addons.filter(id => ids.includes(id)).length;
+            // At the cap — ignore the extra pick rather than over-select.
+            if (count >= group.selection_max) return;
+          }
           this._sheet.addons.push(addonId);
         }
         optionChoice.classList.toggle(
@@ -1074,6 +1228,7 @@ const App = {
           this._sheet.addons.includes(addonId),
         );
         this._updateSheetPrice();
+        this._updateSheetValidation();
         return;
       }
 
@@ -1099,7 +1254,7 @@ const App = {
             this._renderCartEditView();
           }
         } else {
-          this.addToCart(this._sheet.itemId, this._sheet.variantIndex, this._sheet.qty, this._sheet.addons);
+          this.addToCart(this._sheet.itemId, this._sheet.selections, this._sheet.qty, this._sheet.addons);
           const item = this._findItem(this._sheet.itemId);
           if (item) this._showAddedFeedback(item.name, addBtn);
           this.closeBottomSheet();
@@ -1122,8 +1277,7 @@ const App = {
         if (entry) {
           const item = this._findItem(entry.itemId);
           const hasConfig =
-            (item && item.variants && item.variants.length) ||
-            (item && item.addons && item.addons.length);
+            item && item.modifierGroups && item.modifierGroups.length;
           if (hasConfig) {
             this.openBottomSheet(entry.itemId, index);
             return;

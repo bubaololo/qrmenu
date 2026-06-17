@@ -41,16 +41,16 @@ class Menu extends Model
         return $this->hasMany(MenuSection::class)->orderBy('sort_order');
     }
 
-    /** Pick-one variation axes shared across this menu's items. */
-    public function variations(): HasMany
+    /**
+     * Top-level modifier groups (Size, Extras, …) shared across this menu's
+     * items. Nested child groups (parent_option_id set) are reached via their
+     * parent option, not listed here.
+     */
+    public function modifierGroups(): HasMany
     {
-        return $this->hasMany(MenuVariation::class, 'menu_id')->orderBy('sort_order');
-    }
-
-    /** Atomic additive add-ons shared across this menu's items. */
-    public function addons(): HasMany
-    {
-        return $this->hasMany(MenuAddon::class, 'menu_id')->orderBy('sort_order');
+        return $this->hasMany(ModifierGroup::class, 'menu_id')
+            ->whereNull('parent_option_id')
+            ->orderBy('sort_order');
     }
 
     public function clonedFrom(): BelongsTo

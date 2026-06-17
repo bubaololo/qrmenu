@@ -212,17 +212,25 @@
                                     $itemName = $item->translate('name', $lang) ?? $item->name ?? '';
                                     $itemDesc = $item->translate('description', $lang);
 
-                                    if ($item->variations->isNotEmpty()) {
-                                        $firstOpt = $item->variations->first()->options->first();
-                                        $displayPrice = ($firstOpt && $firstOpt->price !== null)
-                                            ? (float) $firstOpt->price
-                                            : (float) $item->price_value;
+                                    // Unified modifier groups (replace = old variation, absolute price;
+                                    // add = old add-on, delta price). The displayed card price is the
+                                    // cheapest option of the (single) replace group, falling back to the
+                                    // dish base — mirrors menu-core's previewUnitPrice.
+                                    // `pricing_mode` is a backed enum; `selection_type` is a plain string.
+                                    // Normalise both to their string value defensively.
+                                    $enumStr = fn($v) => is_object($v) ? ($v->value ?? (string) $v) : (string) $v;
+                                    $replaceGroup = $item->modifierGroups
+                                        ->first(fn($g) => $enumStr($g->pricing_mode) === 'replace');
+                                    if ($replaceGroup && $replaceGroup->options->isNotEmpty()) {
+                                        $prices = $replaceGroup->options->map(
+                                            fn($o) => $o->price !== null ? (float) $o->price : (float) $item->price_value
+                                        );
+                                        $displayPrice = (float) $prices->min();
                                     } else {
                                         $displayPrice = (float) $item->price_value;
                                     }
 
-                                    $hasVariants = $item->variations->flatMap(fn($v) => $v->options)->isNotEmpty();
-                                    $hasAddons = $item->addons->isNotEmpty();
+                                    $hasGroups = $item->modifierGroups->isNotEmpty();
 
                                     // Modal-only extras: fields menu.js needs that aren't visible in the card DOM.
                                     $extras = [];
@@ -233,35 +241,55 @@
                                     $extras['price'] = (float) $item->price_value;
                                     $extras['orderable'] = (bool) $item->is_orderable;
 
-                                    if ($hasVariants) {
-                                        // Variation option price is absolute (replaces the dish price).
-                                        $variants = [];
-                                        foreach ($item->variations as $g) {
+                                    if ($hasGroups) {
+                                        // Emit the unified modifier_groups tree. menu.js renders `replace`
+                                        // groups as single-select chips and `add` groups as multi-select
+                                        // checkboxes, and computes price with the SAME rule as
+                                        // menu-core/pricing.ts.
+                                        // Mirror FullMenuResource: skip groups hidden on this item's pivot
+                                        // and resolve per-item effective rules from the pivot overrides.
+                                        $modifierGroups = [];
+                                        foreach ($item->modifierGroups as $g) {
+                                            if ((bool) ($g->pivot->is_hidden ?? false)) {
+                                                continue;
+                                            }
+                                            $pricingMode = $enumStr($g->pricing_mode);
+                                            $selMin = (int) ($g->pivot->selection_min_override ?? $g->selection_min);
+                                            $selMax = $g->pivot->selection_max_override ?? $g->selection_max;
+                                            $required = (bool) ($g->pivot->required_override ?? $g->required);
+                                            $sortOrder = $g->pivot->sort_order ?? $g->sort_order;
+                                            $options = [];
                                             foreach ($g->options as $opt) {
-                                                $variants[] = [
+                                                // null price ⇒ fall back to the dish base (replace) or 0 (add).
+                                                $price = $opt->price !== null
+                                                    ? (float) $opt->price
+                                                    : ($pricingMode === 'replace' ? (float) $item->price_value : 0.0);
+                                                $options[] = [
                                                     'id' => $opt->id,
                                                     'name' => $opt->translate('name', $lang) ?? $opt->translate('name', $sourceLocale) ?? '',
-                                                    'price' => $opt->price !== null ? (float) $opt->price : (float) $item->price_value,
+                                                    'price' => $price,
+                                                    'is_default' => (bool) $opt->is_default,
+                                                    'max_qty' => (int) ($opt->max_qty ?? 1),
                                                 ];
                                             }
-                                        }
-                                        $extras['variants'] = $variants;
-                                    }
-
-                                    if ($hasAddons) {
-                                        // Atomic add-ons: a flat list; price is a delta added on top.
-                                        $addons = [];
-                                        foreach ($item->addons as $a) {
-                                            $addons[] = [
-                                                'id' => $a->id,
-                                                'name' => $a->translate('name', $lang) ?? $a->translate('name', $sourceLocale) ?? '',
-                                                'price' => (float) $a->price,
+                                            $modifierGroups[] = [
+                                                'id' => $g->id,
+                                                'name' => $g->translate('name', $lang) ?? $g->translate('name', $sourceLocale) ?? '',
+                                                'pricing_mode' => $pricingMode,
+                                                'selection_type' => $enumStr($g->selection_type),
+                                                'selection_min' => $selMin,
+                                                'selection_max' => $selMax !== null ? (int) $selMax : null,
+                                                'required' => $required,
+                                                'sort_order' => $sortOrder,
+                                                'options' => $options,
                                             ];
                                         }
-                                        $extras['addons'] = $addons;
+                                        // Order by the per-item pivot sort_order to match the admin view.
+                                        usort($modifierGroups, fn($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+                                        $extras['modifierGroups'] = $modifierGroups;
                                     }
 
-                                    $shouldEmbedExtras = $hasVariants || $hasAddons || isset($extras['description']);
+                                    $shouldEmbedExtras = $hasGroups || isset($extras['description']);
                                 @endphp
                                 <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
                                     @if($item->image)

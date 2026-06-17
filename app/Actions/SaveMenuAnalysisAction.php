@@ -2,14 +2,14 @@
 
 namespace App\Actions;
 
+use App\Enums\ModifierPricingMode;
 use App\Enums\PriceType;
 use App\Models\Icon;
 use App\Models\Menu;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Observers\MenuItemObserver;
@@ -164,8 +164,8 @@ class SaveMenuAnalysisAction
             unset($entry);
         }
 
-        $this->dedupeAttachVariations($menu, $itemEntries, $sourceLocale);
-        $this->dedupeAttachAddons($menu, $itemEntries, $sourceLocale);
+        $this->dedupeAttachVariationGroups($menu, $itemEntries, $sourceLocale);
+        $this->dedupeAttachAddonGroups($menu, $itemEntries, $sourceLocale);
     }
 
     /**
@@ -343,21 +343,21 @@ class SaveMenuAnalysisAction
     }
 
     /**
-     * Dedupe pick-one variation axes across the menu's items and attach via the
-     * pivot. Variation option `price` is ABSOLUTE. Reuses axes already on the
-     * menu (repeated saves/chunks) instead of duplicating.
+     * Dedupe pick-one variation axes across the menu's items and attach as
+     * REPLACE modifier groups (single-select, required; option price ABSOLUTE).
+     * Reuses replace-groups already on the menu (repeated saves/chunks).
      *
      * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}>  $itemEntries
      */
-    private function dedupeAttachVariations(Menu $menu, array $itemEntries, ?string $locale): void
+    private function dedupeAttachVariationGroups(Menu $menu, array $itemEntries, ?string $locale): void
     {
-        /** @var array<string, array{model: ?MenuVariation, data: ?array<string, mixed>, itemIds: list<int>}> */
+        /** @var array<string, array{model: ?ModifierGroup, data: ?array<string, mixed>, itemIds: list<int>}> */
         $registry = [];
 
-        foreach ($menu->variations()->with('options')->get() as $existing) {
+        foreach ($menu->modifierGroups()->where('pricing_mode', ModifierPricingMode::Replace->value)->with('options')->get() as $existing) {
             $key = $this->buildVariationKey([
                 'name' => $existing->initialText('name'),
-                'options' => $existing->options->map(fn (MenuVariationOption $o) => [
+                'options' => $existing->options->map(fn (ModifierOption $o) => [
                     'name' => $o->initialText('name'),
                     'price' => $o->price,
                 ])->all(),
@@ -375,22 +375,29 @@ class SaveMenuAnalysisAction
             }
         }
 
-        $sortOrder = ((int) ($menu->variations()->max('sort_order') ?? -1)) + 1;
+        $sortOrder = ((int) ($menu->modifierGroups()->max('sort_order') ?? -1)) + 1;
 
         foreach ($registry as $entry) {
             if (empty($entry['itemIds'])) {
                 continue;
             }
-            $variation = $entry['model'];
-            if ($variation === null) {
+            $group = $entry['model'];
+            if ($group === null) {
                 $data = $entry['data'];
-                $variation = $menu->variations()->create(['sort_order' => $sortOrder++]);
+                $group = $menu->modifierGroups()->create([
+                    'pricing_mode' => ModifierPricingMode::Replace,
+                    'selection_type' => 'single',
+                    'selection_min' => 1,
+                    'selection_max' => 1,
+                    'required' => true,
+                    'sort_order' => $sortOrder++,
+                ]);
                 $name = MenuJson::extractText($data['name'] ?? $data['group_name'] ?? null);
                 if ($name !== null && $locale !== null) {
-                    $variation->setTranslation('name', $locale, $name, isInitial: true);
+                    $group->setTranslation('name', $locale, $name, isInitial: true);
                 }
                 foreach ($data['options'] ?? [] as $optIndex => $optData) {
-                    $option = $variation->options()->create([
+                    $option = $group->options()->create([
                         'price' => $optData['price'] ?? $optData['price_adjust'] ?? null,
                         'is_default' => (bool) ($optData['is_default'] ?? false),
                         'sort_order' => $optIndex,
@@ -401,60 +408,100 @@ class SaveMenuAnalysisAction
                     }
                 }
             }
-            $variation->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
+            $group->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
         }
     }
 
     /**
-     * Dedupe atomic add-ons (name + delta price) across items and attach via the
-     * pivot. Reuses add-ons already on the menu instead of duplicating.
+     * Dedupe atomic add-ons into ADD modifier groups (optional multi-select;
+     * option price DELTA). Items that share the same add-on SET share one group
+     * (mirrors the catalog migration), so per-item subsets are preserved.
+     * Reuses add-groups already on the menu by option-set signature.
      *
      * @param  array<int, array{item: MenuItem, variations: list<array<string, mixed>>, addons: list<array<string, mixed>>}>  $itemEntries
      */
-    private function dedupeAttachAddons(Menu $menu, array $itemEntries, ?string $locale): void
+    private function dedupeAttachAddonGroups(Menu $menu, array $itemEntries, ?string $locale): void
     {
-        /** @var array<string, array{model: ?MenuAddon, data: ?array<string, mixed>, itemIds: list<int>}> */
-        $registry = [];
-
-        foreach ($menu->addons()->get() as $existing) {
-            $key = $this->buildAddonKey(['name' => $existing->initialText('name'), 'price' => $existing->price]);
-            $registry[$key] = ['model' => $existing, 'data' => null, 'itemIds' => []];
+        /** @var array<string, ModifierGroup> */
+        $existingBySignature = [];
+        foreach ($menu->modifierGroups()->where('pricing_mode', ModifierPricingMode::Add->value)->with('options')->get() as $existing) {
+            $signature = $this->buildAddonSetKey($existing->options->map(fn (ModifierOption $o) => [
+                'name' => $o->initialText('name'),
+                'price' => $o->price,
+            ])->all());
+            $existingBySignature[$signature] = $existing;
         }
 
+        // Build each item's distinct add-on set, then group items by signature.
+        /** @var array<string, array{options: list<array<string, mixed>>, itemIds: list<int>}> */
+        $sets = [];
         foreach ($itemEntries as $entry) {
+            $options = [];
+            $seen = [];
             foreach ($entry['addons'] as $addonData) {
                 $name = MenuJson::extractText($addonData['name'] ?? null);
                 if ($name === null || trim($name) === '') {
                     continue;
                 }
-                $key = $this->buildAddonKey($addonData);
-                if (! isset($registry[$key])) {
-                    $registry[$key] = ['model' => null, 'data' => $addonData, 'itemIds' => []];
+                $price = $addonData['price'] ?? $addonData['price_adjust'] ?? 0;
+                $dedup = strtolower(trim($name)).':'.$price;
+                if (isset($seen[$dedup])) {
+                    continue;
                 }
-                $registry[$key]['itemIds'][] = $entry['item']->id;
+                $seen[$dedup] = true;
+                $options[] = ['name' => $name, 'price' => $price];
             }
-        }
-
-        $sortOrder = ((int) ($menu->addons()->max('sort_order') ?? -1)) + 1;
-
-        foreach ($registry as $entry) {
-            if (empty($entry['itemIds'])) {
+            if ($options === []) {
                 continue;
             }
-            $addon = $entry['model'];
-            if ($addon === null) {
-                $data = $entry['data'];
-                $addon = $menu->addons()->create([
-                    'price' => $data['price'] ?? $data['price_adjust'] ?? 0,
+            $signature = $this->buildAddonSetKey($options);
+            if (! isset($sets[$signature])) {
+                $sets[$signature] = ['options' => $options, 'itemIds' => []];
+            }
+            $sets[$signature]['itemIds'][] = $entry['item']->id;
+        }
+
+        $sortOrder = ((int) ($menu->modifierGroups()->max('sort_order') ?? -1)) + 1;
+
+        foreach ($sets as $signature => $set) {
+            $group = $existingBySignature[$signature] ?? null;
+            if ($group === null) {
+                $group = $menu->modifierGroups()->create([
+                    'pricing_mode' => ModifierPricingMode::Add,
+                    'selection_type' => 'multi',
+                    'selection_min' => 0,
+                    'selection_max' => null,
+                    'required' => false,
                     'sort_order' => $sortOrder++,
                 ]);
-                $name = MenuJson::extractText($data['name'] ?? null);
-                if ($name !== null && $locale !== null) {
-                    $addon->setTranslation('name', $locale, $name, isInitial: true);
+                if ($locale !== null) {
+                    $group->setTranslation('name', $locale, $this->addonGroupName($locale), isInitial: true);
                 }
+                foreach ($set['options'] as $optIndex => $optData) {
+                    $option = $group->options()->create([
+                        'price' => $optData['price'] ?? 0,
+                        'is_default' => false,
+                        'sort_order' => $optIndex,
+                    ]);
+                    if ($locale !== null) {
+                        $option->setTranslation('name', $locale, (string) $optData['name'], isInitial: true);
+                    }
+                }
+                $existingBySignature[$signature] = $group;
             }
-            $addon->items()->syncWithoutDetaching(array_unique($entry['itemIds']));
+            $group->items()->syncWithoutDetaching(array_unique($set['itemIds']));
         }
+    }
+
+    /** A localized default name for a synthesized "Extras" add-on group. */
+    private function addonGroupName(string $locale): string
+    {
+        return match ($locale) {
+            'ru' => 'Добавки',
+            'vi' => 'Thêm',
+            'kk' => 'Қосымшалар',
+            default => 'Extras',
+        };
     }
 
     private function validateIconName(mixed $raw): ?string
@@ -500,15 +547,19 @@ class SaveMenuAnalysisAction
     }
 
     /**
-     * Dedup key for an atomic add-on: name + price.
+     * Signature for an add-on group: the sorted set of its (name:price) options.
+     * Items sharing the same signature share one "Extras" group.
      *
-     * @param  array<string, mixed>  $data
+     * @param  list<array<string, mixed>>  $options
      */
-    private function buildAddonKey(array $data): string
+    private function buildAddonSetKey(array $options): string
     {
-        $name = strtolower(trim((string) (MenuJson::extractText($data['name'] ?? '') ?? '')));
-
-        return "a:{$name}:".($data['price'] ?? $data['price_adjust'] ?? 0);
+        return collect($options)
+            ->map(fn ($o) => strtolower(trim((string) (MenuJson::extractText($o['name'] ?? '') ?? '')))
+                .':'.($o['price'] ?? $o['price_adjust'] ?? 0))
+            ->sort()
+            ->values()
+            ->implode('|');
     }
 
     /**

@@ -7,6 +7,7 @@ use Database\Factories\OrderItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
@@ -16,11 +17,9 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'menu_item_id',
-        'variation_option_id',
         'quantity',
         'unit_price',
         'currency',
-        'selected_options',
         'kitchen_status',
         'started_cooking_at',
         'ready_at',
@@ -33,7 +32,6 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
-            'selected_options' => 'array',
             'kitchen_status' => OrderItemKitchenStatus::class,
             'started_cooking_at' => 'datetime',
             'ready_at' => 'datetime',
@@ -51,9 +49,12 @@ class OrderItem extends Model
         return $this->belongsTo(MenuItem::class);
     }
 
-    public function variationOption(): BelongsTo
+    /** Top-level chosen modifiers (nested children hang off each via parent_id). */
+    public function modifiers(): HasMany
     {
-        return $this->belongsTo(MenuVariationOption::class, 'variation_option_id');
+        return $this->hasMany(OrderItemModifier::class, 'order_item_id')
+            ->whereNull('parent_id')
+            ->orderBy('sort_order');
     }
 
     public function lineTotal(): float

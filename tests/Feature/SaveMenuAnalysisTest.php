@@ -3,10 +3,11 @@
 namespace Tests\Feature;
 
 use App\Actions\SaveMenuAnalysisAction;
+use App\Enums\ModifierPricingMode;
 use App\Enums\PriceType;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
-use App\Models\MenuVariation;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\TranslationField;
 use App\Support\MenuJson;
@@ -81,38 +82,63 @@ class SaveMenuAnalysisTest extends TestCase
     }
 
     #[Test]
-    public function test_creates_variations_and_their_options(): void
+    public function test_creates_replace_groups_from_variations(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // Per-item variation axes deduplicate to unique menu-level variations,
-        // each with its (absolute-priced) options.
-        $this->assertSame(1, MenuVariation::count());
-        $this->assertSame(2, DB::table('menu_variation_options')->count());
-        $variationIds = MenuVariation::pluck('id');
-        $this->assertDatabaseHas('menu_variation_options', ['variation_id' => $variationIds->first()]);
+        // Per-item variation axes deduplicate to unique menu-level REPLACE
+        // groups (single-select, required), each carrying its absolute-priced
+        // options.
+        $replaceGroups = ModifierGroup::where('pricing_mode', ModifierPricingMode::Replace->value)->get();
+        $this->assertSame(1, $replaceGroups->count());
+
+        $group = $replaceGroups->first();
+        $this->assertSame('single', $group->selection_type);
+        $this->assertTrue($group->required);
+        $this->assertSame(2, $group->options()->count());
     }
 
     #[Test]
-    public function test_creates_atomic_addons(): void
+    public function test_creates_add_group_from_addons(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // The legacy grouped "ADD ON" block is flattened into atomic add-ons,
-        // deduplicated by name + price across all items.
-        $this->assertSame(3, MenuAddon::count());
+        // The recognized add-ons become an ADD group (optional, multi-select);
+        // every distinct add-on (deduped by name + price) is an option with a
+        // DELTA price.
+        $addGroups = ModifierGroup::where('pricing_mode', ModifierPricingMode::Add->value)->get();
+        $this->assertSame(1, $addGroups->count());
+
+        $group = $addGroups->first();
+        $this->assertSame('multi', $group->selection_type);
+        $this->assertFalse($group->required);
+        $this->assertSame(3, $group->options()->count());
     }
 
     #[Test]
-    public function test_deduplicates_variations_and_addons_at_menu_level(): void
+    public function test_items_sharing_an_addon_set_share_one_add_group(): void
     {
         (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
 
-        // Deduped entities are linked back to their items via pivot rows.
-        $this->assertSame(1, MenuVariation::count());
-        $this->assertSame(3, MenuAddon::count());
-        $this->assertSame(12, DB::table('menu_item_variation')->count());
-        $this->assertSame(45, DB::table('menu_item_addon')->count());
+        // All items that carry the same add-on SET reuse a single shared group
+        // (rather than one group per item).
+        $addGroup = ModifierGroup::where('pricing_mode', ModifierPricingMode::Add->value)->firstOrFail();
+        $this->assertSame(15, $addGroup->items()->count());
+    }
+
+    #[Test]
+    public function test_modifier_groups_are_attached_to_items(): void
+    {
+        (new SaveMenuAnalysisAction)->handle($this->menuData, $this->restaurant->id, 1);
+
+        $this->assertSame(2, ModifierGroup::count());
+        $this->assertSame(5, ModifierOption::count());
+
+        // 12 items get the variation REPLACE group, 15 items get the add group.
+        $this->assertSame(27, DB::table('menu_item_modifier_group')->count());
+
+        $replaceGroup = ModifierGroup::where('pricing_mode', ModifierPricingMode::Replace->value)->firstOrFail();
+        $this->assertSame(12, $replaceGroup->items()->count());
     }
 
     #[Test]

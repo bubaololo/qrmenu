@@ -4,11 +4,10 @@ namespace App\Observers;
 
 use App\Jobs\TranslateEntityJob;
 use App\Models\Menu;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Translation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -74,9 +73,8 @@ class TranslationObserver
         $menu = match (true) {
             $owner instanceof MenuItem => $owner->loadMissing('section.menu')->section?->menu,
             $owner instanceof MenuSection => $owner->loadMissing('menu')->menu,
-            $owner instanceof MenuVariation => $owner->loadMissing('menu')->menu,
-            $owner instanceof MenuVariationOption => $owner->loadMissing('variation.menu')->variation?->menu,
-            $owner instanceof MenuAddon => $owner->loadMissing('menu')->menu,
+            $owner instanceof ModifierGroup => $owner->loadMissing('menu')->menu,
+            $owner instanceof ModifierOption => $owner->loadMissing('group.menu')->group?->menu,
             default => null,
         };
 

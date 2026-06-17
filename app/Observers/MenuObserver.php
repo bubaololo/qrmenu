@@ -4,11 +4,10 @@ namespace App\Observers;
 
 use App\Jobs\DeleteImageFilesJob;
 use App\Models\Menu;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Translation;
 use App\Services\ImageProcessor;
 use Illuminate\Support\Collection;
@@ -33,31 +32,26 @@ class MenuObserver
         }
 
         $itemIds = DB::table('menu_items')->whereIn('section_id', $sectionIds)->pluck('id');
-        $variationIds = DB::table('menu_variations')->where('menu_id', $menu->id)->pluck('id');
-        $variationOptionIds = $variationIds->isEmpty()
+        $groupIds = DB::table('modifier_groups')->where('menu_id', $menu->id)->pluck('id');
+        $optionIds = $groupIds->isEmpty()
             ? collect()
-            : DB::table('menu_variation_options')->whereIn('variation_id', $variationIds)->pluck('id');
-        $addonIds = DB::table('menu_addons')->where('menu_id', $menu->id)->pluck('id');
+            : DB::table('modifier_options')->whereIn('group_id', $groupIds)->pluck('id');
 
         Translation::query()
-            ->where(function ($q) use ($sectionIds, $itemIds, $variationIds, $variationOptionIds, $addonIds) {
+            ->where(function ($q) use ($sectionIds, $itemIds, $groupIds, $optionIds) {
                 $q->where(fn ($w) => $w->where('translatable_type', MenuSection::class)
                     ->whereIn('translatable_id', $sectionIds));
                 if ($itemIds->isNotEmpty()) {
                     $q->orWhere(fn ($w) => $w->where('translatable_type', MenuItem::class)
                         ->whereIn('translatable_id', $itemIds));
                 }
-                if ($variationIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuVariation::class)
-                        ->whereIn('translatable_id', $variationIds));
+                if ($groupIds->isNotEmpty()) {
+                    $q->orWhere(fn ($w) => $w->where('translatable_type', ModifierGroup::class)
+                        ->whereIn('translatable_id', $groupIds));
                 }
-                if ($variationOptionIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuVariationOption::class)
-                        ->whereIn('translatable_id', $variationOptionIds));
-                }
-                if ($addonIds->isNotEmpty()) {
-                    $q->orWhere(fn ($w) => $w->where('translatable_type', MenuAddon::class)
-                        ->whereIn('translatable_id', $addonIds));
+                if ($optionIds->isNotEmpty()) {
+                    $q->orWhere(fn ($w) => $w->where('translatable_type', ModifierOption::class)
+                        ->whereIn('translatable_id', $optionIds));
                 }
             })
             ->delete();

@@ -8,8 +8,8 @@ use App\Jobs\TranslateMenuJob;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\TranslationField;
@@ -203,36 +203,34 @@ class AutoTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_option_group_creation_triggers_translation(): void
+    public function test_modifier_group_creation_triggers_translation(): void
     {
         Bus::fake([TranslateEntityJob::class]);
 
         $menu = $this->makeTranslatedMenu();
-        $section = $menu->sections()->first();
-        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
         $group->setTranslation('name', 'vi', 'Đồ uống', isInitial: true);
 
         Bus::assertDispatched(
             TranslateEntityJob::class,
-            fn (TranslateEntityJob $job) => $job->entity instanceof MenuVariation
+            fn (TranslateEntityJob $job) => $job->entity instanceof ModifierGroup
                 && $job->entity->is($group),
         );
     }
 
     #[Test]
-    public function test_option_creation_triggers_translation(): void
+    public function test_modifier_option_creation_triggers_translation(): void
     {
         Bus::fake([TranslateEntityJob::class]);
 
         $menu = $this->makeTranslatedMenu();
-        $section = $menu->sections()->first();
-        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
-        $option = MenuVariationOption::factory()->create(['variation_id' => $group->id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
+        $option = ModifierOption::factory()->create(['group_id' => $group->id]);
         $option->setTranslation('name', 'vi', 'Cay', isInitial: true);
 
         Bus::assertDispatched(
             TranslateEntityJob::class,
-            fn (TranslateEntityJob $job) => $job->entity instanceof MenuVariationOption
+            fn (TranslateEntityJob $job) => $job->entity instanceof ModifierOption
                 && $job->entity->is($option),
         );
     }

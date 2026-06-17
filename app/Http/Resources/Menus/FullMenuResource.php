@@ -4,6 +4,7 @@ namespace App\Http\Resources\Menus;
 
 use App\Actions\BuildPublicMenuUrl;
 use App\Models\Menu;
+use App\Models\ModifierGroup;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -61,28 +62,58 @@ class FullMenuResource extends JsonResource
                     'thumb_url' => $item->thumb_url,
                     'sort_order' => $item->sort_order,
                     'confidence' => $this->confidenceMap[$item->id] ?? null,
-                    // Pick-one variation axes (option price is ABSOLUTE — replaces dish price).
-                    'variations' => $item->variations->map(fn ($variation) => [
-                        'id' => $variation->id,
-                        'name' => $variation->translate('name', $locale),
-                        'sort_order' => $variation->sort_order,
-                        'options' => $variation->options->map(fn ($opt) => [
-                            'id' => $opt->id,
-                            'name' => $opt->translate('name', $locale),
-                            'price' => $opt->price,
-                            'is_default' => $opt->is_default,
-                            'sort_order' => $opt->sort_order,
-                        ]),
-                    ]),
-                    // Atomic additive add-ons (price is a DELTA added to the dish price).
-                    'addons' => $item->addons->map(fn ($addon) => [
-                        'id' => $addon->id,
-                        'name' => $addon->translate('name', $locale),
-                        'price' => $addon->price,
-                        'sort_order' => $addon->sort_order,
-                    ]),
+                    // Modifier groups: a 'replace' group's option price is the
+                    // ABSOLUTE base; an 'add' group's option price is a DELTA.
+                    'modifier_groups' => $item->modifierGroups
+                        ->reject(fn ($group) => (bool) ($group->pivot->is_hidden ?? false))
+                        ->map(fn ($group) => $this->serializeGroup($group, $locale))
+                        ->values(),
                 ]),
             ]),
+        ];
+    }
+
+    /**
+     * Serialize a modifier group with per-item effective selection rules and
+     * its (recursive) options/child-groups tree.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeGroup(ModifierGroup $group, string $locale): array
+    {
+        return [
+            'id' => $group->id,
+            'name' => $group->translate('name', $locale),
+            'pricing_mode' => $group->pricing_mode->value,
+            'selection_type' => $group->selection_type,
+            'selection_min' => (int) ($group->pivot?->selection_min_override ?? $group->selection_min),
+            'selection_max' => $group->pivot?->selection_max_override ?? $group->selection_max,
+            'required' => (bool) ($group->pivot?->required_override ?? $group->required),
+            'charge_above' => $group->charge_above,
+            'portion_denominator' => $group->portion_denominator,
+            'sort_order' => $group->pivot?->sort_order ?? $group->sort_order,
+            // Raw per-item overrides (null = inherit) for the admin editor; the
+            // guest uses the effective values above. Null for nested groups.
+            'overrides' => [
+                'selection_min' => $group->pivot?->selection_min_override,
+                'selection_max' => $group->pivot?->selection_max_override,
+                'required' => isset($group->pivot->required_override) ? (bool) $group->pivot->required_override : null,
+                'is_hidden' => (bool) ($group->pivot?->is_hidden ?? false),
+                'sort_order' => $group->pivot?->sort_order,
+            ],
+            'options' => $group->options->map(fn ($opt) => [
+                'id' => $opt->id,
+                'name' => $opt->translate('name', $locale),
+                'price' => $opt->price,
+                'is_default' => $opt->is_default,
+                'default_qty' => $opt->default_qty,
+                'max_qty' => $opt->max_qty,
+                'linked_menu_item_id' => $opt->linked_menu_item_id,
+                'sort_order' => $opt->sort_order,
+                'child_groups' => $opt->relationLoaded('childGroups')
+                    ? $opt->childGroups->map(fn ($child) => $this->serializeGroup($child, $locale))->values()
+                    : [],
+            ])->values(),
         ];
     }
 }

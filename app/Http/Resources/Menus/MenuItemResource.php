@@ -30,7 +30,6 @@ class MenuItemResource extends JsonApiResource
 
     /** @var array<int, string> */
     public $relationships = [
-        'variations',
-        'addons',
+        'modifierGroups',
     ];
 }

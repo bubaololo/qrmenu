@@ -6,8 +6,8 @@ use App\Enums\RestaurantUserRole;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\TranslationField;
@@ -288,20 +288,19 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_update_option_group_translation(): void
+    public function test_update_modifier_group_translation(): void
     {
         $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
 
         $this->actingAs($user)
-            ->putJson("/api/v1/menu-variations/{$group->id}", ['name' => 'Toppings'], ['X-Locale' => 'en'])
+            ->putJson("/api/v1/modifier-groups/{$group->id}", ['name' => 'Toppings'], ['X-Locale' => 'en'])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
-            'translatable_type' => MenuVariation::class,
+            'translatable_type' => ModifierGroup::class,
             'translatable_id' => $group->id,
             'locale' => 'en',
             'field_id' => TranslationField::where('name', 'name')->value('id'),
@@ -310,25 +309,24 @@ class MenuTranslationTest extends TestCase
     }
 
     #[Test]
-    public function test_update_option_translation(): void
+    public function test_update_modifier_option_translation(): void
     {
         $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
         $user = $this->asOwnerOf($restaurant);
         $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
-        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
-        $group = MenuVariation::factory()->create(['menu_id' => $section->menu_id]);
-        $option = MenuVariationOption::factory()->create(['variation_id' => $group->id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
+        $option = ModifierOption::factory()->create(['group_id' => $group->id]);
 
         $this->actingAs($user)
             ->putJson(
-                "/api/v1/menu-variation-options/{$option->id}",
+                "/api/v1/modifier-options/{$option->id}",
                 ['name' => 'Extra Spicy'],
                 ['X-Locale' => 'en']
             )
             ->assertStatus(200);
 
         $this->assertDatabaseHas('translations', [
-            'translatable_type' => MenuVariationOption::class,
+            'translatable_type' => ModifierOption::class,
             'translatable_id' => $option->id,
             'locale' => 'en',
             'field_id' => TranslationField::where('name', 'name')->value('id'),

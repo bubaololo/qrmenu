@@ -4,11 +4,10 @@ namespace App\Observers;
 
 use App\Enums\RestaurantUserRole;
 use App\Jobs\DeleteImageFilesJob;
-use App\Models\MenuAddon;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
-use App\Models\MenuVariation;
-use App\Models\MenuVariationOption;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\Zone;
@@ -56,21 +55,18 @@ class RestaurantObserver
         $itemIds = $sectionIds->isEmpty()
             ? collect()
             : DB::table('menu_items')->whereIn('section_id', $sectionIds)->pluck('id');
-        $variationIds = $menuIds->isEmpty()
+        $groupIds = $menuIds->isEmpty()
             ? collect()
-            : DB::table('menu_variations')->whereIn('menu_id', $menuIds)->pluck('id');
-        $variationOptionIds = $variationIds->isEmpty()
+            : DB::table('modifier_groups')->whereIn('menu_id', $menuIds)->pluck('id');
+        $optionIds = $groupIds->isEmpty()
             ? collect()
-            : DB::table('menu_variation_options')->whereIn('variation_id', $variationIds)->pluck('id');
-        $addonIds = $menuIds->isEmpty()
-            ? collect()
-            : DB::table('menu_addons')->whereIn('menu_id', $menuIds)->pluck('id');
+            : DB::table('modifier_options')->whereIn('group_id', $groupIds)->pluck('id');
         $zoneIds = DB::table('zones')->where('restaurant_id', $restaurant->id)->pluck('id');
 
-        if ($sectionIds->isNotEmpty() || $itemIds->isNotEmpty() || $variationIds->isNotEmpty()
-            || $variationOptionIds->isNotEmpty() || $addonIds->isNotEmpty() || $zoneIds->isNotEmpty()) {
+        if ($sectionIds->isNotEmpty() || $itemIds->isNotEmpty() || $groupIds->isNotEmpty()
+            || $optionIds->isNotEmpty() || $zoneIds->isNotEmpty()) {
             Translation::query()
-                ->where(function ($q) use ($sectionIds, $itemIds, $variationIds, $variationOptionIds, $addonIds, $zoneIds) {
+                ->where(function ($q) use ($sectionIds, $itemIds, $groupIds, $optionIds, $zoneIds) {
                     if ($sectionIds->isNotEmpty()) {
                         $q->orWhere(fn ($w) => $w->where('translatable_type', MenuSection::class)
                             ->whereIn('translatable_id', $sectionIds));
@@ -79,17 +75,13 @@ class RestaurantObserver
                         $q->orWhere(fn ($w) => $w->where('translatable_type', MenuItem::class)
                             ->whereIn('translatable_id', $itemIds));
                     }
-                    if ($variationIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuVariation::class)
-                            ->whereIn('translatable_id', $variationIds));
+                    if ($groupIds->isNotEmpty()) {
+                        $q->orWhere(fn ($w) => $w->where('translatable_type', ModifierGroup::class)
+                            ->whereIn('translatable_id', $groupIds));
                     }
-                    if ($variationOptionIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuVariationOption::class)
-                            ->whereIn('translatable_id', $variationOptionIds));
-                    }
-                    if ($addonIds->isNotEmpty()) {
-                        $q->orWhere(fn ($w) => $w->where('translatable_type', MenuAddon::class)
-                            ->whereIn('translatable_id', $addonIds));
+                    if ($optionIds->isNotEmpty()) {
+                        $q->orWhere(fn ($w) => $w->where('translatable_type', ModifierOption::class)
+                            ->whereIn('translatable_id', $optionIds));
                     }
                     if ($zoneIds->isNotEmpty()) {
                         $q->orWhere(fn ($w) => $w->where('translatable_type', Zone::class)
