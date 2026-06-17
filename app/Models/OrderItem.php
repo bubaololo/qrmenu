@@ -17,6 +17,8 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'menu_item_id',
+        'menu_item_name_snapshot',
+        'base_price_snapshot',
         'quantity',
         'unit_price',
         'currency',
@@ -32,6 +34,7 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'base_price_snapshot' => 'decimal:2',
             'kitchen_status' => OrderItemKitchenStatus::class,
             'started_cooking_at' => 'datetime',
             'ready_at' => 'datetime',

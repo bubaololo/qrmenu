@@ -23,17 +23,19 @@ class ModifierPricingService
 {
     /**
      * @param  list<array<string, mixed>>  $selections
-     * @return array{unit_price: float, nodes: list<array<string, mixed>>}
+     * @return array{unit_price: float, base_price: float, nodes: list<array<string, mixed>>}
      */
     public function price(MenuItem $item, array $selections, string $locale): array
     {
         $base = (float) ($item->price_value ?? 0);
         $result = $this->priceLevel($item->modifierGroups, $selections, $locale, $base);
 
-        $unit = ($result['absolute'] ?? $base) + $result['additive'];
+        $basePrice = $result['absolute'] ?? $base;
+        $unit = $basePrice + $result['additive'];
 
         return [
             'unit_price' => round($unit, 2),
+            'base_price' => round($basePrice, 2),
             'nodes' => $result['nodes'],
         ];
     }

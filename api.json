@@ -5370,6 +5370,18 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "menu_item_name_snapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "base_price_snapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -5385,7 +5397,9 @@
                     "served_at",
                     "note",
                     "created_at",
-                    "updated_at"
+                    "updated_at",
+                    "menu_item_name_snapshot",
+                    "base_price_snapshot"
                 ],
                 "title": "OrderItemResource"
             },

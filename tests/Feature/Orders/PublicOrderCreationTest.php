@@ -37,6 +37,7 @@ class PublicOrderCreationTest extends TestCase
             'is_visible' => true,
             'is_orderable' => true,
         ]);
+        $item->setTranslation('name', 'en', 'Pizza', isInitial: true);
 
         return [
             'restaurant' => $restaurant,
@@ -94,6 +95,8 @@ class PublicOrderCreationTest extends TestCase
         $this->assertDatabaseHas('order_items', [
             'order_id' => $orderId,
             'menu_item_id' => $i->id,
+            'menu_item_name_snapshot' => 'Pizza',
+            'base_price_snapshot' => '12.50',
             'quantity' => 2,
             'unit_price' => '12.50',
             'currency' => 'USD',
@@ -123,11 +126,13 @@ class PublicOrderCreationTest extends TestCase
             ]],
         ])->assertStatus(201);
 
-        // Absolute price replaces the dish base (12.50 ignored).
+        // Absolute price replaces the dish base (12.50 ignored); base snapshot
+        // is the chosen replace option's price.
         $this->assertDatabaseHas('order_items', [
             'order_id' => $response->json('data.id'),
             'menu_item_id' => $i->id,
             'unit_price' => '95.00',
+            'base_price_snapshot' => '95.00',
         ]);
 
         $orderItem = OrderItem::query()->where('order_id', $response->json('data.id'))->first();
@@ -160,10 +165,11 @@ class PublicOrderCreationTest extends TestCase
             ]],
         ])->assertStatus(201);
 
-        // 12.50 base + 3.00 delta = 15.50.
+        // 12.50 base + 3.00 delta = 15.50; base snapshot is the dish price_value.
         $this->assertDatabaseHas('order_items', [
             'order_id' => $response->json('data.id'),
             'unit_price' => '15.50',
+            'base_price_snapshot' => '12.50',
         ]);
 
         $orderItem = OrderItem::query()->where('order_id', $response->json('data.id'))->first();

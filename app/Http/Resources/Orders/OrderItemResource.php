@@ -13,6 +13,8 @@ class OrderItemResource extends JsonApiResource
     /** @var array<int, string> */
     public $attributes = [
         'menu_item_id',
+        'menu_item_name_snapshot',
+        'base_price_snapshot',
         'quantity',
         'unit_price',
         'currency',

@@ -60,6 +60,7 @@ class PlaceOrderAction
 
         $menuItemIds = array_column($payload['items'], 'menu_item_id');
         $menuItems = MenuItem::with([
+            'translations',
             'modifierGroups.options',
             'modifierGroups.translations',
             'modifierGroups.options.translations',
@@ -123,6 +124,8 @@ class PlaceOrderAction
                 $orderItem = OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $menuItem->id,
+                    'menu_item_name_snapshot' => $menuItem->translate('name', $locale),
+                    'base_price_snapshot' => $priced['base_price'],
                     'quantity' => $entry['quantity'],
                     'unit_price' => $priced['unit_price'],
                     'currency' => $bill->currency,
