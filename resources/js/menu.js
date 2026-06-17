@@ -503,7 +503,9 @@ const App = {
       this._addGroups(item).forEach(group => {
         const ids = (group.options || []).map(o => o.id);
         const count = (this._sheet.addons || []).filter(id => ids.includes(id)).length;
-        const min = group.required ? Math.max(1, group.selection_min || 0) : (group.selection_min || 0);
+        // selection_min is authoritative (matches the server validator); the
+        // `required` flag is for display only.
+        const min = group.selection_min || 0;
         if (count < min) valid = false;
         if (group.selection_max != null && count > group.selection_max) valid = false;
       });
