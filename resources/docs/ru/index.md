@@ -1,0 +1,11 @@
+- ## Начало работы
+    - [Обзор](/{{route}}/{{version}}/overview)
+    - [Быстрый старт](/{{route}}/{{version}}/overview#quick-start)
+- ## Управление меню
+    - [Секции и блюда](/{{route}}/{{version}}/menu)
+    - [Модификаторы](/{{route}}/{{version}}/modifiers)
+    - [Цена по размеру](/{{route}}/{{version}}/modifiers#size-pricing)
+    - [Переопределения для блюда](/{{route}}/{{version}}/modifiers#overrides)
+    - [Локализация](/{{route}}/{{version}}/localization)
+- ## Гостевое меню
+    - [Предпросмотр и заказ](/{{route}}/{{version}}/guest)

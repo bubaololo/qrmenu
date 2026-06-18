@@ -30,3 +30,6 @@ Thumbs.db
 *.png
 /tests/image_test_sets/benchmarks/
 /tests/image_test_sets/crop_test/*.jpg
+
+# Documentation screenshots (referenced by LaRecipe docs at /docs) — override the global *.png ignore
+!/public/img/docs/**/*.png

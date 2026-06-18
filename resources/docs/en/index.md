@@ -1,0 +1,11 @@
+- ## Getting started
+    - [Overview](/{{route}}/{{version}}/overview)
+    - [Quick start](/{{route}}/{{version}}/overview#quick-start)
+- ## Managing the menu
+    - [Sections & dishes](/{{route}}/{{version}}/menu)
+    - [Modifiers](/{{route}}/{{version}}/modifiers)
+    - [Size-dependent pricing](/{{route}}/{{version}}/modifiers#size-pricing)
+    - [Per-dish overrides](/{{route}}/{{version}}/modifiers#overrides)
+    - [Localization](/{{route}}/{{version}}/localization)
+- ## Guest menu
+    - [Preview & ordering](/{{route}}/{{version}}/guest)

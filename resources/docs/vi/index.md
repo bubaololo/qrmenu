@@ -1,0 +1,11 @@
+- ## Bắt đầu
+    - [Tổng quan](/{{route}}/{{version}}/overview)
+    - [Bắt đầu nhanh](/{{route}}/{{version}}/overview#quick-start)
+- ## Quản lý thực đơn
+    - [Danh mục & món](/{{route}}/{{version}}/menu)
+    - [Tùy chọn (modifier)](/{{route}}/{{version}}/modifiers)
+    - [Giá theo kích cỡ](/{{route}}/{{version}}/modifiers#size-pricing)
+    - [Ghi đè theo món](/{{route}}/{{version}}/modifiers#overrides)
+    - [Đa ngôn ngữ](/{{route}}/{{version}}/localization)
+- ## Thực đơn cho khách
+    - [Xem trước & đặt món](/{{route}}/{{version}}/guest)
