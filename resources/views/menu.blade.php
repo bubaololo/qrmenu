@@ -325,7 +325,7 @@
                                         </div>
                                     @endif
                                     <div class="menu-card-body">
-                                        <h3 class="menu-card-name" data-testid="menu-card-name">{{ $itemName }}@if($item->starred)<svg class="menu-card-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="{{ $uiStrings['recommended'] ?? 'Recommended' }}"><path d="M12 2l2.92 6.26 6.58.57-5 4.35 1.5 6.45L12 16.2l-6 3.43 1.5-6.45-5-4.35 6.58-.57L12 2z"/></svg>@endif</h3>
+                                        <h3 class="menu-card-name" data-testid="menu-card-name"><span class="menu-card-name-text">{{ $itemName }}</span>@if($item->starred)<svg class="menu-card-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="{{ $uiStrings['recommended'] ?? 'Recommended' }}"><path d="M12 2l2.92 6.26 6.58.57-5 4.35 1.5 6.45L12 16.2l-6 3.43 1.5-6.45-5-4.35 6.58-.57L12 2z"/></svg>@endif</h3>
                                         @if($itemDesc)
                                             <p class="menu-card-desc">{{ \Illuminate\Support\Str::limit($itemDesc, 90, '…') }}</p>
                                         @endif

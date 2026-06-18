@@ -682,24 +682,40 @@ a.info-link:hover { color: var(--muted-foreground); }
   font-weight: 600;
   line-height: 1.3;
   color: var(--foreground);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+/* The line-clamp lives on the inner text span — not on .menu-card-name itself —
+   so the trailing star (a flex sibling) is never swallowed by the clamp and
+   stays pinned next to long or two-line names instead of being truncated. */
+.menu-card-name-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
   word-break: break-word;
+  min-width: 0;
 }
 /* recommended marker — amber star after the dish name */
 .menu-card-star {
   flex-shrink: 0;
-  margin-left: 5px;
+  margin-top: 0.2em;
   color: var(--warning);
-  vertical-align: -1px;
 }
 /* in paper rows the name is a flex line — keep the star on the text line,
    between the name and the dotted leader */
-.menu-grid--list .menu-card-star { align-self: center; }
+.menu-grid--list .menu-card-star { align-self: center; margin-top: 0; }
+/* paper rows flow the name inline so the dotted leader sits on the baseline —
+   the two-line clamp only applies to the media-grid cards. */
+.menu-grid--list .menu-card-name-text {
+  display: block;
+  -webkit-line-clamp: initial;
+  overflow: visible;
+}
 
 .menu-card-desc {
   font-size: 13px;
@@ -1313,6 +1329,11 @@ a.info-link:hover { color: var(--muted-foreground); }
 #item-sheet.visible { z-index: 53; }
 .cart-sheet { max-height: 96dvh; max-height: 96vh; z-index: 52; }
 @supports (max-height: 1dvh) { .cart-sheet { max-height: 96dvh; } }
+/* Both sheet wrappers must be flex columns that fill the sheet, so the inner
+   .sheet-body scrolls and the footer (qty + Add button) stays pinned. Without
+   this the wrapper grows past the sheet's max-height and overflow:hidden clips
+   the footer out of view when there are many options. */
+#item-sheet-content,
 #cart-sheet-content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .cart-sheet .bottom-sheet-body { padding: 0; }
 .cart-header {
