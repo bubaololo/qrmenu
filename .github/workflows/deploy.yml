@@ -37,17 +37,22 @@ jobs:
 
           composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
 
+          # Public-menu assets (resources/js, resources/css) are bundled via Vite
+          # and inlined by App\Support\InlineAssets, so rebuild on every deploy.
+          npm ci
+          npm run build
+
           php artisan migrate --force
           php artisan storage:link || true
 
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          php artisan event:cache
+          # NOTE: this box runs uncached (APP_DEBUG=true). Just drop stale compiled
+          # views and reset opcache via php-fpm reload. Switch to config:cache/route:cache
+          # here only once the app is confirmed env()-clean outside config/.
+          php artisan view:clear
 
-          php artisan horizon:terminate
-          sudo supervisorctl restart menu-reverb
-          sudo systemctl reload php8.5-fpm
+          php artisan horizon:terminate          # supervisor autorestart brings it back on new code
+          sudo supervisorctl restart menu-reverb  # reverb has no graceful reload
+          sudo systemctl reload php8.5-fpm        # reset opcache
 
           php artisan up
           trap - EXIT
