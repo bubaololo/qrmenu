@@ -498,8 +498,10 @@ const App = {
     // `add` group can be required (e.g. "pick exactly one, free choice") and a
     // capped one (selection_max) must not be exceeded — both gate the button.
     const item = this._findItem(this._sheet.itemId);
+    // A non-orderable dish can be viewed but not added — hide the order button.
+    const orderable = !item || item.orderable !== false;
     let valid = true;
-    if (item) {
+    if (item && orderable) {
       this._addGroups(item).forEach(group => {
         const ids = (group.options || []).map(o => o.id);
         const count = (this._sheet.addons || []).filter(id => ids.includes(id)).length;
@@ -512,8 +514,9 @@ const App = {
     }
     const btn = document.querySelector('.add-to-cart-btn');
     if (btn) {
-      btn.disabled = !valid;
-      btn.classList.toggle('add-to-cart-btn-disabled', !valid);
+      btn.hidden = !orderable;
+      btn.disabled = !valid || !orderable;
+      btn.classList.toggle('add-to-cart-btn-disabled', btn.disabled);
     }
   },
 

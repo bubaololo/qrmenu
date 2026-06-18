@@ -138,7 +138,7 @@ class MenuItem extends Model
     public function modifierGroups(): BelongsToMany
     {
         return $this->belongsToMany(ModifierGroup::class, 'menu_item_modifier_group', 'item_id', 'group_id')
-            ->withPivot(['selection_min_override', 'selection_max_override', 'required_override', 'is_hidden', 'sort_order'])
+            ->withPivot(['selection_min_override', 'selection_max_override', 'required_override', 'sort_order'])
             ->orderByPivot('sort_order');
     }
 

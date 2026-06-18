@@ -115,7 +115,7 @@ class ModifierGroup extends Model
     public function items(): BelongsToMany
     {
         return $this->belongsToMany(MenuItem::class, 'menu_item_modifier_group', 'group_id', 'item_id')
-            ->withPivot(['selection_min_override', 'selection_max_override', 'required_override', 'is_hidden', 'sort_order']);
+            ->withPivot(['selection_min_override', 'selection_max_override', 'required_override', 'sort_order']);
     }
 
     /** The option that reveals this group when nested (null = top-level). */

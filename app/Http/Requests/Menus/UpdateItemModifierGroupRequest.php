@@ -22,7 +22,6 @@ class UpdateItemModifierGroupRequest extends FormRequest
             'selection_min_override' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'selection_max_override' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'required_override' => ['sometimes', 'nullable', 'boolean'],
-            'is_hidden' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }

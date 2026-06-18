@@ -246,13 +246,10 @@
                                         // groups as single-select chips and `add` groups as multi-select
                                         // checkboxes, and computes price with the SAME rule as
                                         // menu-core/pricing.ts.
-                                        // Mirror FullMenuResource: skip groups hidden on this item's pivot
-                                        // and resolve per-item effective rules from the pivot overrides.
+                                        // Mirror FullMenuResource: resolve per-item effective rules
+                                        // from the pivot overrides.
                                         $modifierGroups = [];
                                         foreach ($item->modifierGroups as $g) {
-                                            if ((bool) ($g->pivot->is_hidden ?? false)) {
-                                                continue;
-                                            }
                                             $pricingMode = $enumStr($g->pricing_mode);
                                             $selMin = (int) ($g->pivot->selection_min_override ?? $g->selection_min);
                                             $selMax = $g->pivot->selection_max_override ?? $g->selection_max;
@@ -305,7 +302,7 @@
 
                                     $shouldEmbedExtras = $hasGroups || isset($extras['description']);
                                 @endphp
-                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
+                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-testid="menu-card" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
                                     @if($item->image)
                                         @php
                                             // Thumbs render at a fixed width: 104px in media rows, 56px in
@@ -328,12 +325,12 @@
                                         </div>
                                     @endif
                                     <div class="menu-card-body">
-                                        <h3 class="menu-card-name">{{ $itemName }}@if($item->starred)<svg class="menu-card-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="{{ $uiStrings['recommended'] ?? 'Recommended' }}"><path d="M12 2l2.92 6.26 6.58.57-5 4.35 1.5 6.45L12 16.2l-6 3.43 1.5-6.45-5-4.35 6.58-.57L12 2z"/></svg>@endif</h3>
+                                        <h3 class="menu-card-name" data-testid="menu-card-name">{{ $itemName }}@if($item->starred)<svg class="menu-card-star" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="{{ $uiStrings['recommended'] ?? 'Recommended' }}"><path d="M12 2l2.92 6.26 6.58.57-5 4.35 1.5 6.45L12 16.2l-6 3.43 1.5-6.45-5-4.35 6.58-.57L12 2z"/></svg>@endif</h3>
                                         @if($itemDesc)
                                             <p class="menu-card-desc">{{ \Illuminate\Support\Str::limit($itemDesc, 90, '…') }}</p>
                                         @endif
                                         <div class="menu-card-foot">
-                                            <span class="menu-card-price tabular">{{ number_format($displayPrice, 0, '', ' ') }}<span class="menu-card-currency">{{ $currencySymbol }}</span></span>
+                                            <span class="menu-card-price tabular" data-testid="menu-card-price">{{ number_format($displayPrice, 0, '', ' ') }}<span class="menu-card-currency">{{ $currencySymbol }}</span></span>
                                             <svg class="menu-card-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
                                         </div>
                                     </div>
@@ -425,7 +422,7 @@
                     <span class="qty-value">1</span>
                     <button class="qty-btn qty-plus" data-delta="1">+</button>
                 </div>
-                <button class="add-to-cart-btn"></button>
+                <button class="add-to-cart-btn" data-testid="guest-add-button"></button>
             </div>
         </div>
     </template>

@@ -65,7 +65,6 @@ class FullMenuResource extends JsonResource
                     // Modifier groups: a 'replace' group's option price is the
                     // ABSOLUTE base; an 'add' group's option price is a DELTA.
                     'modifier_groups' => $item->modifierGroups
-                        ->reject(fn ($group) => (bool) ($group->pivot->is_hidden ?? false))
                         ->map(fn ($group) => $this->serializeGroup($group, $locale))
                         ->values(),
                 ]),
@@ -99,7 +98,6 @@ class FullMenuResource extends JsonResource
                 'selection_min' => $group->pivot?->selection_min_override,
                 'selection_max' => $group->pivot?->selection_max_override,
                 'required' => isset($group->pivot->required_override) ? (bool) $group->pivot->required_override : null,
-                'is_hidden' => (bool) ($group->pivot?->is_hidden ?? false),
                 'sort_order' => $group->pivot?->sort_order,
             ],
             'options' => $group->options->map(fn ($opt) => [

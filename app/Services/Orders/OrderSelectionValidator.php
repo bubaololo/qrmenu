@@ -48,7 +48,7 @@ class OrderSelectionValidator
             $optionId = (int) ($selection['option_id'] ?? 0);
 
             $group = $groupsById->get($groupId);
-            if (! $group || $this->isHidden($group)) {
+            if (! $group) {
                 throw ValidationException::withMessages([
                     $errorKey => "Modifier group {$groupId} is not available for this item.",
                 ]);
@@ -80,9 +80,6 @@ class OrderSelectionValidator
         }
 
         foreach ($availableGroups as $group) {
-            if ($this->isHidden($group)) {
-                continue;
-            }
             $count = $countByGroup[$group->id] ?? 0;
             $min = $this->effectiveMin($group);
             $max = $this->effectiveMax($group);
@@ -117,11 +114,6 @@ class OrderSelectionValidator
                 $errorKey => "Invalid portion for modifier group {$group->id}.",
             ]);
         }
-    }
-
-    private function isHidden(ModifierGroup $group): bool
-    {
-        return (bool) ($group->pivot->is_hidden ?? false);
     }
 
     private function effectiveMin(ModifierGroup $group): int
