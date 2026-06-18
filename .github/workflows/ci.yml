@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: menu
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: menu_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U menu -d menu_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:Ds7n1mO3K0pQ2rS4tU6vW8xY0zA1bC3dE5fG7hI9jK=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: menu_test
+      DB_USERNAME: menu
+      DB_PASSWORD: secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: pdo_pgsql, pgsql, intl, zip, bcmath, gd, redis, pcntl
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Lint (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Migrate test database
+        run: php artisan migrate --force
+
+      - name: Run tests
+        run: php artisan test

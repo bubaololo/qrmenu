@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT }}
+          USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -p "$PORT" "$USER@$HOST" 'bash -seuo pipefail' <<'EOF'
+          cd /srv/menu/backend
+
+          php artisan down --render="errors::503" || true
+          trap 'php artisan up || true' EXIT
+
+          git fetch --all --prune
+          git reset --hard origin/master
+
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+
+          php artisan migrate --force
+          php artisan storage:link || true
+
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+
+          php artisan horizon:terminate
+          sudo supervisorctl restart menu-reverb
+          sudo systemctl reload php8.5-fpm
+
+          php artisan up
+          trap - EXIT
+          EOF
+
+          echo "Deployed ${{ github.sha }}"
