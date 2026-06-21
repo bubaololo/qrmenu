@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\AnalyzeMenuImageAction;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\MenuPageController;
 use App\Support\FoodIcons;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -14,6 +16,23 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Email verification link (opened from the inbox). Lives on the web group so it
+// is reachable as a plain browser navigation; the `signed` middleware + email
+// hash authenticate it without a session. Declared before the public-menu
+// catch-alls below (which only match 1–2 segments, so there is no overlap).
+Route::get('/auth/email/verify/{id}/{hash}', EmailVerificationController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('spa.verification.verify');
+
+// Google OAuth (Socialite). On the web group so the OAuth `state` survives the
+// round-trip in the session, and the callback can set the shared-domain session
+// cookie the SPA reads. The callback path must match the URI registered in the
+// Google console (GOOGLE_REDIRECT_URI).
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
+    ->name('auth.google.redirect');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+    ->name('auth.google.callback');
 
 // Static asset — strip session/cookie middleware to avoid Set-Cookie pollution
 // on every fetch. Sprite has no per-user state; cookies bloat headers by ~600

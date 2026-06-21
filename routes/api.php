@@ -35,9 +35,19 @@ use Illuminate\Support\Facades\Route;
 |   3. Use session cookie on subsequent requests
 */
 Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
-    Route::get('/user', fn (Request $request) => response()->json([
-        'user' => $request->user()->only('id', 'name', 'email'),
-    ]))->name('api.auth.user');
+    Route::get('/user', function (Request $request) {
+        $user = $request->user();
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at,
+                'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
+            ],
+        ]);
+    })->name('api.auth.user');
 });
 
 /*
@@ -59,7 +69,7 @@ Route::prefix('v1/public')->middleware('throttle:30,1')->group(function (): void
 Route::get('/v1/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
     ->name('push.vapid');
 
-Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
+Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('/menu-analyses', [MenuAnalysisController::class, 'store']);
     Route::get('/menu-analyses/{uuid}', [MenuAnalysisController::class, 'show']);
 

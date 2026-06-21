@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+# Google OAuth client secret files — keep credentials out of the repo.
+client_secret_*.json
 .phpactor.json
 .phpunit.result.cache
 /.fleet

@@ -118,6 +118,16 @@ Filament admin panel: `http://localhost:8000/panel`
 
 ---
 
+## Documentation
+
+- **Admin guide** — LaRecipe, trilingual (ru/en/vi): `http://localhost:8000/docs`
+- **API reference** — Scramble / OpenAPI UI, public (no auth): `http://localhost:8000/api/docs`
+- **OpenAPI spec** — raw JSON: `http://localhost:8000/api/docs.json`
+
+In production the same paths sit under the app domain, e.g. `https://qreaty.com/docs`, `https://qreaty.com/api/docs`.
+
+---
+
 ## API Authentication
 
 Session-based SPA auth via Laravel Fortify + Sanctum. CSRF flow:
@@ -288,7 +298,7 @@ Typical total time end-to-end (upload → `completed`): ~30–90 s for 1–4 ima
 
 Once `status = completed`, the saved menu tree is also reachable directly at `GET /api/v1/menus/{saved_menu_id}` (append `?confidence=1` within 7 days of analysis to also get per-item text/bbox confidence from Redis). `restaurant_id` in the upload is required to get a `saved_menu_id` — analyses run without one return the parsed menu in `attributes.menu` but never persist.
 
-**Full OpenAPI spec:** `api.json` (regenerate with `php artisan scramble:export --path=api.json`).
+**OpenAPI:** live API reference at `/api/docs` (raw spec at `/api/docs.json`); export a static file with `php artisan scramble:export --path=api.json`.
 
 **Queue & monitoring:** Horizon runs two supervisors — `supervisor-1` (default queue) and `supervisor-llm` (`llm-analysis`, 10-min timeout, 1 try). Dashboards: `/horizon`, `/pulse`, plus the Filament admin panel at `/panel`. In `local` they're open to everyone; in any other environment access is gated by a single `ADMIN_EMAILS` env var (comma-separated list), which guards all three. Empty in non-local → all three are locked down.
 

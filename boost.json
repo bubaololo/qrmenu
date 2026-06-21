@@ -10,6 +10,7 @@
         "laravel-best-practices",
         "configuring-horizon",
         "pulse-development",
+        "socialite-development",
         "tailwindcss-development"
     ]
 }
