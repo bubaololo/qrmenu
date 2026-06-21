@@ -22,7 +22,7 @@ return [
     'profiles' => [
         // main 1024 matches the admin cropper's output exactly (no server-side
         // re-resize) and gives ~2x density on the full-width bottom-sheet photo.
-        'default' => ['main' => 1024, 'thumb' => 400],  // menu items, zones
+        'default' => ['main' => 800, 'thumb' => 312],  // menu items, zones
         'banner' => ['main' => 1600, 'thumb' => 800],   // restaurant cover, full-width
         'logo' => ['main' => 320, 'thumb' => 160],      // restaurant logo
     ],

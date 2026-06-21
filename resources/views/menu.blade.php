@@ -328,7 +328,9 @@
                                         @endif
                                         <div class="menu-card-foot">
                                             <span class="menu-card-price tabular" data-testid="menu-card-price">{{ number_format($displayPrice, 0, '', ' ') }}<span class="menu-card-currency">{{ $currencySymbol }}</span></span>
-                                            <svg class="menu-card-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                                            @if($hasGroups)
+                                                <svg class="menu-card-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                                            @endif
                                         </div>
                                     </div>
                                     @if($shouldEmbedExtras)

@@ -519,8 +519,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   font-family: var(--font-display);
   font-size: 1.5rem;
   line-height: 1.1;
-  letter-spacing: -0.025em;
-  font-weight: 500;
+  letter-spacing: var(--track-display);
+  font-weight: 800;
   color: var(--foreground);
   display: flex;
   align-items: center;
@@ -554,8 +554,9 @@ a.info-link:hover { color: var(--muted-foreground); }
   border-radius: var(--radius-lg);
   transition: background var(--dur) var(--ease);
 }
-/* light hairline between rows, Grab-style */
-.menu-grid--media .menu-card:not(:last-child) {
+/* hairline only between text-only rows — photo rows are already separated
+   visually by their thumbnail, so cards with a photo stay borderless */
+.menu-grid--media .menu-card--noimage:not(:last-child) {
   border-radius: 0;
   border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
@@ -578,19 +579,11 @@ a.info-link:hover { color: var(--muted-foreground); }
 .menu-grid--media .menu-card .menu-card-foot {
   margin-top: 0.125rem;
   padding-top: 0;
+  justify-content: flex-start;
+  gap: 0.25rem;
 }
-/* chevron leaves the text flow — vertically centred in the row,
-   independent of whether the item has a description */
-.menu-grid--media .menu-card .menu-card-body { padding-right: 1.5rem; }
-.menu-grid--media .menu-card-chevron {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.menu-grid--media .menu-card:hover .menu-card-chevron {
-  transform: translateY(-50%) translateX(2px);
-}
+/* chevron rides in the price row (.menu-card-foot, space-between) — the body
+   keeps full width for the name/description instead of reserving a side column */
 
 /* ============================================================
    Paper-menu rows — sections where no item has a photo.
