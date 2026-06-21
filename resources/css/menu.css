@@ -45,9 +45,20 @@
   --shadow-spot:       0 1px 2px oklch(0 0 0 / 0.08),
                        0 18px 40px -20px oklch(0 0 0 / 0.45);
 
-  /* type */
-  --font-sans:    'Geist','Noto Sans Arabic','Noto Sans SC','Noto Sans JP','Noto Sans KR','Hiragino Sans','Apple SD Gothic Neo',system-ui,-apple-system,'Segoe UI','Helvetica Neue',sans-serif;
-  --font-display: 'Unbounded','Geist','Noto Sans Arabic','Noto Sans SC','Noto Sans JP','Noto Sans KR','Hiragino Sans','Apple SD Gothic Neo',system-ui,-apple-system,sans-serif;
+  /* type — system stack on every OS (SF on Apple, Roboto on Android, Segoe on
+     Windows); the script-specific fallbacks cover languages the default UI font
+     lacks. Display shares the family — heading↔body contrast comes from weight +
+     tracking + size, not a second face. */
+  --font-sans:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic','Noto Sans SC','Noto Sans JP','Noto Sans KR','Hiragino Sans','Apple SD Gothic Neo','Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-sans);
+
+  /* tracking — platform-native letter-spacing. Base = Material 3 (Android/Roboto,
+     also a sane default on Windows/Linux): headings ~0, body slightly positive.
+     Apple HIG values (negative tracking) are applied per-platform below. Values
+     are em-relative so they hold across our fluid clamp() sizes. */
+  --track-display: 0;          /* Material: Display/Headline/Title Large = 0 */
+  --track-title:   0.006em;    /* ~Title Medium +0.15px */
+  --track-body:    0.012em;    /* ~Body +0.25…0.5px */
 
   /* motion */
   --ease:         cubic-bezier(0.22, 1, 0.36, 1);
@@ -58,6 +69,18 @@
 
   /* layout */
   --topbar-h:     56px;   /* sticky topbar — single control row */
+}
+
+/* Apple HIG tracking — SF renders tighter than Roboto. The `-apple-system-body`
+   font keyword resolves only on WebKit/Apple platforms (all iOS browsers + SF on
+   macOS), so this scopes Apple devices without JS or UA sniffing. Values mirror
+   Apple's tracking table: Large Title −1.05px / Body 17pt −0.43px ≈ these em. */
+@supports (font: -apple-system-body) {
+  :root {
+    --track-display: -0.03em;   /* Large Title / Title */
+    --track-title:   -0.025em;  /* Headline 17pt */
+    --track-body:    -0.022em;  /* Body 17pt (−0.43px) */
+  }
 }
 
 [data-theme="dark"] {
@@ -103,7 +126,7 @@
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss02","ss03","cv11";
+  letter-spacing: var(--track-body);
   color: var(--foreground);
   background: var(--background);
   line-height: 1.55;
@@ -117,13 +140,12 @@ body {
 img { display: block; max-width: 100%; }
 button, input, a { font: inherit; color: inherit; }
 button { background: none; border: 0; cursor: pointer; }
-h1, h2, h3, h4 { letter-spacing: -0.015em; font-weight: 600; }
+h1, h2, h3, h4 { letter-spacing: var(--track-title); font-weight: 600; }
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  font-feature-settings: "ss01","ss02";
+  font-weight: 700;
+  letter-spacing: var(--track-display);
 }
 .tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum","zero"; }
 
