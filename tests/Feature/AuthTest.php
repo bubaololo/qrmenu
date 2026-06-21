@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\QueuedResetPassword;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -226,7 +227,8 @@ class AuthTest extends TestCase
             'email' => 'reset@example.com',
         ])->assertStatus(200);
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        // The model sends the queued subclass (see User::sendPasswordResetNotification).
+        Notification::assertSentTo($user, QueuedResetPassword::class);
     }
 
     #[Test]
@@ -241,7 +243,7 @@ class AuthTest extends TestCase
             'email' => 'reset@example.com',
         ])->assertStatus(200);
 
-        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
+        Notification::assertSentTo($user, QueuedResetPassword::class, function (ResetPassword $notification) use ($user) {
             $url = $notification->toMail($user)->actionUrl;
 
             return str_starts_with($url, 'https://admin.example.test/reset-password?token=')
@@ -264,7 +266,7 @@ class AuthTest extends TestCase
             'email' => 'reset@example.com',
             'password' => 'brand-new-pass1',
             'password_confirmation' => 'brand-new-pass1',
-        ])->assertStatus(204);
+        ])->assertStatus(200);
 
         $this->assertTrue(Hash::check('brand-new-pass1', $user->fresh()->password));
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\ConfirmationController;
 use App\Http\Controllers\DiningTables\DiningTableController;
 use App\Http\Controllers\IconController;
 use App\Http\Controllers\ImageController;
@@ -45,9 +46,16 @@ Route::prefix('v1/auth')->middleware('auth:sanctum')->group(function (): void {
                 'email' => $user->email,
                 'email_verified_at' => $user->email_verified_at,
                 'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
+                'has_password' => ! is_null($user->password),
             ],
         ]);
     })->name('api.auth.user');
+
+    // Step-up identity confirmation (password / email code / TOTP). A successful
+    // confirm sets the session marker that the `password.confirm` middleware reads.
+    Route::get('/confirm/methods', [ConfirmationController::class, 'methods']);
+    Route::post('/confirm/send', [ConfirmationController::class, 'send']);
+    Route::post('/confirm', [ConfirmationController::class, 'confirm']);
 });
 
 /*
@@ -85,7 +93,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/restaurants/active-menus', [RestaurantController::class, 'activeMenus']);
     Route::get('/restaurants/{restaurant}', [RestaurantController::class, 'show']);
     Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update']);
-    Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy']);
+    Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy'])
+        ->middleware('password.confirm');
     Route::get('/restaurants/{restaurant}/qr', [RestaurantController::class, 'qr']);
 
     // Zones
