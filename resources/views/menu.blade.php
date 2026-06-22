@@ -155,13 +155,27 @@
                             {{-- Items live in a <template> until first dropdown open. <template> content is
                                  inert — native names (Русский, 中文, ...) don't trigger unicode-range font fetches
                                  until JS clones it into the live DOM on lang-toggle click. --}}
+                            {{-- Two groups: locales already in the DB (instant switch) on top,
+                                 the long tail (translated on first tap) below. $locales is already
+                                 sorted translated-first by the controller, so a one-pass loop that
+                                 drops a header when each group first appears is enough. --}}
                             <template id="tpl-lang-options">
+                                @php $readyHeaderDone = false; $otherHeaderDone = false; @endphp
                                 @foreach($locales as $loc)
+                                    @php $section = ! empty($loc['translated']) ? 'ready' : 'other'; @endphp
+                                    @if($section === 'ready' && ! $readyHeaderDone)
+                                        <p class="lang-section-label" data-section="ready">{{ $uiStrings['langReady'] ?? 'Available now' }}</p>
+                                        @php $readyHeaderDone = true; @endphp
+                                    @elseif($section === 'other' && ! $otherHeaderDone)
+                                        <p class="lang-section-label" data-section="other">{{ $uiStrings['langOther'] ?? 'More languages' }}</p>
+                                        @php $otherHeaderDone = true; @endphp
+                                    @endif
                                     <a href="{{ route('menu.public', ['identifier' => $menuIdentifier, 'lang' => $loc['code']]) }}"
                                        data-code="{{ $loc['code'] }}"
                                        data-label="{{ strtolower($loc['label']) }}"
                                        data-native="{{ strtolower($loc['native'] ?? '') }}"
-                                       class="lang-option lang-option--all{{ $loc['code'] === $lang ? ' lang-option-active' : '' }}{{ ! empty($loc['translated']) ? ' lang-option--ready' : '' }}"
+                                       data-section="{{ $section }}"
+                                       class="lang-option lang-option--all{{ $loc['code'] === $lang ? ' lang-option-active' : '' }}{{ $section === 'ready' ? ' lang-option--ready' : '' }}"
                                        role="option"
                                        aria-selected="{{ $loc['code'] === $lang ? 'true' : 'false' }}">
                                         <span class="lang-flag">{{ $loc['flag'] }}</span>

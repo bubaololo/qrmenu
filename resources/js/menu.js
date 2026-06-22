@@ -1147,17 +1147,26 @@ const App = {
     if (!input) return;
 
     const items = Array.prototype.slice.call(list.querySelectorAll('a.lang-option'));
+    const headers = Array.prototype.slice.call(list.querySelectorAll('.lang-section-label'));
 
     input.addEventListener('input', () => {
       const q = input.value.trim().toLowerCase();
       let visibleCount = 0;
+      const sectionHasMatch = {};
       for (const a of items) {
         const hit = q === ''
           || (a.dataset.label || '').indexOf(q) !== -1
           || (a.dataset.native || '').indexOf(q) !== -1
           || (a.dataset.code || '').indexOf(q) === 0;
         a.hidden = !hit;
-        if (hit) visibleCount++;
+        if (hit) {
+          visibleCount++;
+          sectionHasMatch[a.dataset.section] = true;
+        }
+      }
+      // Drop a section header once its group has no matches left.
+      for (const h of headers) {
+        h.hidden = !sectionHasMatch[h.dataset.section];
       }
       if (emptyState) emptyState.hidden = visibleCount > 0;
     });
