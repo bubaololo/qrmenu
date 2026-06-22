@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Auth\Socialite\ZaloProvider;
 use App\Models\Icon;
 use App\Models\Menu;
 use App\Models\MenuAnalysis;
@@ -30,7 +31,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
-use SocialiteProviders\Zalo\Provider as ZaloProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

@@ -45,6 +45,9 @@ return [
         'client_id' => env('ZALO_CLIENT_ID'),
         'client_secret' => env('ZALO_CLIENT_SECRET'),
         'redirect' => env('ZALO_REDIRECT_URI'),
+        // Optional VN HTTP proxy — Zalo's profile API is geo-restricted to
+        // Vietnamese IPs (e.g. "http://user:pass@vn-host:port").
+        'proxy' => env('ZALO_HTTP_PROXY'),
     ],
 
 ];

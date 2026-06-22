@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 
@@ -26,33 +27,54 @@ class SocialAuthController extends Controller
     {
         try {
             $social = Socialite::driver($provider)->user();
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            // Surface the real cause (provider API error / state mismatch) instead
+            // of silently bouncing the user — then degrade gracefully.
+            report($e);
+            Log::error('Social OAuth callback failed', [
+                'provider' => $provider,
+                'message' => $e->getMessage(),
+            ]);
+
             return redirect()->away($this->frontend("/login?error={$provider}"));
         }
 
+        $providerId = (string) $social->getId();
         $email = $social->getEmail();
+
+        // No user id means the profile fetch didn't really succeed (wrong scope /
+        // error body). Log the raw payload so we can see exactly what came back,
+        // then bail gracefully.
+        if ($providerId === '') {
+            Log::error('Social OAuth returned no user id', [
+                'provider' => $provider,
+                'raw' => $social->getRaw(),
+            ]);
+
+            return redirect()->away($this->frontend("/login?error={$provider}"));
+        }
 
         // Google supplies an email, so match on it; Zalo accounts have none, so
         // match on the provider identity instead.
         $user = $email
             ? User::where('email', $email)->first()
-            : User::where('provider', $provider)->where('provider_id', $social->getId())->first();
+            : User::where('provider', $provider)->where('provider_id', $providerId)->first();
 
         if ($user) {
             $user->forceFill([
                 'provider' => $provider,
-                'provider_id' => $social->getId(),
+                'provider_id' => $providerId,
                 'avatar' => $social->getAvatar(),
                 'email_verified_at' => $user->email_verified_at ?? now(),
             ])->save();
         } else {
             $user = new User;
             $user->forceFill([
-                'name' => $social->getName() ?: ($social->getNickname() ?: $this->fallbackName($provider, $social->getId())),
+                'name' => $social->getName() ?: ($social->getNickname() ?: $this->fallbackName($provider, $providerId)),
                 // A non-null, unique placeholder when the provider gives no email.
-                'email' => $email ?: "{$provider}_{$social->getId()}@{$provider}.local",
+                'email' => $email ?: "{$provider}_{$providerId}@{$provider}.local",
                 'provider' => $provider,
-                'provider_id' => $social->getId(),
+                'provider_id' => $providerId,
                 'avatar' => $social->getAvatar(),
                 'email_verified_at' => now(),
             ])->save();
