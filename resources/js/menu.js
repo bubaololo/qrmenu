@@ -57,8 +57,10 @@ const App = {
       thumb_url: img ? img.src : null,
       starred: article.dataset.starred === '1',
       description: extras.description || null,
-      price: typeof extras.price === 'number' ? extras.price : 0,
-      orderable: extras.orderable !== false,
+      // Price + orderability live on the article (always present); the extras
+      // JSON is only emitted for items with a description or modifier groups.
+      price: article.dataset.price != null ? Number(article.dataset.price) : 0,
+      orderable: article.dataset.unorderable !== '1',
       // modifierGroups: unified tree. A `replace` group is the old variation
       // (option price ABSOLUTE, replaces base); an `add` group is the old
       // add-on (option price DELTA). See menu-core/types.ts.

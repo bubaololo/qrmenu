@@ -243,14 +243,15 @@
 
                                     $hasGroups = $item->modifierGroups->isNotEmpty();
 
-                                    // Modal-only extras: fields menu.js needs that aren't visible in the card DOM.
+                                    // Modal-only extras: heavy fields menu.js needs that aren't visible in
+                                    // the card DOM. Price + orderability ride on cheap data-attributes of
+                                    // the <article> instead (always present, even for plain items that emit
+                                    // no extras JSON — otherwise the sheet would read price 0).
                                     $extras = [];
                                     $fullDesc = $itemDesc ?? $item->translate('description', $sourceLocale);
                                     if ($fullDesc !== null && $fullDesc !== '') {
                                         $extras['description'] = $fullDesc;
                                     }
-                                    $extras['price'] = (float) $item->price_value;
-                                    $extras['orderable'] = (bool) $item->is_orderable;
 
                                     if ($hasGroups) {
                                         // Emit the unified modifier_groups tree. menu.js renders `replace`
@@ -312,8 +313,14 @@
                                     }
 
                                     $shouldEmbedExtras = $hasGroups || isset($extras['description']);
+
+                                    // Cheap per-card data-attributes the bottom sheet reads (price +
+                                    // orderability), so even plain items with no extras JSON price correctly.
+                                    $cardAttrs = ' data-price="'.(float) $item->price_value.'"';
+                                    if (! $item->is_orderable) { $cardAttrs .= ' data-unorderable="1"'; }
+                                    if ($item->starred) { $cardAttrs .= ' data-starred="1"'; }
                                 @endphp
-                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-testid="menu-card" data-item-id="{{ $item->id }}"@if($item->starred) data-starred="1"@endif role="button" tabindex="0">
+                                <article class="menu-card{{ $item->image ? '' : ' menu-card--noimage' }}" data-testid="menu-card" data-item-id="{{ $item->id }}"{!! $cardAttrs !!} role="button" tabindex="0">
                                     @if($item->image)
                                         @php
                                             // Thumbs render at a fixed width: 104px in media rows, 56px in
