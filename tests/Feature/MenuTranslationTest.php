@@ -563,4 +563,105 @@ class MenuTranslationTest extends TestCase
             ->putJson("/api/v1/menu-items/{$item->id}", ['name' => 'Test'], ['X-Locale' => 'en'])
             ->assertStatus(403);
     }
+
+    #[Test]
+    public function test_destroy_removes_a_non_source_locale_and_keeps_source(): void
+    {
+        // Deleting a translated, non-source language wipes only its rows across
+        // every entity; the source (is_initial) rows and other languages stay.
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+        $section = MenuSection::factory()->create(['menu_id' => $menu->id]);
+        $item = MenuItem::factory()->create(['section_id' => $section->id]);
+        $group = ModifierGroup::factory()->create(['menu_id' => $menu->id]);
+        $option = ModifierOption::factory()->create(['group_id' => $group->id]);
+
+        foreach ([$section, $item, $group, $option] as $entity) {
+            $entity->setTranslation('name', 'vi', 'нач', isInitial: true);
+            $entity->setTranslation('name', 'en', 'en value', isInitial: false);
+            $entity->setTranslation('name', 'fr', 'fr value', isInitial: false);
+        }
+
+        $this->actingAs($user)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/en")
+            ->assertStatus(204);
+
+        $this->assertDatabaseMissing('translations', ['locale' => 'en']);
+        // Source (is_initial) and the other language untouched.
+        $this->assertDatabaseHas('translations', [
+            'translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'vi', 'is_initial' => true,
+        ]);
+        $this->assertDatabaseHas('translations', [
+            'translatable_type' => MenuItem::class, 'translatable_id' => $item->id, 'locale' => 'fr',
+        ]);
+
+        $codes = collect($menu->fresh()->availableLocales())->pluck('code');
+        $this->assertFalse($codes->contains('en'));
+        $this->assertTrue($codes->contains('vi'));
+        $this->assertTrue($codes->contains('fr'));
+    }
+
+    #[Test]
+    public function test_destroy_forgets_the_translation_throttle_cache(): void
+    {
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'vi']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+
+        \Illuminate\Support\Facades\Cache::put("menu_translation:{$menu->id}:en", true, now()->addHour());
+
+        $this->actingAs($user)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/en")
+            ->assertStatus(204);
+
+        $this->assertFalse(\Illuminate\Support\Facades\Cache::has("menu_translation:{$menu->id}:en"));
+    }
+
+    #[Test]
+    public function test_destroy_rejects_the_source_locale(): void
+    {
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+
+        $this->actingAs($user)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/vi")
+            ->assertStatus(422);
+    }
+
+    #[Test]
+    public function test_destroy_rejects_the_primary_language(): void
+    {
+        $restaurant = Restaurant::factory()->create(['primary_language' => 'en']);
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+
+        $this->actingAs($user)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/en")
+            ->assertStatus(422);
+    }
+
+    #[Test]
+    public function test_destroy_rejects_invalid_locale(): void
+    {
+        $restaurant = Restaurant::factory()->create();
+        $user = $this->asOwnerOf($restaurant);
+        $menu = Menu::factory()->create(['restaurant_id' => $restaurant->id, 'source_locale' => 'vi']);
+
+        $this->actingAs($user)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/xx")
+            ->assertStatus(422);
+    }
+
+    #[Test]
+    public function test_non_owner_cannot_delete_locale(): void
+    {
+        $menu = Menu::factory()->create(['source_locale' => 'vi']);
+        $stranger = User::factory()->create();
+
+        $this->actingAs($stranger)
+            ->deleteJson("/api/v1/menus/{$menu->id}/translations/en")
+            ->assertStatus(403);
+    }
 }

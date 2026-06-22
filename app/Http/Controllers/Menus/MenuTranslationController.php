@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Menus;
 
+use App\Actions\DeleteMenuLocaleAction;
 use App\Http\Controllers\Controller;
 use App\Jobs\TranslateMenuJob;
 use App\Models\Menu;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Matriphe\ISO639\ISO639;
@@ -60,5 +62,22 @@ class MenuTranslationController extends Controller
         }
 
         return response()->json(['message' => 'Translation queued.'], 202);
+    }
+
+    /**
+     * Remove every translation of a menu in a single (non-source) locale.
+     */
+    public function destroy(Menu $menu, string $locale, DeleteMenuLocaleAction $deleteLocale): Response
+    {
+        Gate::authorize('update', $menu);
+
+        $iso = new ISO639;
+        if ($iso->languageByCode1($locale) === '') {
+            abort(422, 'Invalid locale code.');
+        }
+
+        $deleteLocale($menu, $locale);
+
+        return response()->noContent();
     }
 }

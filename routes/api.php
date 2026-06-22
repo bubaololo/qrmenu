@@ -121,6 +121,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified'])->group(function ()
     Route::get('/menus/{menu}/search', [MenuController::class, 'search']);
     Route::get('/menus/{menu}/locales', [MenuTranslationController::class, 'locales']);
     Route::post('/menus/{menu}/translations/{locale}', [MenuTranslationController::class, 'store']);
+    Route::delete('/menus/{menu}/translations/{locale}', [MenuTranslationController::class, 'destroy']);
 
     // Menu Sections
     Route::post('/menus/{menu}/sections', [MenuSectionController::class, 'store']);
