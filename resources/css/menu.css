@@ -52,13 +52,14 @@
   --font-sans:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic','Noto Sans SC','Noto Sans JP','Noto Sans KR','Hiragino Sans','Apple SD Gothic Neo','Helvetica Neue', Arial, sans-serif;
   --font-display: var(--font-sans);
 
-  /* tracking — platform-native letter-spacing. Base = Material 3 (Android/Roboto,
-     also a sane default on Windows/Linux): headings ~0, body slightly positive.
-     Apple HIG values (negative tracking) are applied per-platform below. Values
+  /* tracking — platform-native letter-spacing. Base = non-Apple (Android/Roboto,
+     Windows/Segoe, Linux): a slight negative tightening — Roboto/Segoe render
+     wider than SF, so a mild minus reads cleaner without going as deep as Apple.
+     Apple HIG values (deeper negative) are applied per-platform below. Values
      are em-relative so they hold across our fluid clamp() sizes. */
-  --track-display: 0;          /* Material: Display/Headline/Title Large = 0 */
-  --track-title:   0.006em;    /* ~Title Medium +0.15px */
-  --track-body:    0.012em;    /* ~Body +0.25…0.5px */
+  --track-display: -0.012em;   /* tightened — Roboto/Segoe render wider than SF */
+  --track-title:   -0.01em;    /* slight negative, milder than Apple's -0.025em */
+  --track-body:    -0.008em;   /* slight negative, milder than Apple's -0.022em */
 
   /* motion */
   --ease:         cubic-bezier(0.22, 1, 0.36, 1);
@@ -693,7 +694,7 @@ a.info-link:hover { color: var(--muted-foreground); }
 }
 
 .menu-card-name {
-  font-size: 18px;
+  font-size: 16.5px;
   font-weight: 600;
   line-height: 1.3;
   color: var(--foreground);
@@ -733,7 +734,7 @@ a.info-link:hover { color: var(--muted-foreground); }
 }
 
 .menu-card-desc {
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.4;
   color: var(--muted-foreground);
   display: -webkit-box;
