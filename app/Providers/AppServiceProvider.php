@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Zalo\Provider as ZaloProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +61,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Fortify dispatches Registered after sign-up; send the verification email.
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
+
+        // Register the Zalo community Socialite provider (not auto-discovered).
+        Event::listen(function (SocialiteWasCalled $event): void {
+            $event->extendSocialite('zalo', ZaloProvider::class);
+        });
 
         // Point the verification email at our own signature-validated route
         // instead of Fortify's auth-guarded one — the link is opened from an

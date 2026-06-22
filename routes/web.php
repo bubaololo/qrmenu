@@ -2,7 +2,7 @@
 
 use App\Actions\AnalyzeMenuImageAction;
 use App\Http\Controllers\Auth\EmailVerificationController;
-use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\MenuPageController;
 use App\Support\FoodIcons;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -25,14 +25,17 @@ Route::get('/auth/email/verify/{id}/{hash}', EmailVerificationController::class)
     ->middleware(['signed', 'throttle:6,1'])
     ->name('spa.verification.verify');
 
-// Google OAuth (Socialite). On the web group so the OAuth `state` survives the
-// round-trip in the session, and the callback can set the shared-domain session
-// cookie the SPA reads. The callback path must match the URI registered in the
-// Google console (GOOGLE_REDIRECT_URI).
-Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
-    ->name('auth.google.redirect');
-Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
-    ->name('auth.google.callback');
+// Social OAuth (Socialite) — Google, Zalo. On the web group so the OAuth `state`
+// survives the round-trip in the session and the callback can set the
+// shared-domain session cookie the SPA reads. The {provider} segment is
+// allow-listed; each provider's callback path must match the URI registered in
+// its console (e.g. GOOGLE_REDIRECT_URI = /auth/google/callback).
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+    ->where('provider', 'google|zalo')
+    ->name('auth.social.redirect');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+    ->where('provider', 'google|zalo')
+    ->name('auth.social.callback');
 
 // Static asset — strip session/cookie middleware to avoid Set-Cookie pollution
 // on every fetch. Sprite has no per-user state; cookies bloat headers by ~600
