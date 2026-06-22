@@ -704,9 +704,10 @@ a.info-link:hover { color: var(--muted-foreground); }
   gap: 5px;
   min-width: 0;
 }
-/* The line-clamp lives on the inner text span — not on .menu-card-name itself —
-   so the trailing star (a flex sibling) is never swallowed by the clamp and
-   stays pinned next to long or two-line names instead of being truncated. */
+/* The clamp lives on the inner text span so the star (a flex sibling) is never
+   swallowed by the clamp on long names. `width: max-content` stops the
+   -webkit-box from reporting full container width as a flex item — without it
+   the span stretches to 100% and shoves the star to the far right edge. */
 .menu-card-name-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -715,6 +716,8 @@ a.info-link:hover { color: var(--muted-foreground); }
   overflow-wrap: anywhere;
   word-break: break-word;
   min-width: 0;
+  width: max-content;
+  max-width: 100%;
 }
 /* recommended marker — amber star after the dish name */
 .menu-card-star {
@@ -722,15 +725,19 @@ a.info-link:hover { color: var(--muted-foreground); }
   margin-top: 0.2em;
   color: var(--warning);
 }
-/* in paper rows the name is a flex line — keep the star on the text line,
-   between the name and the dotted leader */
-.menu-grid--list .menu-card-star { align-self: center; margin-top: 0; }
-/* paper rows flow the name inline so the dotted leader sits on the baseline —
-   the two-line clamp only applies to the media-grid cards. */
+/* in paper rows the name is a single ellipsised flex line — keep the star on
+   that line, between the name and the dotted leader */
+.menu-grid--list .menu-card-star { align-self: center; margin-top: 0; flex-shrink: 0; }
+/* paper rows flow the name on one line so the dotted leader always fills to the
+   price; long names truncate with an ellipsis instead of wrapping (which would
+   collapse the leader to a stub). The two-line clamp is media-grid only. */
 .menu-grid--list .menu-card-name-text {
   display: block;
-  -webkit-line-clamp: initial;
-  overflow: visible;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: auto;
+  max-width: none;
 }
 
 .menu-card-desc {

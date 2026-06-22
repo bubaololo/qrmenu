@@ -357,6 +357,9 @@ const App = {
         // driver (size) option; show the delta for whichever driver option is
         // selected right now (falls back to the flat price when none / no row).
         const driverOptionId = this._driverChoiceId(group, item, this._sheet.selections);
+        // Single-select add groups behave like radios (replace on tap); multi
+        // groups are independent checkboxes.
+        const isSingle = group.selection_type === 'single';
         const choicesEl = grp.querySelector('.option-choices');
         group.options.forEach(opt => {
           const chc = choiceTpl.content.firstElementChild.cloneNode(true);
@@ -364,7 +367,7 @@ const App = {
           if (this._sheet.addons.includes(opt.id)) {
             chc.classList.add('option-choice-selected');
           }
-          chc.querySelector('.option-choice-check').classList.add('option-checkbox');
+          chc.querySelector('.option-choice-check').classList.add(isSingle ? 'option-radio' : 'option-checkbox');
           chc.querySelector('.option-choice-name').textContent = opt.name;
           const delta = this._addOptionDelta(opt, driverOptionId);
           if (delta > 0) {
@@ -1243,19 +1246,34 @@ const App = {
         return;
       }
 
-      // Add-group choice click — toggle (0..N), independent of others. A capped
-      // group (selection_max) refuses extra picks once full.
+      // Add-group choice click. A `single` group acts like a radio (tapping a
+      // new option replaces the group's current pick); a `multi` group toggles
+      // independently (0..N), refusing extra picks once at the cap.
       const optionChoice = e.target.closest('.option-choice');
       if (optionChoice) {
         const addonId = Number(optionChoice.dataset.choiceId);
-        const idx = this._sheet.addons.indexOf(addonId);
-        if (idx >= 0) {
-          this._sheet.addons.splice(idx, 1);
+        const item = this._findItem(this._sheet.itemId);
+        const group = item && this._addGroups(item).find(
+          g => (g.options || []).some(o => o.id === addonId),
+        );
+        const isSingle = group && group.selection_type === 'single';
+        const alreadyOn = this._sheet.addons.includes(addonId);
+
+        if (alreadyOn) {
+          // A required single-select group must keep one pick — ignore the tap.
+          if (isSingle && group.required) return;
+          this._sheet.addons = this._sheet.addons.filter(id => id !== addonId);
+        } else if (isSingle) {
+          // Replace whatever was chosen in this group with the tapped option.
+          const ids = group.options.map(o => o.id);
+          this._sheet.addons = this._sheet.addons.filter(id => !ids.includes(id));
+          this._sheet.addons.push(addonId);
+          const box = optionChoice.closest('.option-choices');
+          if (box) {
+            box.querySelectorAll('.option-choice-selected')
+              .forEach(c => c.classList.remove('option-choice-selected'));
+          }
         } else {
-          const item = this._findItem(this._sheet.itemId);
-          const group = item && this._addGroups(item).find(
-            g => (g.options || []).some(o => o.id === addonId),
-          );
           if (group && group.selection_max != null) {
             const ids = group.options.map(o => o.id);
             const count = this._sheet.addons.filter(id => ids.includes(id)).length;
