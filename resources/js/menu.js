@@ -233,11 +233,48 @@ const App = {
 
     sections.forEach(s => this._observer.observe(s));
 
-    this._scrollHandler = () => {
-      if (window.scrollY < 100) {
+    // One passive, rAF-coalesced scroll handler driving two things: reset the
+    // active tab near the top, and auto-hide the header (hide on scroll down,
+    // reveal on scroll up). The frame callback only reads window.scrollY (no
+    // layout-forcing reads) and toggles a single class — cheap on the main
+    // thread; the actual slide is a GPU transform.
+    const header = document.querySelector('.topbar-sticky');
+    const SHOW_AT = 80;   // always visible near the top of the page
+    const DEADBAND = 8;   // ignore sub-pixel jitter / trackpad noise
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    const onScrollFrame = () => {
+      ticking = false;
+      const y = window.scrollY < 0 ? 0 : window.scrollY;
+
+      if (y < 100) {
         this.activeCategory = null;
         this.updateActiveTab();
       }
+
+      // Never hide while the search field is expanded inside the bar.
+      if (header && !header.classList.contains('topbar-searching')) {
+        if (y <= SHOW_AT) {
+          header.classList.remove('topbar-hidden');
+          lastY = y;
+        } else {
+          const dy = y - lastY;
+          if (dy > DEADBAND) {
+            header.classList.add('topbar-hidden');
+            lastY = y;
+          } else if (dy < -DEADBAND) {
+            header.classList.remove('topbar-hidden');
+            lastY = y;
+          }
+        }
+      }
+    };
+
+    this._scrollHandler = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(onScrollFrame);
     };
     window.removeEventListener('scroll', this._scrollHandler);
     window.addEventListener('scroll', this._scrollHandler, { passive: true });
