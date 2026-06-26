@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Silber\PageCache\Middleware\CacheResponse;
 
 Route::get('/', function () {
     return view('welcome');
@@ -62,15 +63,32 @@ Route::get('/menu-sprite.svg', function (Request $request) {
 
 Route::get('/test-menu', fn () => view('test-menu'))->name('test-menu');
 
-Route::get('/{restaurant}/t/{table}/{lang?}', [MenuPageController::class, 'showTable'])
+$publicMenuTable = Route::get('/{restaurant}/t/{table}/{lang?}', [MenuPageController::class, 'showTable'])
     ->name('menu.public.table')
     ->where('restaurant', '[0-9]+|[a-zA-Z0-9]{8,}')
     ->where('table', '[a-zA-Z0-9]{8,}')
     ->where('lang', '[a-z]{2}');
 
-Route::get('/{identifier}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public')
+$publicMenu = Route::get('/{identifier}/{lang?}', [MenuPageController::class, 'show'])->name('menu.public')
     ->where('identifier', '[0-9]+|[a-zA-Z0-9]{8,}')
     ->where('lang', '[a-z]{2}');
+
+// Static full-page cache (silber/page-cache): nginx serves the rendered .html
+// with zero PHP on a hit. Opt-in via config so local dev runs live PHP. Strip
+// session/cookie/CSRF (like /menu-sprite.svg) so no Set-Cookie is baked into the
+// shared static file — the public menu has no per-user server state.
+if (config('pagecache.enabled')) {
+    $stripForStaticCache = [
+        EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+    ];
+
+    $publicMenuTable->middleware(CacheResponse::class)->withoutMiddleware($stripForStaticCache);
+    $publicMenu->middleware(CacheResponse::class)->withoutMiddleware($stripForStaticCache);
+}
 
 Route::post('/test-menu', function (Request $request) {
     $request->validate(['image_url' => ['required', 'url']]);

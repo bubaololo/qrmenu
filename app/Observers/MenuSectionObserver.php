@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Jobs\DeleteImageFilesJob;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
@@ -14,6 +15,11 @@ class MenuSectionObserver
 {
     /** @var array<int, array<string, array<int, string>>> */
     private static array $pendingPaths = [];
+
+    public function saved(MenuSection $section): void
+    {
+        app(ForgetMenuPageCache::class)->forModel($section);
+    }
 
     /**
      * The section's own translations are handled by the HasTranslations trait.
@@ -50,6 +56,8 @@ class MenuSectionObserver
         if ($paths) {
             DeleteImageFilesJob::dispatch($paths);
         }
+
+        app(ForgetMenuPageCache::class)->forModel($section);
     }
 
     /**

@@ -47,4 +47,6 @@ RUN printf '%s\n' \
     'xdebug.discover_client_host=0' \
     >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+# php-fpm (listens on :9000) — nginx serves static + page-cache and fastcgi_passes
+# dynamic requests here, matching production. (Was `artisan serve` for dev only.)
+CMD ["php-fpm"]

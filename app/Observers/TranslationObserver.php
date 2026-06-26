@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Jobs\TranslateEntityJob;
 use App\Models\Menu;
 use App\Models\MenuItem;
@@ -26,6 +27,11 @@ class TranslationObserver
 {
     public function saved(Translation $translation): void
     {
+        // Any translation value change alters rendered menu output. Drop the
+        // page cache (the action self-suppresses during bulk LLM batch writes,
+        // which are purged once at batch completion instead).
+        $this->forgetPageCache($translation);
+
         if (! config('llm.translation.auto_sync', true)) {
             return;
         }
@@ -62,6 +68,20 @@ class TranslationObserver
             $targetLocales,
             $translation->translationField->name,
         );
+    }
+
+    public function deleted(Translation $translation): void
+    {
+        $this->forgetPageCache($translation);
+    }
+
+    private function forgetPageCache(Translation $translation): void
+    {
+        $owner = $translation->translatable;
+
+        if ($owner instanceof Model) {
+            app(ForgetMenuPageCache::class)->forModel($owner);
+        }
     }
 
     /** @return list<string> */

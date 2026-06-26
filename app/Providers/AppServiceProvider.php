@@ -8,6 +8,8 @@ use App\Models\Menu;
 use App\Models\MenuAnalysis;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
+use App\Models\ModifierGroup;
+use App\Models\ModifierOption;
 use App\Models\Restaurant;
 use App\Models\Translation;
 use App\Models\User;
@@ -17,9 +19,12 @@ use App\Observers\MenuAnalysisObserver;
 use App\Observers\MenuItemObserver;
 use App\Observers\MenuObserver;
 use App\Observers\MenuSectionObserver;
+use App\Observers\ModifierGroupObserver;
+use App\Observers\ModifierOptionObserver;
 use App\Observers\RestaurantObserver;
 use App\Observers\TranslationObserver;
 use App\Observers\ZoneObserver;
+use App\Support\PageCache\GzipCache;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -30,6 +35,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Silber\PageCache\Cache as PageCache;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -40,6 +46,10 @@ class AppServiceProvider extends ServiceProvider
         // gate, keep only the `web` middleware. Set here in register() so it
         // lands before Scramble reads config('scramble') while booting.
         config(['scramble.middleware' => ['web']]);
+
+        // Swap the page-cache store for one that also writes pre-compressed `.gz`
+        // siblings, so nginx `gzip_static on` serves them without per-request gzip.
+        $this->app->singleton(PageCache::class, fn ($app) => (new GzipCache($app->make('files')))->setContainer($app));
     }
 
     public function boot(): void
@@ -85,6 +95,8 @@ class AppServiceProvider extends ServiceProvider
         Menu::observe(MenuObserver::class);
         MenuSection::observe(MenuSectionObserver::class);
         MenuItem::observe(MenuItemObserver::class);
+        ModifierGroup::observe(ModifierGroupObserver::class);
+        ModifierOption::observe(ModifierOptionObserver::class);
         Zone::observe(ZoneObserver::class);
         MenuAnalysis::observe(MenuAnalysisObserver::class);
         Translation::observe(TranslationObserver::class);

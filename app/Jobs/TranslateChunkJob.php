@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Llm\DeepSeekTextProvider;
 use App\Llm\OpenRouterProvider;
 use App\Models\Menu;
@@ -118,7 +119,12 @@ class TranslateChunkJob implements ShouldQueue
 
         $result = $cascade->executeWithFallback($messages, $providers, null, $logContext);
 
-        $count = $this->parseTsvAndSave($result['text'], $idMap);
+        // These are bulk non-initial writes; suppress per-row page-cache
+        // invalidation here — TranslateMenuJob purges the locale once when the
+        // whole batch finishes.
+        $count = ForgetMenuPageCache::withoutInvalidation(
+            fn (): int => $this->parseTsvAndSave($result['text'], $idMap)
+        );
 
         Log::channel('llm')->info('Translation chunk complete', [
             'menu_id' => $this->menu->id,

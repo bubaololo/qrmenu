@@ -109,6 +109,27 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
+    public function test_picker_marks_already_translated_locale_as_available_now(): void
+    {
+        // A locale with real (non-initial) translations must show under "Available
+        // now" even when the page is being viewed in a *different* language.
+        $this->restaurant->update(['primary_language' => 'en']);
+        $this->restaurant->menu->update(['source_locale' => 'en']);
+
+        MenuItem::query()->firstOrFail()
+            ->setTranslation('name', 'fr', 'Café noir', isInitial: false);
+
+        $response = $this->get("/{$this->restaurant->id}/en")->assertStatus(200);
+
+        // The fr option sits in the ready group (data-section precedes nothing but
+        // the class on the same anchor; data-code precedes data-section in markup).
+        $this->assertMatchesRegularExpression(
+            '/data-code="fr"[^>]*data-section="ready"/s',
+            $response->getContent(),
+        );
+    }
+
+    #[Test]
     public function test_handles_restaurant_with_no_active_menu(): void
     {
         $empty = Restaurant::factory()->create();

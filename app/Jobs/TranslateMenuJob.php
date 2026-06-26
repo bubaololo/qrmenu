@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Models\Menu;
 use App\Models\Prompt;
 use App\Services\AnalysisEventBroker;
@@ -121,11 +122,17 @@ class TranslateMenuJob implements ShouldQueue
         $menuId = $this->menu->id;
         $locale = $this->targetLocale;
         $restaurantId = $this->menu->restaurant_id;
+        $restaurantUniqid = $this->menu->restaurant?->uniqid;
 
         Bus::batch($jobs)
             ->name("menu-translation-{$menuId}-{$locale}")
             ->onQueue(config('llm.queue', 'llm-analysis'))
-            ->finally(function ($batch) use ($menuId, $locale, $restaurantId) {
+            ->finally(function ($batch) use ($menuId, $locale, $restaurantId, $restaurantUniqid) {
+                // Purge the now-stale cached pages BEFORE broadcasting completion,
+                // so the client's reload (and any new visitor) renders the freshly
+                // translated page instead of the cached "translating…" one.
+                app(ForgetMenuPageCache::class)->forKeys([(string) $restaurantId, $restaurantUniqid]);
+
                 Log::channel('llm')->info('Translation batch complete', [
                     'menu_id' => $menuId,
                     'target_locale' => $locale,

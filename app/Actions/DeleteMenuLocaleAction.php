@@ -58,5 +58,11 @@ class DeleteMenuLocaleAction
 
         // Drop the on-demand throttle so the language can be re-translated at once.
         Cache::forget("menu_translation:{$menu->id}:{$locale}");
+
+        // Mass delete fires no model events, so the TranslationObserver never
+        // ran — drop the restaurant's cached menu pages explicitly.
+        if ($menu->restaurant !== null) {
+            app(ForgetMenuPageCache::class)->forRestaurant($menu->restaurant);
+        }
     }
 }

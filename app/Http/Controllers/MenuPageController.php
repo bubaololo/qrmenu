@@ -7,6 +7,7 @@ use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Restaurant;
 use App\Models\Translation;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -14,7 +15,7 @@ use Matriphe\ISO639\ISO639;
 
 class MenuPageController extends Controller
 {
-    public function showTable(string $restaurant, string $table, ?string $lang = null): View
+    public function showTable(string $restaurant, string $table, ?string $lang = null): View|RedirectResponse
     {
         $tableModel = DiningTable::where('uniqid', $table)->firstOrFail();
 
@@ -27,7 +28,7 @@ class MenuPageController extends Controller
         return $this->show($restaurantModel->uniqid, $lang, $tableModel->uniqid);
     }
 
-    public function show(string $identifier, ?string $lang = null, ?string $tableUniqid = null): View
+    public function show(string $identifier, ?string $lang = null, ?string $tableUniqid = null): View|RedirectResponse
     {
         $restaurant = is_numeric($identifier)
             ? Restaurant::findOrFail((int) $identifier)
@@ -40,9 +41,28 @@ class MenuPageController extends Controller
         $menu = $restaurant->menu;
         $primaryLang = $restaurant->primary_language ?? 'en';
 
-        // Normalize: null or invalid ISO-639-1 code → default to primaryLang
-        $iso = new ISO639;
-        if ($lang === null || ($lang !== $primaryLang && $iso->languageByCode1($lang) === '')) {
+        // Canonicalize the locale so only servable, canonical pages return 200 (and
+        // therefore get a page-cache file). A provided locale that is bogus (not a
+        // valid ISO-639-1 code) or not permitted by the restaurant's plan
+        // 301-redirects to the primary-language URL; this keeps bot/garbage and
+        // over-tariff locales out of the cache. A null/absent locale renders the
+        // primary language at the bare URL, which is itself canonical.
+        if ($lang !== null && $lang !== $primaryLang) {
+            $iso = new ISO639;
+            $servable = $iso->languageByCode1($lang) !== '' && $restaurant->canServeLocale($lang, $menu);
+
+            if (! $servable) {
+                return redirect()->route(
+                    $tableUniqid !== null ? 'menu.public.table' : 'menu.public',
+                    $tableUniqid !== null
+                        ? ['restaurant' => $identifier, 'table' => $tableUniqid, 'lang' => $primaryLang]
+                        : ['identifier' => $identifier, 'lang' => $primaryLang],
+                    301,
+                );
+            }
+        }
+
+        if ($lang === null) {
             $lang = $primaryLang;
         }
 
@@ -82,7 +102,7 @@ class MenuPageController extends Controller
             $menu = $restaurant->menu; // refresh after potential translation
         }
 
-        $languages = $this->getAvailableLanguages($restaurant, $menu, $lang);
+        $languages = $this->getAvailableLanguages($restaurant, $menu);
 
         if (! collect($languages)->pluck('code')->contains($lang)) {
             $lang = $primaryLang;
@@ -412,7 +432,7 @@ class MenuPageController extends Controller
     /**
      * @return array<int, array{code: string, label: string, flag: string}>
      */
-    private function getAvailableLanguages(Restaurant $restaurant, ?object $menu, ?string $requestedLang = null): array
+    private function getAvailableLanguages(Restaurant $restaurant, ?object $menu): array
     {
         $primaryLang = $restaurant->primary_language ?? 'en';
         $langs = [];
@@ -440,19 +460,25 @@ class MenuPageController extends Controller
             $langs[] = ['code' => 'en', 'label' => 'English', 'flag' => "\u{1F1EC}\u{1F1E7}"];
         }
 
-        // Include requested language if non-initial translations were generated for it.
-        if ($requestedLang && ! collect($langs)->pluck('code')->contains($requestedLang)) {
-            $hasTranslations = $menu && Translation::where('locale', $requestedLang)
+        // Include every locale that already has real (non-initial) translations,
+        // not just the currently-requested one — otherwise a previously-translated
+        // language stays hidden from the "Available now" group while viewing another.
+        $translatedLocales = $menu
+            ? Translation::query()
                 ->where('translatable_type', MenuItem::class)
                 ->where('is_initial', false)
                 ->whereIn('translatable_id', $menu->sections->flatMap->items->pluck('id'))
-                ->exists();
+                ->distinct()
+                ->pluck('locale')
+                ->all()
+            : [];
 
-            if ($hasTranslations) {
+        foreach ($translatedLocales as $code) {
+            if (! collect($langs)->pluck('code')->contains($code)) {
                 $langs[] = [
-                    'code' => $requestedLang,
-                    'label' => $this->getLanguageLabel($requestedLang),
-                    'flag' => $this->getLanguageFlag($requestedLang),
+                    'code' => $code,
+                    'label' => $this->getLanguageLabel($code),
+                    'flag' => $this->getLanguageFlag($code),
                 ];
             }
         }

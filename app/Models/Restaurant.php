@@ -47,6 +47,7 @@ class Restaurant extends Model
         'logo',
         'google_maps_url',
         'coordinates',
+        'max_languages',
     ];
 
     public function getImageUrlAttribute(): ?string
@@ -101,7 +102,41 @@ class Restaurant extends Model
         return [
             'opening_hours' => 'array',
             'coordinates' => PointCast::class,
+            'max_languages' => 'integer',
         ];
+    }
+
+    /**
+     * Whether the restaurant's plan permits serving the public menu in the given
+     * locale. The source and primary language are always free; `max_languages`
+     * (null = unlimited) caps the number of *additional* translated languages.
+     * An already-offered locale keeps serving; a new one is allowed only while
+     * the restaurant is under its cap (so on-demand translation can add it).
+     */
+    public function canServeLocale(string $code, ?Menu $menu): bool
+    {
+        $primary = $this->primary_language ?? 'en';
+        $source = $menu?->source_locale ?? $primary;
+
+        if ($code === $primary || $code === $source) {
+            return true;
+        }
+
+        if ($menu === null) {
+            return false;
+        }
+
+        $limit = $this->max_languages;
+        if ($limit === null) {
+            return true;
+        }
+
+        $offered = $menu->availableLocales()
+            ->pluck('code')
+            ->reject(fn (string $c): bool => $c === $primary || $c === $source)
+            ->unique();
+
+        return $offered->contains($code) || $offered->count() < $limit;
     }
 
     public function creator(): BelongsTo

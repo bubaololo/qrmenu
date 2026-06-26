@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Jobs\DeleteImageFilesJob;
 use App\Models\MenuItem;
 use App\Services\AnalysisEventBroker;
@@ -41,11 +42,13 @@ class MenuItemObserver
 
     public function created(MenuItem $item): void
     {
+        app(ForgetMenuPageCache::class)->forModel($item);
         $this->broadcastChange($item, 'menu-item.created');
     }
 
     public function updated(MenuItem $item): void
     {
+        app(ForgetMenuPageCache::class)->forModel($item);
         $this->broadcastChange($item, 'menu-item.updated');
     }
 
@@ -77,6 +80,7 @@ class MenuItemObserver
             DeleteImageFilesJob::dispatch($paths);
         }
 
+        app(ForgetMenuPageCache::class)->forModel($item);
         $this->broadcastChange($item, 'menu-item.deleted');
     }
 

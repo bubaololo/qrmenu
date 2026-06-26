@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Actions\ForgetMenuPageCache;
 use App\Jobs\DeleteImageFilesJob;
 use App\Models\Menu;
 use App\Models\MenuItem;
@@ -17,6 +18,15 @@ class MenuObserver
 {
     /** @var array<int, array<string, array<int, string>>> */
     private static array $pendingPaths = [];
+
+    /**
+     * Created (a new menu version replaces the one currently served) or updated
+     * (e.g. source_locale change) — drop the restaurant's stale menu pages.
+     */
+    public function saved(Menu $menu): void
+    {
+        app(ForgetMenuPageCache::class)->forModel($menu);
+    }
 
     /**
      * Menu has no own translations (model does not use HasTranslations).
@@ -70,6 +80,8 @@ class MenuObserver
         if ($paths) {
             DeleteImageFilesJob::dispatch($paths);
         }
+
+        app(ForgetMenuPageCache::class)->forModel($menu);
     }
 
     /**
